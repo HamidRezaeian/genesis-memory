@@ -18,6 +18,7 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
+from genesis_memory.core import db as _dbx
 from genesis_memory.cli.client_registry import ClientRegistry, DiscoveredClient, get_default_daemon_path
 from genesis_memory.cli.jsonc_merger import merge_jsonc_file_content
 
@@ -187,10 +188,8 @@ def revert_init() -> int:
 
 def initialize_sqlite_db(db_path: Path) -> None:
     """Initializes local SQLite memory database with optimal pragmas."""
-    conn = sqlite3.connect(str(db_path))
+    conn = _dbx.connect(str(db_path))
     cursor = conn.cursor()
-    cursor.execute("PRAGMA journal_mode = WAL;")
-    cursor.execute("PRAGMA synchronous = NORMAL;")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS episodes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -373,7 +372,7 @@ def run_init(
         # 5. Live Handshake
         if not quiet:
             print("  ⚡ Performing live end-to-end verification handshake...")
-            conn = sqlite3.connect(str(MEMORY_DB_PATH))
+            conn = _dbx.connect(str(MEMORY_DB_PATH), readonly=True)
             count = conn.execute("SELECT COUNT(*) FROM episodes;").fetchone()[0]
             conn.close()
             print(f"     ├── SQLite Subconscious DB : OK ({count} engrams)")

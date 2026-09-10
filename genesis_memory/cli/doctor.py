@@ -13,6 +13,8 @@ from pathlib import Path
 import platform
 import shutil
 import sqlite3
+
+from genesis_memory.core import db as _dbx
 import sys
 import time
 from typing import Dict, List, Tuple
@@ -55,7 +57,7 @@ def check_sqlite_memory() -> Tuple[bool, str, str]:
         return True, "Ready for initialization", "Database will be created automatically on first run"
 
     try:
-        conn = sqlite3.connect(str(MEMORY_DB_PATH), timeout=1.0)
+        conn = _dbx.connect(str(MEMORY_DB_PATH), readonly=True, busy_timeout_ms=1000)
         cursor = conn.cursor()
         cursor.execute("PRAGMA journal_mode;")
         mode = cursor.fetchone()[0]

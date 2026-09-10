@@ -17,6 +17,7 @@ import os
 import sys
 import time
 
+from genesis_memory.core import db as _dbx
 from genesis_memory.sleep import sleep_consolidation as SC
 
 
@@ -220,7 +221,7 @@ def main(argv=None):
         print(f"[WARN] Failed to auto-update AGENTS.md digest: {e}", file=sys.stderr)
 
     import sqlite3
-    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    conn = _dbx.connect(db, readonly=True)
     episodes = conn.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
     conn.close()
     ledger_path = os.path.join(ddir, "ledger.jsonl")

@@ -16,6 +16,8 @@ import hashlib
 import json
 import os
 import sqlite3
+
+from genesis_memory.core import db as _dbx
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -125,7 +127,7 @@ class TeamSyncEngine:
 
     def _ensure_sync_schema(self) -> None:
         """Create sync metadata tables if they don't exist."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         cur = conn.cursor()
         cur.execute(f"""
             CREATE TABLE IF NOT EXISTS {self.VECTOR_CLOCK_TABLE} (
@@ -152,7 +154,7 @@ class TeamSyncEngine:
 
     def _get_vector_clock(self) -> Dict[str, int]:
         """Read the current vector clock state."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         rows = conn.execute(
             f"SELECT author, clock_value FROM {self.VECTOR_CLOCK_TABLE}"
         ).fetchall()
@@ -161,7 +163,7 @@ class TeamSyncEngine:
 
     def _increment_clock(self) -> Dict[str, int]:
         """Increment this author's vector clock entry."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         now = time.time()
         conn.execute(f"""
             INSERT INTO {self.VECTOR_CLOCK_TABLE} (author, clock_value, last_sync_ts)
@@ -187,7 +189,7 @@ class TeamSyncEngine:
         details: str = ""
     ) -> None:
         """Write an audit log entry for the sync operation."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         conn.execute(f"""
             INSERT INTO {self.SYNC_LOG_TABLE}
             (ts, manifest_id, author, operation, diffs_count, conflicts_count, namespace, details)
@@ -207,7 +209,7 @@ class TeamSyncEngine:
         if not ok:
             raise PermissionError(msg)
 
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute("""
             SELECT id, project, kind, text, utility, status, ts
@@ -271,7 +273,7 @@ class TeamSyncEngine:
     def detect_conflicts(self, manifest: SyncManifest) -> List[SyncConflict]:
         """Detect merge conflicts between incoming manifest and local state."""
         conflicts = []
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         conn.row_factory = sqlite3.Row
 
         for diff in manifest.diffs:
@@ -321,7 +323,7 @@ class TeamSyncEngine:
 
         applied = 0
         skipped = 0
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
 
         for diff in manifest.diffs:
             if diff.engram_id in conflict_ids:
@@ -389,7 +391,7 @@ class TeamSyncEngine:
 
     def get_sync_history(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Retrieve recent sync audit log entries."""
-        conn = sqlite3.connect(self.db_path)
+        conn = _dbx.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(f"""
             SELECT * FROM {self.SYNC_LOG_TABLE}

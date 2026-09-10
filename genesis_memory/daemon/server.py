@@ -24,6 +24,9 @@ _pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if _pkg_root not in sys.path:
     sys.path.insert(0, _pkg_root)
 
+from genesis_memory.core import db as _dbx  # noqa: E402  (stdlib-only, import-lean)
+from genesis_memory.core import privacy_shield as _shield  # noqa: E402
+
 # NOTE (RSS discipline): argparse/logging import ONLY inside main()/setup_logging().
 # The stdio server path must stay import-lean; every top-level import costs resident MB.
 
@@ -61,39 +64,22 @@ STOPWORDS = {
 }
 
 
-SECRET_PATTERNS = [
-    # Full PEM blocks first (DOTALL): body must never survive redaction (R2).
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
-               re.DOTALL),
-    # Unclosed marker fallback (fail-closed): a BEGIN without END still guards
-    # everything after it — trailing benign text loss is accepted over a leak.
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*", re.DOTALL),
-    re.compile(r"\b(sk-[a-zA-Z0-9_-]{20,})\b"),
-    re.compile(r"\b(AIza[0-9A-Za-z-_]{30,})\b"),
-    re.compile(r"\b(gh[pousr]_[A-Za-z0-9_]{30,})\b"),
-    re.compile(r"\b(AKIA[0-9A-Z]{16})\b"),
-    re.compile(r"\bBearer\s+[a-zA-Z0-9_\-\.]{25,}\b"),
-]
+# Legacy pattern list kept for import compatibility; the authoritative detector
+# set (structural + Shannon entropy) lives in core.privacy_shield.
+SECRET_PATTERNS = [pat for _name, pat in _shield.STRUCTURAL_PATTERNS]
 
 
 def scan_secrets(text):
-    """Check text for API keys, tokens, and private keys. Pure regex (zero tokens/cost)."""
-    if not text or not isinstance(text, str):
-        return False
-    for pat in SECRET_PATTERNS:
-        if pat.search(text):
-            return True
-    return False
+    """Check text for API keys, tokens, private keys and high-entropy credentials."""
+    return _shield.scan(text)
 
 
 def redact_secrets(text):
-    """Check text for API keys, tokens, and private keys and redact them."""
+    """Redact API keys, tokens, private keys and high-entropy credentials."""
     if not text or not isinstance(text, str):
         return ""
-    result = text
-    for pat in SECRET_PATTERNS:
-        result = pat.sub("[REDACTED_API_KEY]", result)
-    return result
+    clean, _report = _shield.redact(text)
+    return clean
 
 
 DB_PATH = os.environ.get(
@@ -403,7 +389,10 @@ def rss_mb():
                 return round(m.WorkingSetSize / 1048576.0, 1)
             return None
         import resource
-        return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1)
+        maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        # ru_maxrss is bytes on macOS/BSD, kilobytes on Linux.
+        divisor = 1048576.0 if sys.platform == "darwin" else 1024.0
+        return round(maxrss / divisor, 1)
     except Exception:
         return None
 
@@ -411,11 +400,10 @@ def rss_mb():
 class Store:
     def __init__(self, path):
         self.path = path
-        self.db = sqlite3.connect(path)
-        migrate(self.db)  # versioned schema, never loses user data
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("PRAGMA cache_size=-1000")  # ~4MB page cache cap (RSS discipline;
-        # tuned down from 16MB: recall stays sub-50ms on 10K-row scale per bench, RSS wins)
+        # Hardened handle: WAL + 5000ms busy timeout + NORMAL sync; ~4MB page cache
+        # (RSS discipline; recall stays sub-50ms at 10K rows per bench).
+        self.db = _dbx.connect(path, cache_kib=1000)
+        _dbx.retry_on_lock(migrate, self.db)  # versioned schema, never loses user data
         self.calls = {
             "remember": 0, "recall": 0, "forget": 0, "invalidate": 0, "resolve_conflict": 0,
             "get_dependencies": 0, "attest_closure": 0, "status": 0, "hits": 0, "conflicts_detected": 0,
@@ -1081,6 +1069,27 @@ class Store:
 
 
 def handle(store, msg):
+    """JSON-RPC dispatch with lock-storm resilience: a tool call that loses a
+    write race is rolled back and retried (bounded, jittered) instead of
+    surfacing ``database is locked`` to the agent."""
+    attempt = 0
+    while True:
+        try:
+            return _handle_once(store, msg)
+        except sqlite3.OperationalError as exc:
+            if not _dbx.is_lock_error(exc) or attempt >= _dbx.DEFAULT_RETRIES:
+                mid = msg.get("id")
+                return {"jsonrpc": "2.0", "id": mid,
+                        "error": {"code": -32603, "message": f"{type(exc).__name__}: {exc}"}}
+            try:
+                store.db.rollback()
+            except Exception:
+                pass
+            time.sleep(min(0.02 * (2 ** attempt), 0.5))
+            attempt += 1
+
+
+def _handle_once(store, msg):
     mid = msg.get("id")
     method = msg.get("method", "")
 
@@ -1180,6 +1189,10 @@ def handle(store, msg):
         if method.startswith("notifications/"):
             return None
         return err(-32601, f"unknown method: {method}")
+    except sqlite3.OperationalError as e:
+        if _dbx.is_lock_error(e):
+            raise  # handled by the retry loop in handle()
+        return err(-32603, f"{type(e).__name__}: {e}")
     except Exception as e:
         return err(-32603, f"{type(e).__name__}: {e}")
 
