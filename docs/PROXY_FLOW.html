@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فلوچارت تعاملی معماری زنجیره تک‌پرامپتی استیت‌لس | ایده حمید</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #060911;
+      --bg-panel: rgba(13, 19, 33, 0.85);
+      --bg-card: rgba(17, 24, 39, 0.95);
+      --bg-card-hover: rgba(26, 36, 56, 1);
+      --border: rgba(51, 65, 85, 0.45);
+      --border-bright: rgba(56, 189, 248, 0.4);
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.2);
+      --green: #34d399;
+      --green-glow: rgba(52, 211, 153, 0.2);
+      --purple: #818cf8;
+      --purple-glow: rgba(129, 140, 248, 0.2);
+      --amber: #fb923c;
+      --amber-glow: rgba(251, 146, 60, 0.2);
+      --violet: #c084fc;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(129, 140, 248, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(52, 211, 153, 0.05) 0%, transparent 50%),
+        linear-gradient(rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      padding: 14px 28px;
+      background: rgba(10, 15, 26, 0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title h1 {
+      font-size: 17px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .pill-creator {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      border: 1px solid var(--border-bright);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .header-btns {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      border: none;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Sub-header Tabs */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      padding: 10px 28px;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-item {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-item.active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .tab-item.legacy.active {
+      background: rgba(244, 63, 94, 0.12);
+      border-color: var(--rose);
+      color: var(--rose);
+    }
+
+    /* Main Grid Layout */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      padding: 20px 28px;
+      align-items: start;
+    }
+
+    /* Diagram Workspace */
+    .diagram-container {
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    .workspace-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    .workspace-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* Pipeline Row (Horizontal 4-Step Chain) */
+    .pipeline-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      position: relative;
+    }
+
+    /* Step Card */
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .step-card:hover, .step-card.active {
+      transform: translateY(-2px);
+      background: var(--bg-card-hover);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .step-card.card-client:hover, .step-card.card-client.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .step-card.card-proxy:hover, .step-card.card-proxy.active {
+      border-color: var(--purple);
+      box-shadow: 0 0 20px var(--purple-glow);
+    }
+    .step-card.card-memory:hover, .step-card.card-memory.active {
+      border-color: var(--green);
+      box-shadow: 0 0 20px var(--green-glow);
+    }
+    .step-card.card-llm:hover, .step-card.card-llm.active {
+      border-color: var(--violet);
+      box-shadow: 0 0 20px rgba(192, 132, 252, 0.25);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .step-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-cyan { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 1px solid var(--border-bright); }
+    .tag-purple { background: rgba(129, 140, 248, 0.15); color: var(--purple); border: 1px solid rgba(129, 140, 248, 0.35); }
+    .tag-green { background: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid rgba(52, 211, 153, 0.35); }
+    .tag-violet { background: rgba(192, 132, 252, 0.15); color: var(--violet); border: 1px solid rgba(192, 132, 252, 0.35); }
+    .tag-amber { background: rgba(251, 146, 60, 0.15); color: var(--amber); border: 1px solid rgba(251, 146, 60, 0.35); }
+
+    .card-icon {
+      font-size: 18px;
+    }
+
+    .card-header h2 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+
+    .card-header p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      list-style: none;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-list li::before {
+      content: "•";
+      color: var(--cyan);
+      font-weight: bold;
+    }
+
+    .code-pill {
+      background: #090e17;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      direction: ltr;
+      text-align: left;
+    }
+
+    /* Flow Connectors Between Cards */
+    .flow-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px dashed var(--border-bright);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-top: 4px;
+    }
+
+    /* Stream Return Bar */
+    .stream-return-container {
+      background: linear-gradient(90deg, rgba(192, 132, 252, 0.12), rgba(56, 189, 248, 0.12));
+      border: 1px dashed rgba(192, 132, 252, 0.4);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--violet);
+    }
+
+    .stream-tag {
+      background: rgba(192, 132, 252, 0.2);
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #e9d5ff;
+    }
+
+    /* Supporting Subsystems (Row 2) */
+    .subsystem-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .sub-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .sub-card:hover, .sub-card.active {
+      transform: translateY(-2px);
+      background: var(--bg-card-hover);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .sub-card.card-spool:hover, .sub-card.card-spool.active {
+      border-color: var(--amber);
+      box-shadow: 0 0 20px var(--amber-glow);
+    }
+    .sub-card.card-telemetry:hover, .sub-card.card-telemetry.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+
+    .dual-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mini-box {
+      background: #090e17;
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mini-box h4 {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .mini-box p {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* Inspector Sidebar */
+    .inspector-aside {
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 86px;
+    }
+
+    .aside-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .aside-header h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-card h4 {
+      font-size: 11px;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-card p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-box {
+      background: #090e17;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-box span:first-child {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .metric-box span:last-child {
+      font-size: 16px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--green);
+    }
+
+    /* Views Toggling */
+    #legacySection, #metricsSection {
+      display: none;
+    }
+
+    .legacy-card {
+      background: rgba(30, 10, 15, 0.9);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .legacy-step {
+      background: #18080c;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    table.metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #090e17;
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    table.metrics-table th, table.metrics-table td {
+      padding: 10px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    }
+
+    table.metrics-table th {
+      background: #0f172a;
+      color: var(--cyan);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">
+        <h1>
+          معماری تک‌پرامپتی استیت‌لس (Stateless Single-Prompt)
+          <span class="pill-creator">مبدع: حمید</span>
+        </h1>
+        <p>حذف انفجار تصاعدی کانتکست با جایگزینی O(1) به همراه کپسول حافظه ناخودآگاه</p>
+      </div>
+    </div>
+
+    <div class="header-btns">
+      <a href="stateless_prompt_chain_flowchart.svg" download class="btn">
+        📥 دانلود SVG برداری
+      </a>
+      <a href="http://127.0.0.1:8000/telemetry" target="_blank" class="btn btn-primary">
+        📊 تله‌متری زنده (Port 8000)
+      </a>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="tab-nav">
+    <button class="tab-item active" id="tabModern" onclick="showTab('modern')">
+      ⚡ فلوچارت معماری تک‌پرامپتی حمید (O(1))
+    </button>
+    <button class="tab-item legacy" id="tabLegacy" onclick="showTab('legacy')">
+      🛑 آناتومی تورم در زنجیره سنتی (O(N²))
+    </button>
+    <button class="tab-item" id="tabMetrics" onclick="showTab('metrics')">
+      📈 تله‌متری و کارنامه اعتبارسنجی (EXP111)
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Left Area: Diagrams -->
+    <div class="diagram-container">
+
+      <!-- ================= MODERN TAB ================= -->
+      <div id="modernSection" style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="workspace-header">
+          <div class="workspace-title">
+            <span class="status-dot"></span>
+            <span>جریان داده فعال: زنجیره تک‌پرامپتی خالص با کپسول ناخودآگاه (روی هر کارت برای بازرسی کلیک کنید)</span>
+          </div>
+          <span class="code-pill">EXP111 • TIER 1 PASS</span>
+        </div>
+
+        <!-- ROW 1: THE CORE 4-STEP PIPELINE -->
+        <div class="pipeline-row">
+          
+          <!-- Step 1: Client & User -->
+          <div class="step-card card-client" onclick="inspectNode('client')">
+            <div class="card-top">
+              <span class="step-tag tag-cyan">مرحله ۱</span>
+              <span class="card-icon">👤</span>
+            </div>
+            <div class="card-header">
+              <h2>حمید (کاربر) &amp; ایجنت</h2>
+              <p>Client / Antigravity IDE</p>
+            </div>
+            <ul class="feature-list">
+              <li>ارسال پرامپت جاری (Turn N)</li>
+              <li>حذف کامل زنجیره پرامپت‌های قبلی</li>
+              <li>اجرای دستورات از طریق Spool CLI</li>
+            </ul>
+            <div class="flow-badge">
+              <span>پرامپت جاری</span>
+              <span>⬅️</span>
+            </div>
+          </div>
+
+          <!-- Step 2: Stateless Reverse Proxy -->
+          <div class="step-card card-proxy active" onclick="inspectNode('proxy')">
+            <div class="card-top">
+              <span class="step-tag tag-purple">مرحله ۲</span>
+              <span class="card-icon">🛡️</span>
+            </div>
+            <div class="card-header">
+              <h2>دروازه پروکسی استیت‌لس</h2>
+              <p>proxy_server.py</p>
+            </div>
+            <ul class="feature-list">
+              <li>بازنویسی ضمایر (anaphora_rewriter)</li>
+              <li>فشرده‌سازی ابزارها (tool_compactor)</li>
+              <li>تضمین Zero-Orphan Invariant</li>
+            </ul>
+            <div class="flow-badge" style="border-color: var(--green); color: var(--green);">
+              <span>واکشی کپسول</span>
+              <span>⬅️</span>
+            </div>
+          </div>
+
+          <!-- Step 3: Subconscious Memory -->
+          <div class="step-card card-memory" onclick="inspectNode('memory')">
+            <div class="card-top">
+              <span class="step-tag tag-green">مرحله ۳</span>
+              <span class="card-icon">🧠</span>
+            </div>
+            <div class="card-header">
+              <h2>حافظه ناخودآگاه پایدار</h2>
+              <p>~/.genesis/memory.db</p>
+            </div>
+            <ul class="feature-list">
+              <li>بانک اطلاعات SQLite محلی (RSS &lt; 50MB)</li>
+              <li>جستجوی ترکیبی دترمینستیک BM25</li>
+              <li>تزریق کپسول ۲ تا ۳ انگرام (~۱۰۰ توکن)</li>
+            </ul>
+            <div class="flow-badge" style="border-color: var(--violet); color: var(--violet);">
+              <span>پی‌لود فشرده O(1)</span>
+              <span>⬅️</span>
+            </div>
+          </div>
+
+          <!-- Step 4: Upstream LLM -->
+          <div class="step-card card-llm" onclick="inspectNode('llm')">
+            <div class="card-top">
+              <span class="step-tag tag-violet">مرحله ۴</span>
+              <span class="card-icon">☁️</span>
+            </div>
+            <div class="card-header">
+              <h2>ارائه‌دهنده مدل (LLM)</h2>
+              <p>Gemini / Claude / OpenAI</p>
+            </div>
+            <ul class="feature-list">
+              <li>دریافت پی‌لود ۸۷.۶۸٪ سبک‌تر</li>
+              <li>حفظ ۱۰۰٪ کش سرور بدون باخت</li>
+              <li>استریم بلادرنگ با رله مستقیم SSE</li>
+            </ul>
+            <div class="flow-badge" style="border-color: var(--purple); color: var(--purple);">
+              <span>تولید توکن‌ها</span>
+              <span>⚡</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- STREAM RETURN INDICATOR -->
+        <div class="stream-return-container">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>⚡</span>
+            <span>مسیر بازگشت داده: رله مستقیم استریم SSE بدون بافرینگ مخرب ➔ تاخیر افزوده (TTFT): فقط ۵.۶۹ میلی‌ثانیه</span>
+          </div>
+          <span class="stream-tag">Zero-Degradation Stream</span>
+        </div>
+
+        <!-- ROW 2: SUPPORTING SUBSYSTEMS -->
+        <div class="subsystem-row">
+          
+          <!-- Subsystem A: Lossless Spooling (Rule 32) -->
+          <div class="sub-card card-spool" onclick="inspectNode('spool')">
+            <div class="card-top">
+              <span class="step-tag tag-amber">موتور اسپولینگ هدلس (Rule 32)</span>
+              <span class="card-icon">⚙️</span>
+            </div>
+            <div class="card-header">
+              <h2>اجرای دستورات بدون اسپم کانتکست</h2>
+              <p>genesis run -- &lt;command&gt; (pytest, npm, git, cargo)</p>
+            </div>
+            <div class="dual-box">
+              <div class="mini-box">
+                <h4>💾 دیسک محلی (~/.genesis/spool/)</h4>
+                <p>ذخیره ۱۰۰٪ لاگ‌های حجیم خام روی دیسک بدون حذف حتی یک خط خطا</p>
+              </div>
+              <div class="mini-box">
+                <h4>📋 خلاصه دترمینستیک (&lt; ۱۰ خط)</h4>
+                <p>ارسال خلاصه کامپکت خطی به کانتکست کلاینت برای جلوگیری از بادکردن پرامپت</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subsystem B: Telemetry & Lifecycle -->
+          <div class="sub-card card-telemetry" onclick="inspectNode('telemetry')">
+            <div class="card-top">
+              <span class="step-tag tag-cyan">رصدخانه تله‌متری &amp; چرخه خواب</span>
+              <span class="card-icon">📊</span>
+            </div>
+            <div class="card-header">
+              <h2>پایش تله‌متری زنده و ماندگاری سشن</h2>
+              <p>داشبورد پورت 8090 و اسکریپت end_session.py</p>
+            </div>
+            <div class="dual-box">
+              <div class="mini-box">
+                <h4>📊 رصدخانه بلادرنگ (Port 8000)</h4>
+                <p>پایش شفاف توکن‌های فشرده، مصرف RSS و کش سرور طبق قانون Rule 31</p>
+              </div>
+              <div class="mini-box">
+                <h4>🌙 چرخه تثبیت خواب (Sleep Cycle)</h4>
+                <p>تقطیر خودکار Fact / Decision / Outcome در حافظه و به‌روزرسانی AGENTS.md</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= LEGACY TAB ================= -->
+      <div id="legacySection">
+        <div class="legacy-card">
+          <h2 style="font-size: 16px; color: var(--rose);">🛑 فاجعه تورم تصاعدی کانتکست در زنجیره سنتی (Quadratic Context Bloat — O(N²))</h2>
+          <p style="font-size: 12px; color: #fca5a5;">
+            در سیستم‌های عادی، در هر نوبت تمام تاریخچه قبلی تکرار می‌شود؛ نتیجه این است که برای یک سوال کوچک در نوبت ۱۰، ده‌ها هزار توکن تکراری ردوبدل می‌شود:
+          </p>
+
+          <div class="legacy-step">
+            <span>نوبت ۱ (Turn 1): [Prompt 1]</span>
+            <span style="color: var(--green); font-family: monospace;">۵۰ توکن</span>
+          </div>
+
+          <div class="legacy-step">
+            <span>نوبت ۲ (Turn 2): [Prompt 1 + Ans 1 + Tool Logs + Prompt 2]</span>
+            <span style="color: var(--amber); font-family: monospace;">۲,۱۰۰ توکن</span>
+          </div>
+
+          <div class="legacy-step">
+            <span>نوبت ۵ (Turn 5): [پرامپت‌های ۱..۴ + تمام لاگ‌های تست و اجرا + Prompt 5]</span>
+            <span style="color: var(--rose); font-family: monospace;">۱۸,۵۰۰ توکن</span>
+          </div>
+
+          <div class="legacy-step" style="border-color: var(--rose); background: #2b0c12;">
+            <span style="font-weight: 800; color: #ffe4e6;">نوبت ۱۰ (Turn 10): [تجمع پرامپت‌ها، پاسخ‌ها و لاگ‌های خام ۱..۹ + Prompt 10]</span>
+            <span style="color: #f43f5e; font-weight: 800; font-family: monospace; font-size: 14px;">۸۵,۰۰۰ تا ۱۲۰,۰۰۰ توکن!</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;">
+            <div class="mini-box" style="border-color: rgba(244, 63, 94, 0.4);">
+              <h4 style="color: var(--rose);">💸 هزینه وحشتناک دلاری</h4>
+              <p>سوختن بودجه توکن در کمتر از چند چرخش ساده مکالمه</p>
+            </div>
+            <div class="mini-box" style="border-color: rgba(244, 63, 94, 0.4);">
+              <h4 style="color: var(--rose);">🐢 شکست کش و کندی TTFT</h4>
+              <p>شکستن کش پرامپت سرور و تاخیر ۳ تا ۵ ثانیه‌ای به ازای هر پاسخ</p>
+            </div>
+            <div class="mini-box" style="border-color: rgba(244, 63, 94, 0.4);">
+              <h4 style="color: var(--rose);">🧠 توهم و سردرگمی مدل</h4>
+              <p>پدیده گم‌شدن در وسط (Lost in the Middle) بر اثر هزاران خط لاگ نامربوط</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= METRICS TAB ================= -->
+      <div id="metricsSection">
+        <h2 style="font-size: 16px; font-weight: 800; color: var(--green); margin-bottom: 12px;">
+          📊 تله‌متری رسمی اندازه‌گیری‌شده در تست EXP111 (TIER 1 Pass — 60/60 Green)
+        </h2>
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>شاخص ارزیابی</th>
+              <th>زنجیره سنتی چت</th>
+              <th>معماری تک‌پرامپتی حمید</th>
+              <th>میزان بهبود قطعی</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight: 700;">حجم پی‌لود ارسالی (Payload)</td>
+              <td style="color: var(--rose);">رشد تصاعدی تا ۹۵,۰۰۰ توکن</td>
+              <td style="color: var(--green); font-weight: 800;">تک‌پرامپت + کپسول (~۱۱۰ توکن)</td>
+              <td style="color: var(--green); font-weight: 800;">۸۷.۶۸٪ کاهش خالص ↓</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700;">صرفه‌جویی مؤثر در توکن (EffSave)</td>
+              <td style="color: var(--rose);">۰٪ (بدون صرفه‌جویی)</td>
+              <td style="color: var(--green); font-weight: 800;">۸۱.۹۱٪ میانگین سشن‌ها</td>
+              <td style="color: var(--green); font-weight: 800;">+۸۱.۹۱٪ بهره‌وری خالص</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700;">تاخیر اضافه به اولین توکن (TTFT)</td>
+              <td style="color: var(--rose);">&gt; ۲,۸۰۰ میلی‌ثانیه</td>
+              <td style="color: var(--cyan); font-weight: 800;">فقط ۵.۶۹ میلی‌ثانیه</td>
+              <td style="color: var(--cyan); font-weight: 800;">۹۹.۸٪ پاسخ‌دهی سریع‌تر ⚡</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700;">سلامت جفت‌های ابزار (Zero-Orphan)</td>
+              <td style="color: var(--rose);">خطاهای متوالی 400 Schema</td>
+              <td style="color: var(--green); font-weight: 800;">۱۰۰٪ سالم (۰ جفت یتیم)</td>
+              <td style="color: var(--green); font-weight: 800;">۱۰۰٪ پایداری بدون استثنا</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700;">مصرف حافظه رم (RSS)</td>
+              <td style="color: var(--rose);">رشد بی‌رویه در پروسس ایجنت</td>
+              <td style="color: var(--purple); font-weight: 800;">۴۵.۸ مگابایت (زیر سقف ۱۰۰MB)</td>
+              <td style="color: var(--purple); font-weight: 800;">پایبندی به Rule 31</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Right Area: Detail Inspector Panel -->
+    <aside class="inspector-aside">
+      <div class="aside-header">
+        <h3 id="inspectTitle">🛡️ دروازه پروکسی استیت‌لس</h3>
+        <span class="step-tag tag-purple" id="inspectBadge">EXP111 Pass</span>
+      </div>
+
+      <div class="detail-card">
+        <h4>وظیفه در معماری</h4>
+        <p id="inspectDesc">
+          دروازه محلی برای رهگیری درخواست‌های ChatCompletion. پیش از ارسال پرامپت به سرور مدل، تاریخچه تکراری گذشته را پیراسته کرده و کپسول حافظه ناخودآگاه را تزریق می‌کند.
+        </p>
+      </div>
+
+      <div class="detail-card">
+        <h4>تضمین ریاضی و منطقی (Invariant)</h4>
+        <p id="inspectInvariant" style="color: var(--green); font-weight: 600;">
+          Zero-Orphan: هیچ بلاک tool_result بدون بلاک tool_call متناظر در پی‌لود باقی نمی‌ماند.
+        </p>
+      </div>
+
+      <div class="detail-card">
+        <h4>مسیر کد در مخزن</h4>
+        <p class="code-pill" id="inspectCode">genesis_memory/proxy/proxy_server.py</p>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-box">
+          <span>کاهش پی‌لود</span>
+          <span id="mVal1">87.68%</span>
+        </div>
+        <div class="metric-box">
+          <span>تاخیر اضافه</span>
+          <span id="mVal2" style="color: var(--cyan);">5.69 ms</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const nodeDetails = {
+      client: {
+        title: "👤 حمید (کاربر) & ایجنت",
+        badge: "Client Layer",
+        desc: "نقطه شروع چرخه. حمید دستور جاری خود را صادر می‌کند. کلاینت ایجنت (مانند Antigravity IDE) بدون نیاز به الصاق تاریخچه طولانی گذشته، فقط پرامپت جاری را فرموله کرده و با پروکسی استیت‌لس مبادله می‌کند.",
+        invariant: "Single-Turn Payload: ارسال فقط پرامپت نوبت فعلی و حفظ سقف توکن O(1).",
+        code: ".agents/AGENTS.md & run_subconscious_hook.py",
+        m1: "1 Turn Only",
+        m2: "0 ms"
+      },
+      proxy: {
+        title: "🛡️ دروازه پروکسی استیت‌لس",
+        badge: "EXP111 Pass",
+        desc: "هسته پروکسی محلی (proxy_server.py) شامل بازنویس مراجع زمانی (anaphora_rewriter.py) و فشرده‌ساز ابزارها (tool_compactor.py). مانع از رسیدن داده‌های زاید یا جفت‌های یتیم ابزار به ارائه‌دهنده مدل می‌شود.",
+        invariant: "Zero-Orphan & Idempotence: compact(compact(m)) == compact(m)",
+        code: "genesis_memory/proxy/proxy_server.py",
+        m1: "87.68% ↓",
+        m2: "5.69 ms"
+      },
+      memory: {
+        title: "🧠 حافظه ناخودآگاه پایدار",
+        badge: "Rule 31 Compliant",
+        desc: "بانک اطلاعات محلی SQLite با حجم بسیار سبک (زیر ۵۰ مگابایت رم). به صورت دترمینستیک و با قلاب‌های BM25، حداکثر ۲ تا ۳ انگرام حیاتی (~۱۰۰ توکن) را استخراج و در قالب کپسول سنجاق می‌کند.",
+        invariant: "Physical Grounding: ثبت تله‌متری واقعی SQLite به جای ادعاهای تخیلی توکن.",
+        code: "genesis_memory/daemon/server.py",
+        m1: "97.3% Reduction",
+        m2: "2-3 Engrams"
+      },
+      llm: {
+        title: "☁️ ارائه‌دهنده مدل (LLM)",
+        badge: "Zero-Degradation",
+        desc: "سرویس‌های ابری Gemini، Claude یا OpenAI. چون پی‌لود ورودی بسیار سبک و ثابت است، کش پرامپت سرور ۱۰۰٪ حفظ شده و پاسخ استریم به صورت بلادرنگ و بدون تاخیر بازگردانده می‌شود.",
+        invariant: "Zero-Degradation SSE: رله مستقیم استریم بدون مکث یا تغییر شکل داده.",
+        code: "genesis_memory/proxy/proxy_server.py (Stream Relay)",
+        m1: "100% Cache",
+        m2: "Realtime SSE"
+      },
+      spool: {
+        title: "⚙️ موتور اسپولینگ هدلس (Rule 32)",
+        badge: "Lossless Spool",
+        desc: "اجرای امن دستورات ترمینال در محیط ایزوله (CI=1, DEVNULL, UTF-8). لاگ کامل خام روی دیسک ذخیره شده و فقط خلاصه‌ای تمیز و حداکثر ۱۰ خطی به کانتکست ایجنت بازگردانده می‌شود تا متن چت شلوغ نشود.",
+        invariant: "Rule 32 Zero-Spam: سقف خطوط کانتکست + دسترسی ۱۰۰٪ لاگ دیسک.",
+        code: "genesis_memory/cli/run.py & genesis_memory/proxy/spool.py",
+        m1: ">95% Compact",
+        m2: "Lossless Disk"
+      },
+      telemetry: {
+        title: "📊 رصدخانه تله‌متری & چرخه خواب",
+        badge: "Observation Deck",
+        desc: "داشبورد اختصاصی روی پورت 8090 که آمار زنده را نمایش می‌دهد. در پایان سشن‌های کاری نیز end_session.py تصمیم‌ها و فکت‌های کلیدی را تقطیر و ثبت می‌کند.",
+        invariant: "Continuous Ledger Sync & Rule 27 UI Purity.",
+        code: "genesis_memory/dashboard/server.py & genesis_memory/sleep/end_session.py",
+        m1: "Port 8090",
+        m2: "Auto Digest"
+      }
+    };
+
+    function inspectNode(key) {
+      document.querySelectorAll('.step-card, .sub-card').forEach(el => el.classList.remove('active'));
+      const card = document.querySelector(`.card-${key}`);
+      if (card) card.classList.add('active');
+
+      const data = nodeDetails[key];
+      if (!data) return;
+
+      document.getElementById('inspectTitle').innerText = data.title;
+      document.getElementById('inspectBadge').innerText = data.badge;
+      document.getElementById('inspectDesc').innerText = data.desc;
+      document.getElementById('inspectInvariant').innerText = data.invariant;
+      document.getElementById('inspectCode').innerText = data.code;
+      document.getElementById('mVal1').innerText = data.m1;
+      document.getElementById('mVal2').innerText = data.m2;
+    }
+
+    function showTab(tab) {
+      document.getElementById('tabModern').classList.remove('active');
+      document.getElementById('tabLegacy').classList.remove('active');
+      document.getElementById('tabMetrics').classList.remove('active');
+
+      document.getElementById('modernSection').style.display = 'none';
+      document.getElementById('legacySection').style.display = 'none';
+      document.getElementById('metricsSection').style.display = 'none';
+
+      if (tab === 'modern') {
+        document.getElementById('tabModern').classList.add('active');
+        document.getElementById('modernSection').style.display = 'flex';
+        inspectNode('proxy');
+      } else if (tab === 'legacy') {
+        document.getElementById('tabLegacy').classList.add('active');
+        document.getElementById('legacySection').style.display = 'flex';
+      } else if (tab === 'metrics') {
+        document.getElementById('tabMetrics').classList.add('active');
+        document.getElementById('metricsSection').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

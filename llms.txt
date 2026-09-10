@@ -1,0 +1,44 @@
+# GENESIS — agent-readable index
+
+GENESIS is a local-first stateless proxy + episodic memory layer for coding
+agents. It strips resend-heavy history (single-prompt execution), pins
+verified memory capsules, and accounts every token honestly
+(inferred / replayed / verified — a number without provenance is not quoted).
+
+## Proxy (OpenAI-compatible, default http://127.0.0.1:8000)
+
+- `POST /v1/chat/completions` — chat; headers: `Authorization: Bearer <key>`
+  (`not-needed` is replaced server-side), `X-Genesis-Session` (session
+  isolation), `X-Genesis-Client` (attribution). Body: OpenAI `model`,
+  `messages`, `stream`. Non-streaming replies carry `X-Genesis-Receipt`.
+- `GET /v1/models` — model catalog (offline fallback built in).
+- `GET /v1/telemetry` — live counters, cache accounting, cost_accounting.
+- `POST /v1/telemetry/reset` — reset counters.
+- `GET /v1/pricing[?q=&provider=&paid_only=1&limit=&sort=]` — rate catalog.
+- `GET /v1/recovery/{id}` — byte-exact original behind a compression handle.
+- `GET /v1/receipts[?limit=]`, `GET /v1/receipts/{id}` — per-request receipts.
+- `GET /health` — `{status, mode, target_model, store_active}`.
+
+Flags (env, all default off unless noted): `GENESIS_PROXY_MODE=live`,
+`GENESIS_OUTPUT_DIET=1` (terse answers), `GENESIS_CONTENT_COMPRESS=1`
+(bulk shrink + recovery), `GENESIS_UNIVERSAL_CAPSULE=1`,
+`GENESIS_MAX_HISTORY_TURNS=1`.
+
+Full machine spec: `GET /openapi.json` (this dashboard) or repo `openapi.json`.
+
+## Memory (MCP server `genesis-memory`, SQLite `~/.genesis/memory.db`)
+
+Tools: `remember`, `recall`, `forget`, `status`, `thread_update`,
+`thread_get`, `dialogue_get`, `cross_client_resolve` (one-call ladder:
+thread → dialogue → recall → local storage, with provenance or honest
+unresolved) — or the single `genesis` gateway tool
+(`GENESIS_MCP_TOOL_MODE=gateway`: one schema instead of ~14, `{op, ...args}`
+routing, `help` op). Cross-client thread + dialogue buffer
+give continuity across tabs/clients. Every stored claim is eval-gated
+(recall / hallucination / over-injection); failures are published, not hidden.
+
+## Rules for agents working here
+
+- Measure before claiming: provider `usage` beats `chars//4` estimates.
+- Never break tool-call schemas; never invent dollar savings.
+- Prefer editing files to creating them; verify with `pytest` before reporting.

@@ -1,0 +1,249 @@
+{
+  "exp_id": "EXP111_STEP4_EVAL_HARNESS",
+  "date_utc": "2026-09-09 01:25:05",
+  "status": "COMPLETED",
+  "verdict": "TIER_1_UNQUALIFIED_PASS",
+  "provider": "openai",
+  "cache_read_factor": 0.5,
+  "n_sessions": 5,
+  "gates_passed": {
+    "workload_a_recall": true,
+    "workload_a_overinjection": true,
+    "workload_a_hallucination": true,
+    "workload_a_raw_reduction": true,
+    "workload_a_cache_savings": true,
+    "workload_b_fidelity": true,
+    "workload_b_integrity": true,
+    "workload_b_validity": true,
+    "workload_b_raw_reduction": true,
+    "workload_b_cache_savings": true,
+    "system_raw_reduction": true,
+    "system_cache_savings": true,
+    "system_ttft": true,
+    "system_proxy_rss": true,
+    "system_combined_rss": true,
+    "system_stale_reads": true
+  },
+  "all_gates_passed": true,
+  "workload_a": {
+    "recall_hits": "10/10",
+    "overinjected_adversarial_turns": "1/5",
+    "hallucination_events": 0,
+    "raw_token_reduction_pct": 70.6,
+    "cache_aware_savings_pct": 54.05
+  },
+  "workload_b": {
+    "fidelity_100": true,
+    "fidelity_comparisons_min": 30,
+    "integrity_100": true,
+    "validity_gate": true,
+    "raw_token_reduction_pct": 88.04,
+    "cache_aware_savings_pct": 82.01
+  },
+  "system": {
+    "combined_raw_token_reduction_pct": 85.12,
+    "combined_cache_aware_savings_pct": 77.29,
+    "mean_ttft_overhead_ms": 7.27,
+    "proxy_rss_mb": 54.6,
+    "prod_deployment_rss_mb": 78.6,
+    "combined_rss_mb": 78.6,
+    "stale_read_rate_pct": 0.0
+  },
+  "sessions": [
+    {
+      "session": 1,
+      "workload_a": {
+        "recall_hits": 10,
+        "overinjected_adversarial": 1,
+        "hallucination_events": 0,
+        "raw_token_reduction_pct": 70.6,
+        "cache_aware_savings_pct": 54.05,
+        "base_raw": 4071,
+        "proxy_raw": 1197,
+        "base_eff": 2304.5,
+        "proxy_eff": 1059.0
+      },
+      "workload_b": {
+        "fidelity_100": true,
+        "fidelity_mismatches": 0,
+        "fidelity_comparisons": 30,
+        "fidelity_semantic_passes": 0,
+        "rewrite_exemptions": 1,
+        "integrity_100": true,
+        "integrity_violations": 0,
+        "validity_gate": true,
+        "raw_token_reduction_pct": 88.04,
+        "cache_aware_savings_pct": 82.01,
+        "base_raw": 20276,
+        "proxy_raw": 2425,
+        "base_eff": 11347.5,
+        "proxy_eff": 2041.5
+      },
+      "system": {
+        "combined_raw_token_reduction_pct": 85.12,
+        "combined_cache_aware_savings_pct": 77.29,
+        "mean_ttft_overhead_ms": 7.02,
+        "proxy_rss_mb": 53.2,
+        "prod_deployment_rss_mb": 77.2,
+        "combined_rss_mb": 77.2,
+        "stale_read_rate_pct": 0.0
+      }
+    },
+    {
+      "session": 2,
+      "workload_a": {
+        "recall_hits": 10,
+        "overinjected_adversarial": 1,
+        "hallucination_events": 0,
+        "raw_token_reduction_pct": 70.6,
+        "cache_aware_savings_pct": 54.05,
+        "base_raw": 4071,
+        "proxy_raw": 1197,
+        "base_eff": 2304.5,
+        "proxy_eff": 1059.0
+      },
+      "workload_b": {
+        "fidelity_100": true,
+        "fidelity_mismatches": 0,
+        "fidelity_comparisons": 30,
+        "fidelity_semantic_passes": 0,
+        "rewrite_exemptions": 1,
+        "integrity_100": true,
+        "integrity_violations": 0,
+        "validity_gate": true,
+        "raw_token_reduction_pct": 88.04,
+        "cache_aware_savings_pct": 82.01,
+        "base_raw": 20276,
+        "proxy_raw": 2425,
+        "base_eff": 11347.5,
+        "proxy_eff": 2041.5
+      },
+      "system": {
+        "combined_raw_token_reduction_pct": 85.12,
+        "combined_cache_aware_savings_pct": 77.29,
+        "mean_ttft_overhead_ms": 6.8,
+        "proxy_rss_mb": 54.0,
+        "prod_deployment_rss_mb": 78.0,
+        "combined_rss_mb": 78.0,
+        "stale_read_rate_pct": 0.0
+      }
+    },
+    {
+      "session": 3,
+      "workload_a": {
+        "recall_hits": 10,
+        "overinjected_adversarial": 1,
+        "hallucination_events": 0,
+        "raw_token_reduction_pct": 70.6,
+        "cache_aware_savings_pct": 54.05,
+        "base_raw": 4071,
+        "proxy_raw": 1197,
+        "base_eff": 2304.5,
+        "proxy_eff": 1059.0
+      },
+      "workload_b": {
+        "fidelity_100": true,
+        "fidelity_mismatches": 0,
+        "fidelity_comparisons": 30,
+        "fidelity_semantic_passes": 0,
+        "rewrite_exemptions": 1,
+        "integrity_100": true,
+        "integrity_violations": 0,
+        "validity_gate": true,
+        "raw_token_reduction_pct": 88.04,
+        "cache_aware_savings_pct": 82.01,
+        "base_raw": 20276,
+        "proxy_raw": 2425,
+        "base_eff": 11347.5,
+        "proxy_eff": 2041.5
+      },
+      "system": {
+        "combined_raw_token_reduction_pct": 85.12,
+        "combined_cache_aware_savings_pct": 77.29,
+        "mean_ttft_overhead_ms": 6.94,
+        "proxy_rss_mb": 54.4,
+        "prod_deployment_rss_mb": 78.4,
+        "combined_rss_mb": 78.4,
+        "stale_read_rate_pct": 0.0
+      }
+    },
+    {
+      "session": 4,
+      "workload_a": {
+        "recall_hits": 10,
+        "overinjected_adversarial": 1,
+        "hallucination_events": 0,
+        "raw_token_reduction_pct": 70.6,
+        "cache_aware_savings_pct": 54.05,
+        "base_raw": 4071,
+        "proxy_raw": 1197,
+        "base_eff": 2304.5,
+        "proxy_eff": 1059.0
+      },
+      "workload_b": {
+        "fidelity_100": true,
+        "fidelity_mismatches": 0,
+        "fidelity_comparisons": 30,
+        "fidelity_semantic_passes": 0,
+        "rewrite_exemptions": 1,
+        "integrity_100": true,
+        "integrity_violations": 0,
+        "validity_gate": true,
+        "raw_token_reduction_pct": 88.04,
+        "cache_aware_savings_pct": 82.01,
+        "base_raw": 20276,
+        "proxy_raw": 2425,
+        "base_eff": 11347.5,
+        "proxy_eff": 2041.5
+      },
+      "system": {
+        "combined_raw_token_reduction_pct": 85.12,
+        "combined_cache_aware_savings_pct": 77.29,
+        "mean_ttft_overhead_ms": 6.77,
+        "proxy_rss_mb": 54.4,
+        "prod_deployment_rss_mb": 78.4,
+        "combined_rss_mb": 78.4,
+        "stale_read_rate_pct": 0.0
+      }
+    },
+    {
+      "session": 5,
+      "workload_a": {
+        "recall_hits": 10,
+        "overinjected_adversarial": 1,
+        "hallucination_events": 0,
+        "raw_token_reduction_pct": 70.6,
+        "cache_aware_savings_pct": 54.05,
+        "base_raw": 4071,
+        "proxy_raw": 1197,
+        "base_eff": 2304.5,
+        "proxy_eff": 1059.0
+      },
+      "workload_b": {
+        "fidelity_100": true,
+        "fidelity_mismatches": 0,
+        "fidelity_comparisons": 30,
+        "fidelity_semantic_passes": 0,
+        "rewrite_exemptions": 1,
+        "integrity_100": true,
+        "integrity_violations": 0,
+        "validity_gate": true,
+        "raw_token_reduction_pct": 88.04,
+        "cache_aware_savings_pct": 82.01,
+        "base_raw": 20276,
+        "proxy_raw": 2425,
+        "base_eff": 11347.5,
+        "proxy_eff": 2041.5
+      },
+      "system": {
+        "combined_raw_token_reduction_pct": 85.12,
+        "combined_cache_aware_savings_pct": 77.29,
+        "mean_ttft_overhead_ms": 8.83,
+        "proxy_rss_mb": 54.6,
+        "prod_deployment_rss_mb": 78.6,
+        "combined_rss_mb": 78.6,
+        "stale_read_rate_pct": 0.0
+      }
+    }
+  ]
+}
