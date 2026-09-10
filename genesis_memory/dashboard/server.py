@@ -141,6 +141,90 @@ class TelemetryHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+
+        if self.path.startswith("/api/edges"):
+            try:
+                import sqlite3
+                db_to_use = self.db_path if os.path.exists(self.db_path) else DB_PATH
+                conn = sqlite3.connect(db_to_use)
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                rows = cur.execute(
+                    "SELECT id, source, target, relation, file_hash, status FROM edges WHERE status = 'active' OR status IS NULL"
+                ).fetchall()
+                conn.close()
+
+                stdlib_set = {
+                    "os", "sys", "time", "json", "re", "math", "sqlite3", "collections",
+                    "typing", "pathlib", "threading", "datetime", "hashlib", "io",
+                    "subprocess", "copy", "itertools", "functools", "abc", "argparse",
+                    "shutil", "urllib", "ctypes", "traceback", "logging", "asyncio",
+                    "dataclasses", "inspect", "random", "enum", "uuid", "tempfile"
+                }
+
+                nodes_map = {}
+                edges_list = []
+
+                for r in rows:
+                    src = r["source"]
+                    tgt = r["target"]
+                    rel = r["relation"] or "depends_on"
+
+                    for node_id in (src, tgt):
+                        if node_id not in nodes_map:
+                            if node_id.startswith("src/") or node_id.startswith("genesis") or "/" in node_id or "\\" in node_id:
+                                category = "internal"
+                            elif node_id in stdlib_set:
+                                category = "stdlib"
+                            else:
+                                category = "external"
+                            nodes_map[node_id] = {
+                                "id": node_id,
+                                "label": node_id,
+                                "category": category,
+                                "in_degree": 0,
+                                "out_degree": 0,
+                                "in_edges": [],
+                                "out_edges": [],
+                            }
+
+                    nodes_map[src]["out_degree"] += 1
+                    nodes_map[src]["out_edges"].append(tgt)
+                    nodes_map[tgt]["in_degree"] += 1
+                    nodes_map[tgt]["in_edges"].append(src)
+
+                    edges_list.append({
+                        "id": r["id"],
+                        "source": src,
+                        "target": tgt,
+                        "relation": rel
+                    })
+
+                nodes_list = list(nodes_map.values())
+                for n in nodes_list:
+                    n["degree"] = n["in_degree"] + n["out_degree"]
+
+                body = json.dumps({
+                    "count": len(edges_list),
+                    "nodes_count": len(nodes_list),
+                    "nodes": nodes_list,
+                    "edges": edges_list
+                }, indent=2).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            return
         if self.path.startswith("/api/proxy_telemetry"):
             try:
                 import urllib.request

@@ -801,6 +801,461 @@
     z-index: 2000;
   }
 
+  /* ================= AST DEPENDENCY GRAPH MODAL (UI-UX PRO MAX) ================= */
+  .interactive-edges-item {
+    cursor: pointer !important;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .interactive-edges-item:hover {
+    background: rgba(192, 132, 252, 0.12) !important;
+    border-color: rgba(192, 132, 252, 0.5) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(192, 132, 252, 0.2);
+  }
+  .edges-graph-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: rgba(192, 132, 252, 0.15);
+    border: 1px solid rgba(192, 132, 252, 0.35);
+    color: #d8b4fe;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .interactive-edges-item:hover .edges-graph-pill {
+    background: rgba(192, 132, 252, 0.3);
+    border-color: #c084fc;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+  }
+
+  .graph-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 15, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 2600;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .graph-modal-overlay.show {
+    display: flex;
+    opacity: 1;
+  }
+
+  .graph-modal-dialog {
+    background: #080c16;
+    border: 1px solid rgba(192, 132, 252, 0.25);
+    border-radius: 18px;
+    width: 96vw;
+    max-width: 1360px;
+    height: 92vh;
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 50px rgba(192, 132, 252, 0.15);
+    transform: scale(0.96) translateY(10px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+  .graph-modal-overlay.show .graph-modal-dialog {
+    transform: scale(1) translateY(0);
+  }
+
+  .graph-modal-header {
+    padding: 14px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.65);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .graph-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(192, 132, 252, 0.12);
+    border: 1px solid rgba(192, 132, 252, 0.35);
+    color: #c084fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.2);
+  }
+
+  .graph-pill-badge {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(192, 132, 252, 0.15);
+    color: #d8b4fe;
+    border: 1px solid rgba(192, 132, 252, 0.35);
+  }
+
+  .graph-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .graph-search-wrap svg {
+    position: absolute;
+    left: 10px;
+    color: var(--txt-dim);
+    pointer-events: none;
+  }
+  .graph-search-wrap input {
+    width: 200px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 6px 26px 6px 30px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: #fff;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .graph-search-wrap input:focus {
+    width: 260px;
+    border-color: #c084fc;
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.25);
+  }
+  #graphSearchClearBtn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--txt-dim);
+    cursor: pointer;
+    font-size: 11px;
+  }
+  #graphSearchClearBtn:hover { color: #fff; }
+
+  .graph-btn-tool {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--txt-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .graph-btn-tool:hover {
+    background: rgba(192, 132, 252, 0.18);
+    border-color: rgba(192, 132, 252, 0.4);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
+  }
+
+  .graph-modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--txt-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-left: 4px;
+  }
+  .graph-modal-close:hover {
+    background: rgba(244, 63, 94, 0.15);
+    border-color: rgba(244, 63, 94, 0.4);
+    color: var(--accent-rose);
+  }
+
+  .graph-filter-bar {
+    padding: 8px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(11, 16, 30, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .graph-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .graph-pill {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--txt-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .graph-pill:hover, .graph-pill.active {
+    background: rgba(192, 132, 252, 0.18);
+    border-color: rgba(192, 132, 252, 0.4);
+    color: #e9d5ff;
+  }
+  .cat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .graph-hint-text {
+    font-size: 11px;
+    color: var(--txt-dim);
+    font-family: var(--font-mono);
+  }
+
+  .graph-body-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .graph-canvas-container {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    background: radial-gradient(circle at 50% 50%, #0c1220 0%, #050811 100%);
+    cursor: grab;
+    overflow: hidden;
+  }
+  .graph-canvas-container:active { cursor: grabbing; }
+
+  #edgesGraphCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .graph-tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(192, 132, 252, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #fff;
+    z-index: 100;
+    max-width: 320px;
+    transform: translate(12px, 12px);
+    backdrop-filter: blur(10px);
+  }
+
+  .graph-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 12, 22, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: opacity 0.3s;
+  }
+  .graph-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(192, 132, 252, 0.2);
+    border-top-color: #c084fc;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .graph-inspector-drawer {
+    width: 340px;
+    height: 100%;
+    background: rgba(10, 15, 28, 0.94);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 40;
+  }
+  .graph-inspector-drawer.collapsed {
+    margin-right: -340px;
+  }
+
+  .inspector-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .inspector-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(192, 132, 252, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(192, 132, 252, 0.3);
+  }
+  .inspector-close-btn {
+    background: none;
+    border: none;
+    color: var(--txt-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+  }
+  .inspector-close-btn:hover { color: #fff; }
+
+  .inspector-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+  }
+
+  .insp-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    font-family: var(--font-mono);
+    word-break: break-all;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+
+  .insp-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .insp-metric-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .insp-metric-num {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .insp-metric-label {
+    font-size: 10px;
+    color: var(--txt-muted);
+    margin-top: 2px;
+  }
+
+  .insp-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--txt-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .insp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .insp-item {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    word-break: break-all;
+  }
+  .insp-item:hover {
+    background: rgba(192, 132, 252, 0.15);
+    border-color: rgba(192, 132, 252, 0.35);
+    color: #fff;
+    transform: translateX(2px);
+  }
+  .insp-empty {
+    font-size: 11px;
+    color: var(--txt-dim);
+    font-style: italic;
+    padding: 4px 0;
+  }
+
+  .graph-modal-footer {
+    padding: 12px 22px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.65);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .graph-legend-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    font-size: 11px;
+    color: var(--txt-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
   /* ================= PRICING & SAVINGS MODAL (UI-UX PRO MAX) ================= */
   #proxyDollarsSavedCard {
     cursor: pointer;
@@ -1454,12 +1909,18 @@
           </div>
           <span class="traffic-count" id="callStatus">--</span>
         </div>
-        <div class="traffic-item">
+        <div class="traffic-item interactive-edges-item" id="edgesTrafficItem" onclick="openEdgesGraphModal()" title="Click to view interactive AST Dependency Graph">
           <div class="tool-name-box">
             <span class="tool-badge" style="color:#c084fc; border-color:rgba(192,132,252,0.25); background:rgba(192,132,252,0.06);">edges</span>
             <span style="font-size:12px; color:var(--txt-muted);">AST depends_on</span>
           </div>
-          <span class="traffic-count" id="callEdges" style="color:#c084fc;">--</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="traffic-count" id="callEdges" style="color:#c084fc;">--</span>
+            <span class="edges-graph-pill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="7.5"/><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"/><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"/></svg>
+              Graph ↗
+            </span>
+          </div>
         </div>
         <div class="traffic-item">
           <div class="tool-name-box">
@@ -1757,6 +2218,145 @@
       </div>
       <div style="display:flex; gap:10px;">
         <button class="btn" onclick="closePricingModal()">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AST Dependency & Knowledge Graph Modal (UI-UX Pro Max) -->
+<div class="graph-modal-overlay" id="edgesGraphModalOverlay" onclick="handleGraphOverlayClick(event)">
+  <div class="graph-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="graphModalTitle">
+    
+    <!-- Modal Header -->
+    <div class="graph-modal-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="graph-icon-box">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/>
+            <line x1="8.5" y1="7.5" x2="15.5" y2="7.5"/><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"/><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"/>
+          </svg>
+        </div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h2 id="graphModalTitle" style="font-size:17px; font-weight:700; color:#fff; margin:0;">AST Dependency &amp; Knowledge Graph</h2>
+            <span class="graph-pill-badge" id="graphEdgesCountBadge">796 Edges</span>
+            <span class="graph-pill-badge" id="graphNodesCountBadge" style="background:rgba(56,189,248,0.15); color:var(--accent-cyan); border-color:rgba(56,189,248,0.35);">207 Nodes</span>
+            <span class="status-pill" style="padding:2px 8px; font-size:10px;"><span class="pulse-dot"></span>Deterministic AST</span>
+          </div>
+          <p style="font-size:12px; color:var(--txt-dim); margin:2px 0 0 0;">
+            Interactive physics-simulated topological graph of code dependencies, imports, and system closure.
+          </p>
+        </div>
+      </div>
+
+      <!-- Top Right Toolbar Controls -->
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="graph-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="graphSearchInput" placeholder="Search modules / packages..." oninput="onGraphSearchChange(this.value)">
+          <button id="graphSearchClearBtn" onclick="clearGraphSearch()" style="display:none;">✕</button>
+        </div>
+        <button class="graph-btn-tool" onclick="zoomGraph(1.25)" title="Zoom In (+)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button class="graph-btn-tool" onclick="zoomGraph(0.8)" title="Zoom Out (-)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button class="graph-btn-tool" onclick="fitGraphView()" title="Fit to Screen (F)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button class="graph-btn-tool" id="graphPhysicsToggleBtn" onclick="toggleGraphPhysics()" title="Pause/Resume Physics (Space)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button class="graph-btn-tool" onclick="exportGraphImage()" title="Export PNG">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="graph-modal-close" onclick="closeEdgesGraphModal()" aria-label="Close modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Category Tabs & Legend -->
+    <div class="graph-filter-bar">
+      <div class="graph-filter-pills" id="graphCategoryPills">
+        <button class="graph-pill active" onclick="filterGraphByCategory('all')">All Nodes (<span id="catCountAll">207</span>)</button>
+        <button class="graph-pill" onclick="filterGraphByCategory('internal')"><span class="cat-dot" style="background:#c084fc;"></span>Internal Code (<span id="catCountInternal">133</span>)</button>
+        <button class="graph-pill" onclick="filterGraphByCategory('external')"><span class="cat-dot" style="background:#f59e0b;"></span>External Packages (<span id="catCountExternal">50</span>)</button>
+        <button class="graph-pill" onclick="filterGraphByCategory('stdlib')"><span class="cat-dot" style="background:#10b981;"></span>Python Stdlib (<span id="catCountStdlib">24</span>)</button>
+        <button class="graph-pill" onclick="filterGraphByCategory('hubs')"><span class="cat-dot" style="background:#38bdf8;"></span>Top Hubs (Degree &gt; 10)</button>
+      </div>
+      <div class="graph-hint-text">
+        <span>💡 Drag nodes &bull; Scroll to zoom &bull; Click node to inspect details</span>
+      </div>
+    </div>
+
+    <!-- Canvas & Inspector Body -->
+    <div class="graph-body-wrap">
+      <div class="graph-canvas-container" id="graphCanvasContainer">
+        <canvas id="edgesGraphCanvas"></canvas>
+        <div class="graph-tooltip" id="graphTooltip"></div>
+        <div class="graph-loading-overlay" id="graphLoadingOverlay">
+          <div class="graph-spinner"></div>
+          <div style="font-size:13px; color:var(--txt-muted); margin-top:12px;">Synthesizing AST Topological Graph...</div>
+        </div>
+      </div>
+
+      <!-- Inspector Drawer (Collapsible) -->
+      <div class="graph-inspector-drawer collapsed" id="graphInspectorDrawer">
+        <div class="inspector-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="inspector-badge" id="inspCategoryBadge">INTERNAL</span>
+            <span style="font-size:12px; color:var(--txt-muted); font-family:var(--font-mono);" id="inspDegreeLabel">Degree: 0</span>
+          </div>
+          <button class="inspector-close-btn" onclick="closeGraphInspector()">✕</button>
+        </div>
+        
+        <div class="inspector-content">
+          <div class="insp-title" id="inspNodeTitle">select_node.py</div>
+
+          <div class="insp-metrics-grid">
+            <div class="insp-metric-card">
+              <div class="insp-metric-num" id="inspInDegree" style="color:var(--accent-cyan);">0</div>
+              <div class="insp-metric-label">Incoming (Imported By)</div>
+            </div>
+            <div class="insp-metric-card">
+              <div class="insp-metric-num" id="inspOutDegree" style="color:var(--accent-purple);">0</div>
+              <div class="insp-metric-label">Outgoing (Depends On)</div>
+            </div>
+          </div>
+
+          <!-- Dependencies Section -->
+          <div class="insp-section-title">
+            <span>Depends On (<span id="inspOutCount">0</span>)</span>
+          </div>
+          <div class="insp-list" id="inspDependenciesList">
+            <div class="insp-empty">No dependencies</div>
+          </div>
+
+          <!-- Dependents Section -->
+          <div class="insp-section-title" style="margin-top:16px;">
+            <span>Required By (<span id="inspInCount">0</span>)</span>
+          </div>
+          <div class="insp-list" id="inspDependentsList">
+            <div class="insp-empty">No dependents</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="graph-modal-footer">
+      <div class="graph-legend-bar">
+        <span class="legend-item"><span class="legend-dot" style="background:#c084fc;"></span>Internal File (`src/*`)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#38bdf8;"></span>Genesis Core Module</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>External Package (numpy, torch...)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Python Standard Library</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span style="font-size:11px; color:var(--txt-dim); font-family:var(--font-mono);" id="graphFpsStats">60 FPS</span>
+        <button class="btn" onclick="closeEdgesGraphModal()">Close</button>
       </div>
     </div>
 
@@ -2700,6 +3300,814 @@ window.addEventListener("DOMContentLoaded", () => {
   pollLedger();
   pollProxyTelemetry();
 });
+/* ================= AST DEPENDENCY GRAPH CONTROLLER & PHYSICS (UI-UX PRO MAX) ================= */
+let edgesGraphData = null;
+let graphNodes = [];
+let graphEdges = [];
+let graphAnimId = null;
+let graphCanvas = null;
+let graphCtx = null;
+let graphPanX = 0;
+let graphPanY = 0;
+let graphZoom = 1.0;
+let graphIsDraggingNode = false;
+let graphDraggedNode = null;
+let graphIsPanning = false;
+let graphPanStartX = 0;
+let graphPanStartY = 0;
+let graphHoveredNode = null;
+let graphSelectedNode = null;
+let graphPhysicsPaused = false;
+let graphActiveCategory = 'all';
+let graphSearchTerm = '';
+let graphAlpha = 1.0;
+let graphLastFrameTime = performance.now();
+let graphFps = 60;
+
+if (typeof escapeHtml !== 'function') {
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+}
+
+const GRAPH_COLORS = {
+  internal: { stroke: '#c084fc', fill: 'rgba(192, 132, 252, 0.22)', glow: 'rgba(192, 132, 252, 0.4)' },
+  stdlib:   { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.22)', glow: 'rgba(16, 185, 129, 0.4)' },
+  external: { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.22)', glow: 'rgba(245, 158, 11, 0.4)' },
+  edge:     'rgba(192, 132, 252, 0.15)',
+  edgeActive: '#c084fc',
+  edgeDimmed: 'rgba(255, 255, 255, 0.03)'
+};
+
+function openEdgesGraphModal() {
+  const modal = document.getElementById("edgesGraphModalOverlay");
+  if (!modal) return;
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+
+  if (!graphCanvas) {
+    initGraphCanvas();
+  }
+
+  if (!edgesGraphData) {
+    loadEdgesData();
+  } else {
+    resizeGraphCanvas();
+    startGraphSimulation();
+  }
+}
+
+function closeEdgesGraphModal() {
+  const modal = document.getElementById("edgesGraphModalOverlay");
+  if (modal) modal.classList.remove("show");
+  document.body.style.overflow = "";
+  if (graphAnimId) {
+    cancelAnimationFrame(graphAnimId);
+    graphAnimId = null;
+  }
+}
+
+function handleGraphOverlayClick(e) {
+  if (e.target.id === "edgesGraphModalOverlay") {
+    closeEdgesGraphModal();
+  }
+}
+
+async function loadEdgesData() {
+  const loading = document.getElementById("graphLoadingOverlay");
+  if (loading) loading.style.display = "flex";
+
+  try {
+    const res = await fetch("/api/edges");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    edgesGraphData = data;
+
+    // Update badges
+    const edgesBadge = document.getElementById("graphEdgesCountBadge");
+    if (edgesBadge) edgesBadge.innerText = fmt(data.count) + " Edges";
+    const nodesBadge = document.getElementById("graphNodesCountBadge");
+    if (nodesBadge) nodesBadge.innerText = fmt(data.nodes_count) + " Nodes";
+
+    // Category counts
+    let cInt = 0, cExt = 0, cStd = 0;
+    data.nodes.forEach(n => {
+      if (n.category === 'internal') cInt++;
+      else if (n.category === 'stdlib') cStd++;
+      else cExt++;
+    });
+    const cAllEl = document.getElementById("catCountAll");
+    if (cAllEl) cAllEl.innerText = data.nodes_count;
+    const cIntEl = document.getElementById("catCountInternal");
+    if (cIntEl) cIntEl.innerText = cInt;
+    const cExtEl = document.getElementById("catCountExternal");
+    if (cExtEl) cExtEl.innerText = cExt;
+    const cStdEl = document.getElementById("catCountStdlib");
+    if (cStdEl) cStdEl.innerText = cStd;
+
+    setupGraphNodesAndEdges(data);
+    resizeGraphCanvas();
+    fitGraphView();
+    startGraphSimulation();
+
+    if (loading) loading.style.display = "none";
+  } catch (err) {
+    console.error("Failed to load edges graph:", err);
+    if (loading) {
+      loading.innerHTML = `<div style="color:var(--accent-rose); font-size:13px;">Failed to load AST edges: ${err.message}</div><button class="btn" style="margin-top:10px;" onclick="loadEdgesData()">Retry</button>`;
+    }
+  }
+}
+
+function setupGraphNodesAndEdges(data) {
+  const nodeMap = new Map();
+  const width = graphCanvas ? graphCanvas.width / (window.devicePixelRatio || 1) : 1000;
+  const height = graphCanvas ? graphCanvas.height / (window.devicePixelRatio || 1) : 700;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  // Initialize nodes in an aesthetic circular / concentric layout
+  graphNodes = data.nodes.map((n, idx) => {
+    const angle = (idx / data.nodes.length) * Math.PI * 2;
+    // Hubs closer to center, stdlib in outer orbit
+    const radiusDist = n.category === 'internal' ? (120 + Math.random() * 260) :
+                       n.category === 'external' ? (280 + Math.random() * 160) :
+                       (380 + Math.random() * 120);
+    const radius = Math.max(5, Math.min(22, 4 + Math.sqrt(n.degree || 1) * 2.2));
+
+    const nodeObj = {
+      ...n,
+      x: cx + Math.cos(angle) * radiusDist,
+      y: cy + Math.sin(angle) * radiusDist,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      radius: radius,
+      mass: Math.max(1, radius * 0.8),
+      colorInfo: GRAPH_COLORS[n.category] || GRAPH_COLORS.internal
+    };
+    nodeMap.set(n.id, nodeObj);
+    return nodeObj;
+  });
+
+  graphEdges = data.edges.map(e => {
+    return {
+      ...e,
+      sourceNode: nodeMap.get(e.source),
+      targetNode: nodeMap.get(e.target)
+    };
+  }).filter(e => e.sourceNode && e.targetNode);
+
+  graphAlpha = 1.0;
+}
+
+function initGraphCanvas() {
+  graphCanvas = document.getElementById("edgesGraphCanvas");
+  if (!graphCanvas) return;
+  graphCtx = graphCanvas.getContext("2d");
+
+  window.addEventListener("resize", () => {
+    const modal = document.getElementById("edgesGraphModalOverlay");
+    if (modal && modal.classList.contains("show")) {
+      resizeGraphCanvas();
+    }
+  });
+
+  // Mouse / Touch event listeners
+  graphCanvas.addEventListener("mousedown", onGraphMouseDown);
+  window.addEventListener("mousemove", onGraphMouseMove);
+  window.addEventListener("mouseup", onGraphMouseUp);
+  graphCanvas.addEventListener("wheel", onGraphWheel, { passive: false });
+
+  // Touch support
+  graphCanvas.addEventListener("touchstart", onGraphTouchStart, { passive: false });
+  window.addEventListener("touchmove", onGraphTouchMove, { passive: false });
+  window.addEventListener("touchend", onGraphTouchEnd);
+
+  // Keyboard shortcut listener
+  window.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("edgesGraphModalOverlay");
+    if (!modal || !modal.classList.contains("show")) return;
+
+    if (e.key === "Escape") {
+      closeEdgesGraphModal();
+    } else if (e.key === " " && e.target.tagName !== "INPUT") {
+      e.preventDefault();
+      toggleGraphPhysics();
+    } else if ((e.key === "f" || e.key === "F") && e.target.tagName !== "INPUT") {
+      fitGraphView();
+    }
+  });
+}
+
+function resizeGraphCanvas() {
+  if (!graphCanvas) return;
+  const container = document.getElementById("graphCanvasContainer");
+  if (!container) return;
+
+  const rect = container.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  graphCanvas.width = rect.width * dpr;
+  graphCanvas.height = rect.height * dpr;
+}
+
+function startGraphSimulation() {
+  if (graphAnimId) cancelAnimationFrame(graphAnimId);
+
+  function step(time) {
+    const dt = (time - graphLastFrameTime) / 1000;
+    graphLastFrameTime = time;
+    if (dt > 0) graphFps = Math.round(1 / dt);
+
+    if (time % 30 < 1) {
+      const fpsEl = document.getElementById("graphFpsStats");
+      if (fpsEl) fpsEl.innerText = graphFps + " FPS";
+    }
+
+    if (!graphPhysicsPaused && graphAlpha > 0.005) {
+      updatePhysics();
+    }
+    renderGraph();
+    graphAnimId = requestAnimationFrame(step);
+  }
+
+  graphLastFrameTime = performance.now();
+  graphAnimId = requestAnimationFrame(step);
+}
+
+function updatePhysics() {
+  const container = document.getElementById("graphCanvasContainer");
+  const rect = container ? container.getBoundingClientRect() : { width: 1000, height: 700 };
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+
+  const nodeCount = graphNodes.length;
+  const repForce = 450;
+  const springK = 0.045;
+  const targetDist = 70;
+  const gravityK = 0.012;
+
+  // 1. Center gravity
+  for (let i = 0; i < nodeCount; i++) {
+    const n = graphNodes[i];
+    n.vx += (cx - n.x) * gravityK * graphAlpha;
+    n.vy += (cy - n.y) * gravityK * graphAlpha;
+  }
+
+  // 2. Node-node repulsion
+  for (let i = 0; i < nodeCount; i++) {
+    const n1 = graphNodes[i];
+    for (let j = i + 1; j < nodeCount; j++) {
+      const n2 = graphNodes[j];
+      const dx = n2.x - n1.x;
+      const dy = n2.y - n1.y;
+      const distSq = dx * dx + dy * dy + 80;
+      if (distSq < 90000) {
+        const dist = Math.sqrt(distSq);
+        const f = (repForce / distSq) * graphAlpha;
+        const fx = (dx / dist) * f;
+        const fy = (dy / dist) * f;
+        n1.vx -= fx / n1.mass;
+        n1.vy -= fy / n1.mass;
+        n2.vx += fx / n2.mass;
+        n2.vy += fy / n2.mass;
+      }
+    }
+  }
+
+  // 3. Edge spring attraction
+  for (let i = 0; i < graphEdges.length; i++) {
+    const e = graphEdges[i];
+    const s = e.sourceNode;
+    const t = e.targetNode;
+    const dx = t.x - s.x;
+    const dy = t.y - s.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const f = (dist - targetDist) * springK * graphAlpha;
+    const fx = (dx / dist) * f;
+    const fy = (dy / dist) * f;
+    s.vx += fx / s.mass;
+    s.vy += fy / s.mass;
+    t.vx -= fx / t.mass;
+    t.vy -= fy / t.mass;
+  }
+
+  // 4. Update positions with damping
+  const damping = 0.88;
+  for (let i = 0; i < nodeCount; i++) {
+    const n = graphNodes[i];
+    if (n === graphDraggedNode) continue;
+    n.vx *= damping;
+    n.vy *= damping;
+    n.x += n.vx;
+    n.y += n.vy;
+  }
+
+  graphAlpha *= 0.996;
+}
+
+function renderGraph() {
+  if (!graphCtx || !graphCanvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const width = graphCanvas.width / dpr;
+  const height = graphCanvas.height / dpr;
+
+  graphCtx.save();
+  graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+  graphCtx.scale(dpr, dpr);
+
+  // Apply Camera Transform
+  graphCtx.translate(graphPanX, graphPanY);
+  graphCtx.scale(graphZoom, graphZoom);
+
+  // Subtle starry grid dots
+  drawCanvasGrid(graphCtx, width, height);
+
+  const isFiltering = graphActiveCategory !== 'all' || graphSearchTerm !== '';
+  const isFocusing = graphHoveredNode || graphSelectedNode;
+  const focusNode = graphHoveredNode || graphSelectedNode;
+
+  // Active connected sets
+  const connectedNodeIds = new Set();
+  const connectedEdgeIds = new Set();
+  if (focusNode) {
+    connectedNodeIds.add(focusNode.id);
+    (focusNode.out_edges || []).forEach(id => connectedNodeIds.add(id));
+    (focusNode.in_edges || []).forEach(id => connectedNodeIds.add(id));
+    graphEdges.forEach(e => {
+      if (e.source === focusNode.id || e.target === focusNode.id) {
+        connectedEdgeIds.add(e.id);
+      }
+    });
+  }
+
+  // 1. Draw Edges
+  for (let i = 0; i < graphEdges.length; i++) {
+    const e = graphEdges[i];
+    const isConn = isFocusing && connectedEdgeIds.has(e.id);
+
+    if (isFocusing && !isConn) {
+      graphCtx.strokeStyle = GRAPH_COLORS.edgeDimmed;
+      graphCtx.lineWidth = 0.8;
+    } else if (isConn) {
+      graphCtx.strokeStyle = GRAPH_COLORS.edgeActive;
+      graphCtx.lineWidth = 2.4;
+      graphCtx.shadowColor = '#c084fc';
+      graphCtx.shadowBlur = 8;
+    } else {
+      graphCtx.strokeStyle = GRAPH_COLORS.edge;
+      graphCtx.lineWidth = 1.0;
+      graphCtx.shadowBlur = 0;
+    }
+
+    graphCtx.beginPath();
+    graphCtx.moveTo(e.sourceNode.x, e.sourceNode.y);
+    graphCtx.lineTo(e.targetNode.x, e.targetNode.y);
+    graphCtx.stroke();
+    graphCtx.shadowBlur = 0;
+
+    // Draw direction arrow
+    if (isConn || graphZoom > 1.2) {
+      drawEdgeArrow(graphCtx, e.sourceNode, e.targetNode, isConn);
+    }
+  }
+
+  // 2. Draw Nodes
+  for (let i = 0; i < graphNodes.length; i++) {
+    const n = graphNodes[i];
+    const isMatchingSearch = !graphSearchTerm || n.id.toLowerCase().includes(graphSearchTerm);
+    const isMatchingCat = (graphActiveCategory === 'all') ||
+      (graphActiveCategory === 'internal' && n.category === 'internal') ||
+      (graphActiveCategory === 'external' && n.category === 'external') ||
+      (graphActiveCategory === 'stdlib' && n.category === 'stdlib') ||
+      (graphActiveCategory === 'hubs' && n.degree >= 10);
+
+    const isVisible = isMatchingSearch && isMatchingCat;
+    const isConnected = isFocusing ? connectedNodeIds.has(n.id) : true;
+    const isHighlight = (n === focusNode);
+
+    let alpha = 1.0;
+    if (!isVisible) alpha = 0.15;
+    else if (isFocusing && !isConnected) alpha = 0.2;
+
+    graphCtx.globalAlpha = alpha;
+
+    // Outer glow for hubs / selected
+    if (isHighlight) {
+      graphCtx.beginPath();
+      graphCtx.arc(n.x, n.y, n.radius + 8, 0, Math.PI * 2);
+      graphCtx.fillStyle = n.colorInfo.glow;
+      graphCtx.fill();
+    }
+
+    // Node body
+    graphCtx.beginPath();
+    graphCtx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+    graphCtx.fillStyle = n.colorInfo.fill;
+    graphCtx.fill();
+    graphCtx.strokeStyle = n.colorInfo.stroke;
+    graphCtx.lineWidth = isHighlight ? 3.0 : 1.6;
+    graphCtx.stroke();
+
+    // Inner bright center dot
+    graphCtx.beginPath();
+    graphCtx.arc(n.x, n.y, Math.max(2, n.radius * 0.35), 0, Math.PI * 2);
+    graphCtx.fillStyle = n.colorInfo.stroke;
+    graphCtx.fill();
+
+    // Node Label
+    const showLabel = isHighlight || (isFocusing && isConnected) || (n.degree >= 12) || (graphZoom > 1.1 && isVisible);
+    if (showLabel) {
+      drawNodeLabel(graphCtx, n, isHighlight);
+    }
+  }
+
+  graphCtx.globalAlpha = 1.0;
+  graphCtx.restore();
+}
+
+function drawCanvasGrid(ctx, w, h) {
+  ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+  const step = 80;
+  const startX = Math.floor((-graphPanX / graphZoom) / step) * step - step;
+  const endX = startX + (w / graphZoom) + step * 2;
+  const startY = Math.floor((-graphPanY / graphZoom) / step) * step - step;
+  const endY = startY + (h / graphZoom) + step * 2;
+
+  for (let x = startX; x < endX; x += step) {
+    for (let y = startY; y < endY; y += step) {
+      ctx.fillRect(x, y, 1.5, 1.5);
+    }
+  }
+}
+
+function drawEdgeArrow(ctx, s, t, isConn) {
+  const dx = t.x - s.x;
+  const dy = t.y - s.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 20) return;
+
+  // Arrow placed at 65% distance
+  const arrowX = s.x + dx * 0.65;
+  const arrowY = s.y + dy * 0.65;
+  const angle = Math.atan2(dy, dx);
+  const arrowSize = isConn ? 7 : 5;
+
+  ctx.save();
+  ctx.translate(arrowX, arrowY);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-arrowSize, -arrowSize * 0.5);
+  ctx.lineTo(-arrowSize, arrowSize * 0.5);
+  ctx.closePath();
+  ctx.fillStyle = isConn ? '#c084fc' : 'rgba(192, 132, 252, 0.4)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawNodeLabel(ctx, n, isHighlight) {
+  ctx.save();
+  ctx.font = isHighlight ? 'bold 12px JetBrains Mono, monospace' : '10.5px JetBrains Mono, monospace';
+  const text = n.label;
+  const textWidth = ctx.measureText(text).width;
+  const boxX = n.x - textWidth / 2 - 4;
+  const boxY = n.y + n.radius + 4;
+
+  // Dark background pill for crisp readability
+  ctx.fillStyle = 'rgba(6, 9, 17, 0.88)';
+  ctx.strokeStyle = isHighlight ? '#c084fc' : 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, textWidth + 8, 18, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = isHighlight ? '#fff' : (n.category === 'internal' ? '#e9d5ff' : '#cbd5e1');
+  ctx.fillText(text, n.x - textWidth / 2, boxY + 13);
+  ctx.restore();
+}
+
+// Mouse and Touch Interaction Handlers
+function getCanvasMousePos(e) {
+  const rect = graphCanvas.getBoundingClientRect();
+  const screenX = e.clientX - rect.left;
+  const screenY = e.clientY - rect.top;
+  const worldX = (screenX - graphPanX) / graphZoom;
+  const worldY = (screenY - graphPanY) / graphZoom;
+  return { screenX, screenY, worldX, worldY };
+}
+
+function findNodeAt(worldX, worldY) {
+  for (let i = graphNodes.length - 1; i >= 0; i--) {
+    const n = graphNodes[i];
+    const dx = n.x - worldX;
+    const dy = n.y - worldY;
+    if (dx * dx + dy * dy <= (n.radius + 6) * (n.radius + 6)) {
+      return n;
+    }
+  }
+  return null;
+}
+
+function onGraphMouseDown(e) {
+  const pos = getCanvasMousePos(e);
+  const clicked = findNodeAt(pos.worldX, pos.worldY);
+
+  if (clicked) {
+    graphIsDraggingNode = true;
+    graphDraggedNode = clicked;
+    graphAlpha = 0.3; // Wake up physics
+  } else {
+    graphIsPanning = true;
+    graphPanStartX = e.clientX - graphPanX;
+    graphPanStartY = e.clientY - graphPanY;
+  }
+}
+
+function onGraphMouseMove(e) {
+  const modal = document.getElementById("edgesGraphModalOverlay");
+  if (!modal || !modal.classList.contains("show") || !graphCanvas) return;
+
+  const pos = getCanvasMousePos(e);
+
+  if (graphIsDraggingNode && graphDraggedNode) {
+    graphDraggedNode.x = pos.worldX;
+    graphDraggedNode.y = pos.worldY;
+    graphDraggedNode.vx = 0;
+    graphDraggedNode.vy = 0;
+    graphAlpha = 0.25;
+    return;
+  }
+
+  if (graphIsPanning) {
+    graphPanX = e.clientX - graphPanStartX;
+    graphPanY = e.clientY - graphPanStartY;
+    return;
+  }
+
+  // Hover detection
+  const hovered = findNodeAt(pos.worldX, pos.worldY);
+  graphHoveredNode = hovered;
+  graphCanvas.style.cursor = hovered ? 'pointer' : 'grab';
+
+  const tooltip = document.getElementById("graphTooltip");
+  if (hovered && tooltip) {
+    const catLabel = hovered.category === 'internal' ? 'Internal Module' :
+                     hovered.category === 'stdlib' ? 'Python Stdlib' : 'External Package';
+    tooltip.innerHTML = `
+      <div style="font-weight:700; color:#fff; font-family:var(--font-mono); margin-bottom:4px;">${escapeHtml(hovered.id)}</div>
+      <div style="font-size:11px; color:var(--txt-muted); display:flex; gap:8px;">
+        <span style="color:${hovered.colorInfo.stroke}; font-weight:600;">${catLabel}</span>
+        <span>•</span>
+        <span>${hovered.degree} Connections</span>
+      </div>
+      <div style="font-size:10px; color:var(--txt-dim); margin-top:4px;">
+        Incoming: ${hovered.in_degree} &bull; Outgoing: ${hovered.out_degree}
+      </div>
+    `;
+    tooltip.style.left = pos.screenX + "px";
+    tooltip.style.top = pos.screenY + "px";
+    tooltip.style.display = "block";
+  } else if (tooltip) {
+    tooltip.style.display = "none";
+  }
+}
+
+function onGraphMouseUp(e) {
+  if (graphIsDraggingNode) {
+    graphIsDraggingNode = false;
+    graphDraggedNode = null;
+  }
+  if (graphIsPanning) {
+    graphIsPanning = false;
+  }
+
+  if (e.target === graphCanvas) {
+    const pos = getCanvasMousePos(e);
+    const clicked = findNodeAt(pos.worldX, pos.worldY);
+    if (clicked) {
+      selectGraphNode(clicked);
+    }
+  }
+}
+
+function onGraphWheel(e) {
+  e.preventDefault();
+  const pos = getCanvasMousePos(e);
+  const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+  const newZoom = Math.max(0.15, Math.min(6.0, graphZoom * zoomFactor));
+
+  // Zoom centered on cursor
+  graphPanX = pos.screenX - (pos.screenX - graphPanX) * (newZoom / graphZoom);
+  graphPanY = pos.screenY - (pos.screenY - graphPanY) * (newZoom / graphZoom);
+  graphZoom = newZoom;
+}
+
+// Touch Handling
+let touchStartDist = 0;
+function onGraphTouchStart(e) {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    onGraphMouseDown({ clientX: t.clientX, clientY: t.clientY });
+  } else if (e.touches.length === 2) {
+    touchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+}
+
+function onGraphTouchMove(e) {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    onGraphMouseMove({ clientX: t.clientX, clientY: t.clientY });
+  } else if (e.touches.length === 2) {
+    e.preventDefault();
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    const factor = dist / (touchStartDist || dist);
+    touchStartDist = dist;
+    zoomGraph(factor);
+  }
+}
+
+function onGraphTouchEnd(e) {
+  onGraphMouseUp(e);
+}
+
+// Node Selection & Inspector
+function selectGraphNode(node) {
+  graphSelectedNode = node;
+  const drawer = document.getElementById("graphInspectorDrawer");
+  if (!drawer) return;
+
+  drawer.classList.remove("collapsed");
+
+  const titleEl = document.getElementById("inspNodeTitle");
+  if (titleEl) titleEl.innerText = node.id;
+
+  const catBadge = document.getElementById("inspCategoryBadge");
+  if (catBadge) {
+    catBadge.innerText = node.category.toUpperCase();
+    catBadge.style.color = node.colorInfo.stroke;
+    catBadge.style.borderColor = node.colorInfo.stroke;
+  }
+
+  const degLabel = document.getElementById("inspDegreeLabel");
+  if (degLabel) degLabel.innerText = "Total: " + node.degree;
+
+  const inEl = document.getElementById("inspInDegree");
+  if (inEl) inEl.innerText = node.in_degree;
+  const outEl = document.getElementById("inspOutDegree");
+  if (outEl) outEl.innerText = node.out_degree;
+
+  const outCountEl = document.getElementById("inspOutCount");
+  if (outCountEl) outCountEl.innerText = (node.out_edges || []).length;
+  const inCountEl = document.getElementById("inspInCount");
+  if (inCountEl) inCountEl.innerText = (node.in_edges || []).length;
+
+  // Populate outgoing dependencies
+  const depList = document.getElementById("inspDependenciesList");
+  if (depList) {
+    if (!node.out_edges || node.out_edges.length === 0) {
+      depList.innerHTML = '<div class="insp-empty">No dependencies</div>';
+    } else {
+      depList.innerHTML = node.out_edges.map(tgt => {
+        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(tgt)}')">
+          <span>${escapeHtml(tgt)}</span>
+          <span style="font-size:10px; color:var(--accent-purple);">→</span>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // Populate incoming dependents
+  const reqList = document.getElementById("inspDependentsList");
+  if (reqList) {
+    if (!node.in_edges || node.in_edges.length === 0) {
+      reqList.innerHTML = '<div class="insp-empty">No incoming dependents</div>';
+    } else {
+      reqList.innerHTML = node.in_edges.map(src => {
+        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(src)}')">
+          <span>${escapeHtml(src)}</span>
+          <span style="font-size:10px; color:var(--accent-cyan);">←</span>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
+function closeGraphInspector() {
+  const drawer = document.getElementById("graphInspectorDrawer");
+  if (drawer) drawer.classList.add("collapsed");
+  graphSelectedNode = null;
+}
+
+function focusOnNode(nodeId) {
+  const target = graphNodes.find(n => n.id === nodeId);
+  if (!target || !graphCanvas) return;
+
+  selectGraphNode(target);
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = graphCanvas.width / dpr;
+  const height = graphCanvas.height / dpr;
+
+  // Smooth camera pan to target
+  graphZoom = 1.4;
+  graphPanX = (width / 2) - target.x * graphZoom;
+  graphPanY = (height / 2) - target.y * graphZoom;
+  graphAlpha = 0.2; // slight wake up
+}
+
+// Toolbar & Filter Controls
+function zoomGraph(factor) {
+  if (!graphCanvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cx = (graphCanvas.width / dpr) / 2;
+  const cy = (graphCanvas.height / dpr) / 2;
+  const newZoom = Math.max(0.15, Math.min(6.0, graphZoom * factor));
+  graphPanX = cx - (cx - graphPanX) * (newZoom / graphZoom);
+  graphPanY = cy - (cy - graphPanY) * (newZoom / graphZoom);
+  graphZoom = newZoom;
+}
+
+function fitGraphView() {
+  if (!graphNodes.length || !graphCanvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = graphCanvas.width / dpr;
+  const h = graphCanvas.height / dpr;
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  graphNodes.forEach(n => {
+    if (n.x < minX) minX = n.x;
+    if (n.x > maxX) maxX = n.x;
+    if (n.y < minY) minY = n.y;
+    if (n.y > maxY) maxY = n.y;
+  });
+
+  const graphW = maxX - minX || 800;
+  const graphH = maxY - minY || 600;
+  const pad = 80;
+
+  const scaleX = (w - pad * 2) / graphW;
+  const scaleY = (h - pad * 2) / graphH;
+  graphZoom = Math.min(1.5, Math.max(0.2, Math.min(scaleX, scaleY)));
+
+  const graphCenterX = (minX + maxX) / 2;
+  const graphCenterY = (minY + maxY) / 2;
+  graphPanX = (w / 2) - graphCenterX * graphZoom;
+  graphPanY = (h / 2) - graphCenterY * graphZoom;
+}
+
+function toggleGraphPhysics() {
+  graphPhysicsPaused = !graphPhysicsPaused;
+  const btn = document.getElementById("graphPhysicsToggleBtn");
+  if (btn) {
+    if (graphPhysicsPaused) {
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+      btn.title = "Resume Physics (Space)";
+    } else {
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+      btn.title = "Pause Physics (Space)";
+      graphAlpha = 0.5; // wake up
+    }
+  }
+}
+
+function filterGraphByCategory(cat) {
+  graphActiveCategory = cat;
+  const pills = document.querySelectorAll("#graphCategoryPills .graph-pill");
+  pills.forEach(p => p.classList.remove("active"));
+  const clicked = event ? event.currentTarget : null;
+  if (clicked) clicked.classList.add("active");
+  graphAlpha = 0.3;
+}
+
+function onGraphSearchChange(val) {
+  graphSearchTerm = (val || "").toLowerCase().trim();
+  const clearBtn = document.getElementById("graphSearchClearBtn");
+  if (clearBtn) clearBtn.style.display = graphSearchTerm ? "block" : "none";
+
+  if (graphSearchTerm) {
+    const match = graphNodes.find(n => n.id.toLowerCase().includes(graphSearchTerm));
+    if (match) {
+      focusOnNode(match.id);
+    }
+  }
+}
+
+function clearGraphSearch() {
+  const inp = document.getElementById("graphSearchInput");
+  if (inp) inp.value = "";
+  onGraphSearchChange("");
+}
+
+function exportGraphImage() {
+  if (!graphCanvas) return;
+  const link = document.createElement("a");
+  link.download = `genesis-ast-graph-${Date.now()}.png`;
+  link.href = graphCanvas.toDataURL("image/png");
+  link.click();
+  showToast("AST Graph exported to PNG");
+}
 </script>
 
 
