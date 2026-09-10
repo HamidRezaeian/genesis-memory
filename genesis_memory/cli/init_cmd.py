@@ -45,7 +45,11 @@ def detect_environment() -> Dict[str, Any]:
     return env_info
 
 
-def generate_plan(env: Dict[str, Any], skip_clients: bool = False) -> List[Dict[str, Any]]:
+def generate_plan(
+    env: Dict[str, Any],
+    skip_clients: bool = False,
+    target_clients: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
     """Generates the preview of actions that will be performed."""
     plan = []
 
@@ -77,8 +81,17 @@ def generate_plan(env: Dict[str, Any], skip_clients: bool = False) -> List[Dict[
     })
 
     if not skip_clients:
+        normalized_targets = (
+            {t.strip().lower() for t in target_clients if t.strip()}
+            if target_clients
+            else None
+        )
         for client in env.get("detected_clients", []):
-            if client.detected and not client.configured and client.id != "antigravity":
+            if not client.detected:
+                continue
+            if normalized_targets and client.id.lower() not in normalized_targets and client.name.lower() not in normalized_targets:
+                continue
+            if not client.configured and client.id != "antigravity":
                 plan.append({
                     "action": "WIRE_CLIENT",
                     "target": str(client.config_path),
@@ -232,15 +245,18 @@ def run_init(
     revert: bool = False,
     quiet: bool = False,
     skip_clients: bool = False,
+    target_clients: Optional[List[str]] = None,
+    dry_run: bool = False,
 ) -> int:
-    """Main CLI entrypoint for genesis init."""
+    """Main CLI entrypoint for genesis init & genesis setup."""
     if revert:
         return revert_init()
 
     if not quiet:
-        print("=" * 68)
-        print("  🚀 GENESIS Zero-Friction Onboarding & System Initializer")
-        print("=" * 68)
+        print("╔══════════════════════════════════════════════════════════════════════════════╗")
+        print("║                     GENESIS 1-Click Multi-Client Setup                       ║")
+        print("║           Persistent Cross-Tool Memory & Autonomous Context Optimizer        ║")
+        print("╚══════════════════════════════════════════════════════════════════════════════╝")
 
     # 1. Read-Only Multi-Client Detection
     env = detect_environment()
@@ -249,17 +265,17 @@ def run_init(
     if not quiet:
         print(f"  Detected OS      : {env['os']}")
         print(f"  User Home        : {env['home']}")
-        print("-" * 68)
+        print("-" * 78)
         print("  🔍 Multi-Client Discovery & Capability Matrix:")
         for c in clients:
             status_symbol = "✅ Configured" if c.configured else ("⚡ Ready to wire" if c.detected else "❌ Not found")
             print(f"    • {c.name:<18} [{c.capability_tags:<18}] -> {status_symbol}")
             if c.detected and not c.configured:
-                print(f"      └── Path: {c.config_path}")
-        print("-" * 68)
+                print(f"      └── Config Path: {c.config_path}")
+        print("-" * 78)
 
     # 2. Plan generation & Diff preview
-    plan = generate_plan(env, skip_clients=skip_clients)
+    plan = generate_plan(env, skip_clients=skip_clients, target_clients=target_clients)
 
     if not plan:
         if not quiet:
@@ -268,11 +284,18 @@ def run_init(
         return 0
 
     if not quiet:
-        print("  📋 Planned Actions (Dry-Run Preview):")
+        print("  📋 Planned Actions (Setup Matrix):")
         for i, item in enumerate(plan, 1):
             print(f"    {i}. [{item['action']}] {item['target']}")
             print(f"       └── {item['description']}")
-        print("-" * 68)
+        print("-" * 78)
+
+    if dry_run:
+        if not quiet:
+            print("  ✨ Dry-Run complete. 0 changes made to your system.")
+            print("  To apply these changes, run: genesis setup --yes")
+            print("-" * 78)
+        return 0
 
     # 3. Explicit User Consent
     if not auto_confirm:
@@ -345,7 +368,7 @@ def run_init(
         # Save Backup Manifest for --revert
         backup_file = create_backup_manifest(actions_taken)
         if not quiet:
-            print(f"  💾 Backup manifest created: {backup_file.name} (use 'genesis init --revert' to undo)")
+            print(f"  💾 Backup manifest created: {backup_file.name} (use 'genesis setup --revert' to undo)")
 
         # 5. Live Handshake
         if not quiet:
@@ -365,12 +388,12 @@ def run_init(
             if wired_clients:
                 print(f"     └── Auto-Wired AI Clients   : OK ({', '.join(wired_clients)})")
 
-            print("=" * 68)
-            print("  🎉 GENESIS is ready to use!")
+            print("=" * 78)
+            print("  🎉 GENESIS is ready to use across all your AI coding agents!")
             print("  - To execute tools without context spam: genesis run -- <command>")
             print("  - To run full system diagnostics:        genesis doctor")
-            print("  - To undo these changes at any time:    genesis init --revert")
-            print("=" * 68)
+            print("  - To undo these changes at any time:    genesis setup --revert")
+            print("=" * 78)
 
         return 0
     except Exception as exc:
@@ -379,17 +402,29 @@ def run_init(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="GENESIS Zero-Friction Onboarding & System Initializer")
-    parser.add_argument("-y", "--yes", action="store_true", help="Auto-confirm all changes without interactive prompt")
-    parser.add_argument("--revert", action="store_true", help="Revert changes made by the previous genesis init run")
+    parser = argparse.ArgumentParser(description="GENESIS 1-Click Multi-Client Setup & System Initializer")
+    parser.add_argument("-y", "--yes", "--force", dest="yes", action="store_true", help="Auto-confirm all changes without interactive prompt")
+    parser.add_argument("-p", "--preview", "--dry-run", dest="dry_run", action="store_true", help="Preview detection matrix and planned changes without mutating files")
+    parser.add_argument("-c", "--client", dest="clients", action="append", help="Target specific client(s) by id or name, comma-separated (e.g. --client opencode,cursor)")
+    parser.add_argument("--revert", action="store_true", help="Revert changes made by the previous genesis setup run")
     parser.add_argument("--skip-clients", action="store_true", help="Do not auto-wire external client configuration files")
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress non-essential output")
     args = parser.parse_args(argv)
+
+    target_clients = []
+    if args.clients:
+        for c in args.clients:
+            for item in c.split(","):
+                if item.strip():
+                    target_clients.append(item.strip())
+
     return run_init(
         auto_confirm=args.yes,
         revert=args.revert,
         quiet=args.quiet,
         skip_clients=args.skip_clients,
+        target_clients=target_clients if target_clients else None,
+        dry_run=args.dry_run,
     )
 
 

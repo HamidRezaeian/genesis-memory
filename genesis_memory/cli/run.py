@@ -169,13 +169,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(
             "Usage: genesis <command> [options]\n\n"
             "Commands:\n"
+            "  setup      1-Click multi-client auto-wiring (Cursor, Claude, OpenCode)\n"
             "  init       Initialize local environment and zero-friction onboarding\n"
+            "  license    View active license, entitlements, and seat status\n"
+            "  auth       Activate commercial Pro or Enterprise license key\n"
             "  doctor     Diagnose system health, storage, RSS, and connectivity\n"
             "  run        Execute allowlisted commands with headless lossless spooling\n"
             "  proxy      Manage on-demand stateless proxy gateway (start|stop|status)\n"
             "\n"
             "Examples:\n"
-            "  genesis init --yes\n"
+            "  genesis setup --preview\n"
+            "  genesis setup --yes\n"
+            "  genesis license\n"
+            "  genesis auth --key GEN-PRO-...\n"
             "  genesis doctor\n"
             "  genesis run -- pytest tests/\n"
             "  genesis proxy status\n"
@@ -221,6 +227,89 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 0
         finally:
             conn.close()
+
+    if subcmd in ("license", "auth"):
+        from genesis_memory.core.licensing import (
+            load_active_license,
+            activate_license,
+            verify_license_key,
+            generate_license_key,
+        )
+        sub_args = args[1:]
+        # genesis auth <key> or genesis auth --key <key> or genesis license activate <key>
+        if subcmd == "auth" or (sub_args and sub_args[0] in ("activate", "auth", "login")):
+            key = None
+            for idx, a in enumerate(sub_args):
+                if a in ("--key", "-k") and idx + 1 < len(sub_args):
+                    key = sub_args[idx + 1]
+                    break
+                elif not a.startswith("-") and a not in ("activate", "auth", "login"):
+                    key = a
+                    break
+            if not key:
+                print("Usage: genesis auth --key <LICENSE_KEY>", file=sys.stderr)
+                return 1
+            ok, status = activate_license(key)
+            if ok:
+                print("╔══════════════════════════════════════════════════════════════════════════════╗")
+                print("║                   🎉 GENESIS License Activated Successfully!                 ║")
+                print("╚══════════════════════════════════════════════════════════════════════════════╝")
+                print(f"  Tier         : {status.tier.upper()} (Verified)")
+                print(f"  Owner        : {status.owner}")
+                if status.org:
+                    print(f"  Organization : {status.org}")
+                print(f"  Seats        : {status.seats}")
+                print(f"  Expires At   : {status.expires_at} ({status.days_remaining} days remaining)")
+                print("  Entitlements :")
+                for cap in status.capabilities:
+                    print(f"    [✓] {cap}")
+                return 0
+            else:
+                print(f"[genesis] ❌ License activation failed: {status.message}", file=sys.stderr)
+                return 1
+
+        # genesis license keygen (helper for testing and issuing keys)
+        if sub_args and sub_args[0] in ("keygen", "generate", "mint"):
+            import argparse
+            kg_parser = argparse.ArgumentParser(description="Generate commercial license key")
+            kg_parser.add_argument("--tier", default="pro", choices=["community", "pro", "enterprise"])
+            kg_parser.add_argument("--owner", required=True)
+            kg_parser.add_argument("--org", default=None)
+            kg_parser.add_argument("--seats", type=int, default=1)
+            kg_parser.add_argument("--days", type=int, default=365)
+            kg_args = kg_parser.parse_args(sub_args[1:])
+            generated_key = generate_license_key(
+                tier=kg_args.tier,
+                owner=kg_args.owner,
+                org=kg_args.org,
+                seats=kg_args.seats,
+                valid_days=kg_args.days,
+            )
+            print(f"[genesis] Generated {kg_args.tier.upper()} License Key:")
+            print(generated_key)
+            return 0
+
+        # default: genesis license status
+        lic_status = load_active_license()
+        tier_symbol = "★ DEVELOPER PRO" if lic_status.tier == "pro" else ("⚡ ENTERPRISE GATEWAY" if lic_status.tier == "enterprise" else "COMMUNITY (Free / OSS)")
+        status_text = "Verified Active" if lic_status.is_valid else "Unverified / Expired"
+        print("╔══════════════════════════════════════════════════════════════════════════════╗")
+        print("║                     GENESIS Commercial License & Entitlements                ║")
+        print("╚══════════════════════════════════════════════════════════════════════════════╝")
+        print(f"  Status       : {status_text}")
+        print(f"  Tier         : {tier_symbol}")
+        print(f"  Owner        : {lic_status.owner}")
+        if lic_status.org:
+            print(f"  Organization : {lic_status.org}")
+        days_str = f" ({lic_status.days_remaining} days remaining)" if lic_status.days_remaining is not None else ""
+        print(f"  Expires At   : {lic_status.expires_at}{days_str}")
+        print("  Entitlements :")
+        for cap in lic_status.capabilities:
+            print(f"    [✓] {cap}")
+        if not lic_status.is_valid or lic_status.tier == "community":
+            print("-" * 78)
+            print("  To activate Developer Pro or Enterprise, run: genesis auth --key <KEY>")
+        return 0
 
     if subcmd == "proxy":
         from genesis_memory.proxy.supervisor import ensure_proxy_running, stop_proxy, is_proxy_healthy

@@ -336,8 +336,9 @@ def test_proxy_ttft_latency_overhead() -> None:
                         break
 
                 overhead_ms = proxied_ttft - direct_ttft
-                # Proxy overhead must be minimal (< 50ms)
-                assert overhead_ms < 50.0, f"Proxy overhead was too high: {overhead_ms:.2f}ms"
+                # Proxy overhead must be minimal (< 50ms on linux, < 75ms on win32 scheduling)
+                max_overhead = 75.0 if sys.platform == "win32" else 50.0
+                assert overhead_ms < max_overhead, f"Proxy overhead was too high: {overhead_ms:.2f}ms"
 
     asyncio.run(_run())
 

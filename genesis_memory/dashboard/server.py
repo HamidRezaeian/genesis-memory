@@ -71,12 +71,37 @@ class TelemetryHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        if self.path.startswith("/api/license"):
+            try:
+                from genesis_memory.core.licensing import load_active_license
+                lic_data = load_active_license().to_dict()
+                body = json.dumps(lic_data, indent=2).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                err_body = json.dumps({"error": str(e)}).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(err_body)
+            return
+
         if self.path.startswith("/api/snapshot"):
             try:
                 db_to_use = self.db_path if os.path.exists(self.db_path) else DB_PATH
                 data = snapshot(db_to_use)
                 if data.get("uptime_s", 0) <= 0.5:
                     data["uptime_s"] = round(time.time() - SERVER_START_TIME, 1)
+                try:
+                    from genesis_memory.core.licensing import load_active_license
+                    data["license"] = load_active_license().to_dict()
+                except Exception:
+                    data["license"] = {"tier": "community", "is_valid": True}
                 body = json.dumps(data, indent=2).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
