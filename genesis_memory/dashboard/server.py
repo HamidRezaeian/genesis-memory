@@ -166,6 +166,29 @@ class TelemetryHandler(http.server.BaseHTTPRequestHandler):
                 nodes_map = {}
                 edges_list = []
 
+                def get_short_label(nid: str) -> str:
+                    if "/" in nid or "\\" in nid:
+                        return nid.replace("\\", "/").split("/")[-1]
+                    return nid
+
+                def get_subsystem(nid: str, cat: str) -> str:
+                    p = nid.replace("\\", "/")
+                    if cat == "stdlib":
+                        return "stdlib"
+                    if cat == "external":
+                        return "external"
+                    if p.startswith("src/genesis/server") or "daemon" in p or "hook" in p:
+                        return "core"
+                    if p.startswith("src/genesis/cli") or "cli" in p:
+                        return "cli"
+                    if p.startswith("tests/"):
+                        return "tests"
+                    if p.startswith("src/legacy_probes"):
+                        return "probes"
+                    if p.startswith("src/biophysical"):
+                        return "biophysical"
+                    return "internal_other"
+
                 for r in rows:
                     src = r["source"]
                     tgt = r["target"]
@@ -179,10 +202,14 @@ class TelemetryHandler(http.server.BaseHTTPRequestHandler):
                                 category = "stdlib"
                             else:
                                 category = "external"
+                            subsystem = get_subsystem(node_id, category)
                             nodes_map[node_id] = {
                                 "id": node_id,
-                                "label": node_id,
+                                "label": get_short_label(node_id),
+                                "short_label": get_short_label(node_id),
+                                "full_path": node_id,
                                 "category": category,
+                                "subsystem": subsystem,
                                 "in_degree": 0,
                                 "out_degree": 0,
                                 "in_edges": [],

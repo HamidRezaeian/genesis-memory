@@ -967,6 +967,48 @@
     box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
   }
 
+  .graph-segmented-control {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .graph-seg-btn {
+    padding: 4px 9px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--txt-muted);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-sans);
+  }
+  .graph-seg-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .graph-seg-btn.active {
+    background: rgba(192, 132, 252, 0.22);
+    color: #f3e8ff;
+    border-color: rgba(192, 132, 252, 0.45);
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.25);
+  }
+  .graph-btn-tool.active-tool {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: rgba(56, 189, 248, 0.6);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  }
+
   .graph-modal-close {
     width: 32px;
     height: 32px;
@@ -2251,12 +2293,32 @@
       </div>
 
       <!-- Top Right Toolbar Controls -->
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <div class="graph-search-wrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="graphSearchInput" placeholder="Search modules / packages..." oninput="onGraphSearchChange(this.value)">
+          <input type="text" id="graphSearchInput" placeholder="Search module / package..." oninput="onGraphSearchChange(this.value)">
           <button id="graphSearchClearBtn" onclick="clearGraphSearch()" style="display:none;">✕</button>
         </div>
+
+        <!-- Layout Selector: Orbits, Clusters, Force -->
+        <div class="graph-segmented-control" title="Layout Arrangement Mode">
+          <button class="graph-seg-btn active" id="btnLayoutConcentric" onclick="setGraphLayout('concentric')">🪐 Orbits</button>
+          <button class="graph-seg-btn" id="btnLayoutClustered" onclick="setGraphLayout('clustered')">📦 Clusters</button>
+          <button class="graph-seg-btn" id="btnLayoutForce" onclick="setGraphLayout('force')">🌌 Force</button>
+        </div>
+
+        <!-- Label Density: Smart (No overlap), Hover, All -->
+        <div class="graph-segmented-control" title="Label Density Mode">
+          <button class="graph-seg-btn active" id="btnLabelSmart" onclick="setLabelMode('smart')" title="Hubs & selected node (strictly zero overlap)">🏷️ Smart</button>
+          <button class="graph-seg-btn" id="btnLabelHover" onclick="setLabelMode('hover')" title="Clean canvas, labels on hover only">🏷️ Hover</button>
+          <button class="graph-seg-btn" id="btnLabelAll" onclick="setLabelMode('all')" title="All visible labels with collision culling">🏷️ All</button>
+        </div>
+
+        <!-- Focus Subgraph (Isolation) -->
+        <button class="graph-btn-tool" id="graphIsolateBtn" onclick="toggleGraphIsolation()" title="Isolate Subgraph (Focus Mode - hides unrelated nodes)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+        </button>
+
         <button class="graph-btn-tool" onclick="zoomGraph(1.25)" title="Zoom In (+)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </button>
@@ -2287,8 +2349,8 @@
         <button class="graph-pill" onclick="filterGraphByCategory('stdlib')"><span class="cat-dot" style="background:#10b981;"></span>Python Stdlib (<span id="catCountStdlib">24</span>)</button>
         <button class="graph-pill" onclick="filterGraphByCategory('hubs')"><span class="cat-dot" style="background:#38bdf8;"></span>Top Hubs (Degree &gt; 10)</button>
       </div>
-      <div class="graph-hint-text">
-        <span>💡 Drag nodes &bull; Scroll to zoom &bull; Click node to inspect details</span>
+      <div class="graph-hint-text" id="graphHintText">
+        <span>✨ Anti-Collision Smart Labels active &bull; Click any node to focus dependency tree</span>
       </div>
     </div>
 
@@ -3300,7 +3362,7 @@ window.addEventListener("DOMContentLoaded", () => {
   pollLedger();
   pollProxyTelemetry();
 });
-/* ================= AST DEPENDENCY GRAPH CONTROLLER & PHYSICS (UI-UX PRO MAX) ================= */
+/* ================= AST DEPENDENCY GRAPH CONTROLLER & PHYSICS (UI-UX PRO MAX v2.0) ================= */
 let edgesGraphData = null;
 let graphNodes = [];
 let graphEdges = [];
@@ -3324,6 +3386,13 @@ let graphAlpha = 1.0;
 let graphLastFrameTime = performance.now();
 let graphFps = 60;
 
+// High-End UX Controls
+let graphCurrentLayout = 'concentric'; // 'concentric' (default, zero clutter), 'clustered', 'force'
+let graphLabelMode = 'smart';           // 'smart' (no overlap), 'hover', 'all'
+let graphIsolateSelected = false;       // Focus Subgraph mode
+let graphTopHubs = new Set();
+let drawnLabelBoxes = [];
+
 if (typeof escapeHtml !== 'function') {
   function escapeHtml(str) {
     if (!str) return '';
@@ -3332,12 +3401,14 @@ if (typeof escapeHtml !== 'function') {
 }
 
 const GRAPH_COLORS = {
-  internal: { stroke: '#c084fc', fill: 'rgba(192, 132, 252, 0.22)', glow: 'rgba(192, 132, 252, 0.4)' },
-  stdlib:   { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.22)', glow: 'rgba(16, 185, 129, 0.4)' },
-  external: { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.22)', glow: 'rgba(245, 158, 11, 0.4)' },
-  edge:     'rgba(192, 132, 252, 0.15)',
-  edgeActive: '#c084fc',
-  edgeDimmed: 'rgba(255, 255, 255, 0.03)'
+  internal: { stroke: '#c084fc', fill: 'rgba(192, 132, 252, 0.22)', glow: 'rgba(192, 132, 252, 0.45)' },
+  stdlib:   { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.22)', glow: 'rgba(16, 185, 129, 0.45)' },
+  external: { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.22)', glow: 'rgba(245, 158, 11, 0.45)' },
+  edge:     'rgba(148, 163, 184, 0.09)',
+  edgeInternal: 'rgba(192, 132, 252, 0.12)',
+  edgeOutgoing: '#c084fc',
+  edgeIncoming: '#38bdf8',
+  edgeDimmed: 'rgba(255, 255, 255, 0.02)'
 };
 
 function openEdgesGraphModal() {
@@ -3408,6 +3479,7 @@ async function loadEdgesData() {
 
     setupGraphNodesAndEdges(data);
     resizeGraphCanvas();
+    setGraphLayout('concentric', false);
     fitGraphView();
     startGraphSimulation();
 
@@ -3427,21 +3499,23 @@ function setupGraphNodesAndEdges(data) {
   const cx = width / 2;
   const cy = height / 2;
 
-  // Initialize nodes in an aesthetic circular / concentric layout
-  graphNodes = data.nodes.map((n, idx) => {
-    const angle = (idx / data.nodes.length) * Math.PI * 2;
-    // Hubs closer to center, stdlib in outer orbit
-    const radiusDist = n.category === 'internal' ? (120 + Math.random() * 260) :
-                       n.category === 'external' ? (280 + Math.random() * 160) :
-                       (380 + Math.random() * 120);
-    const radius = Math.max(5, Math.min(22, 4 + Math.sqrt(n.degree || 1) * 2.2));
+  // Identify top landmark hubs (top 7 highest degree)
+  const sortedByDegree = [...data.nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0));
+  graphTopHubs = new Set(sortedByDegree.slice(0, 7).map(n => n.id));
+
+  graphNodes = data.nodes.map((n) => {
+    const radius = Math.max(5, Math.min(22, 4.5 + Math.sqrt(n.degree || 1) * 2.2));
+    const shortLabel = n.short_label || (n.id.includes('/') || n.id.includes('\\') ? n.id.replace(/\\/g, '/').split('/').pop() : n.id);
 
     const nodeObj = {
       ...n,
-      x: cx + Math.cos(angle) * radiusDist,
-      y: cy + Math.sin(angle) * radiusDist,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
+      short_label: shortLabel,
+      x: cx,
+      y: cy,
+      targetX: cx,
+      targetY: cy,
+      vx: 0,
+      vy: 0,
       radius: radius,
       mass: Math.max(1, radius * 0.8),
       colorInfo: GRAPH_COLORS[n.category] || GRAPH_COLORS.internal
@@ -3461,6 +3535,195 @@ function setupGraphNodesAndEdges(data) {
   graphAlpha = 1.0;
 }
 
+// ---------------- Multi-Layout Algorithms ---------------- //
+
+function setGraphLayout(layoutName, animate = true) {
+  graphCurrentLayout = layoutName;
+
+  // Update button active state
+  ['btnLayoutConcentric', 'btnLayoutClustered', 'btnLayoutForce'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.classList.remove('active');
+  });
+  if (layoutName === 'concentric') {
+    const b = document.getElementById('btnLayoutConcentric');
+    if (b) b.classList.add('active');
+    applyConcentricLayout(animate);
+  } else if (layoutName === 'clustered') {
+    const b = document.getElementById('btnLayoutClustered');
+    if (b) b.classList.add('active');
+    applyClusteredLayout(animate);
+  } else if (layoutName === 'force') {
+    const b = document.getElementById('btnLayoutForce');
+    if (b) b.classList.add('active');
+    applyForceLayout();
+  }
+
+  // Update hint text
+  const hintEl = document.getElementById('graphHintText');
+  if (hintEl) {
+    if (layoutName === 'concentric') {
+      hintEl.innerHTML = '<span>🪐 <b>Concentric Orbits:</b> Core modules in center &bull; Outer orbits for packages & stdlib</span>';
+    } else if (layoutName === 'clustered') {
+      hintEl.innerHTML = '<span>📦 <b>Domain Clusters:</b> Core, CLI, Tests, and Libraries partitioned into clean islands</span>';
+    } else {
+      hintEl.innerHTML = '<span>🌌 <b>Force Dynamic:</b> Physics simulation with high collision repulsion</span>';
+    }
+  }
+}
+
+function applyConcentricLayout(animate = true) {
+  const width = graphCanvas ? graphCanvas.width / (window.devicePixelRatio || 1) : 1000;
+  const height = graphCanvas ? graphCanvas.height / (window.devicePixelRatio || 1) : 700;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  const coreNodes = [];
+  const cliNodes = [];
+  const featureNodes = [];
+  const testNodes = [];
+  const externalNodes = [];
+  const stdlibNodes = [];
+
+  graphNodes.forEach(n => {
+    if (n.category === 'stdlib') {
+      stdlibNodes.push(n);
+    } else if (n.category === 'external') {
+      externalNodes.push(n);
+    } else if (n.id.startsWith('tests/')) {
+      testNodes.push(n);
+    } else if (n.subsystem === 'cli' || n.id.includes('cli/')) {
+      cliNodes.push(n);
+    } else if (n.degree >= 14 || n.subsystem === 'core' || n.id.includes('server') || n.id.includes('hook') || n.id.includes('daemon')) {
+      coreNodes.push(n);
+    } else {
+      featureNodes.push(n);
+    }
+  });
+
+  const rings = [
+    { nodes: coreNodes, r: 80 },
+    { nodes: cliNodes, r: 185 },
+    { nodes: featureNodes, r: 310 },
+    { nodes: testNodes, r: 435 },
+    { nodes: externalNodes, r: 560 },
+    { nodes: stdlibNodes, r: 685 },
+  ];
+
+  rings.forEach(({ nodes, r }, ringIdx) => {
+    nodes.sort((a, b) => (b.degree || 0) - (a.degree || 0));
+    const count = nodes.length;
+    const offsetAngle = (ringIdx * 0.45);
+    nodes.forEach((n, idx) => {
+      const angle = offsetAngle + (idx / Math.max(1, count)) * Math.PI * 2;
+      const targetX = cx + Math.cos(angle) * r;
+      const targetY = cy + Math.sin(angle) * r;
+      n.targetX = targetX;
+      n.targetY = targetY;
+      if (!animate) {
+        n.x = targetX;
+        n.y = targetY;
+        n.vx = 0;
+        n.vy = 0;
+      }
+    });
+  });
+
+  graphAlpha = 1.0;
+}
+
+function applyClusteredLayout(animate = true) {
+  const width = graphCanvas ? graphCanvas.width / (window.devicePixelRatio || 1) : 1000;
+  const height = graphCanvas ? graphCanvas.height / (window.devicePixelRatio || 1) : 700;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  const clusterCenters = {
+    core:           { x: cx,       y: cy - 90 },
+    cli:            { x: cx - 310, y: cy - 160 },
+    probes:         { x: cx - 320, y: cy + 190 },
+    tests:          { x: cx + 310, y: cy - 160 },
+    external:       { x: cx + 320, y: cy + 190 },
+    stdlib:         { x: cx,       y: cy + 340 },
+    internal_other: { x: cx - 100, y: cy + 110 }
+  };
+
+  const groups = {};
+  graphNodes.forEach(n => {
+    let key = n.subsystem || 'internal_other';
+    if (!clusterCenters[key]) key = 'internal_other';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(n);
+  });
+
+  Object.keys(groups).forEach(key => {
+    const nodes = groups[key];
+    const center = clusterCenters[key] || { x: cx, y: cy };
+    nodes.sort((a, b) => (b.degree || 0) - (a.degree || 0));
+
+    nodes.forEach((n, idx) => {
+      const phi = idx * 2.39996; // Golden angle phyllotaxis
+      const dist = 26 + Math.sqrt(idx) * 28;
+      const targetX = center.x + Math.cos(phi) * dist;
+      const targetY = center.y + Math.sin(phi) * dist;
+      n.targetX = targetX;
+      n.targetY = targetY;
+      if (!animate) {
+        n.x = targetX;
+        n.y = targetY;
+        n.vx = 0;
+        n.vy = 0;
+      }
+    });
+  });
+
+  graphAlpha = 1.0;
+}
+
+function applyForceLayout() {
+  graphNodes.forEach(n => {
+    n.targetX = undefined;
+    n.targetY = undefined;
+  });
+  graphAlpha = 1.0;
+}
+
+function setLabelMode(mode) {
+  graphLabelMode = mode;
+  ['btnLabelSmart', 'btnLabelHover', 'btnLabelAll'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.classList.remove('active');
+  });
+  if (mode === 'smart') {
+    const b = document.getElementById('btnLabelSmart');
+    if (b) b.classList.add('active');
+  } else if (mode === 'hover') {
+    const b = document.getElementById('btnLabelHover');
+    if (b) b.classList.add('active');
+  } else if (mode === 'all') {
+    const b = document.getElementById('btnLabelAll');
+    if (b) b.classList.add('active');
+  }
+}
+
+function toggleGraphIsolation() {
+  graphIsolateSelected = !graphIsolateSelected;
+  const btn = document.getElementById('graphIsolateBtn');
+  if (btn) {
+    if (graphIsolateSelected) {
+      btn.classList.add('active-tool');
+      btn.title = "Exit Focus Mode (Show all nodes)";
+      showToast("Subgraph Focus Mode Active");
+    } else {
+      btn.classList.remove('active-tool');
+      btn.title = "Isolate Subgraph (Focus Mode)";
+      showToast("Full Graph View Restored");
+    }
+  }
+}
+
+// ---------------- Canvas & Event Handlers ---------------- //
+
 function initGraphCanvas() {
   graphCanvas = document.getElementById("edgesGraphCanvas");
   if (!graphCanvas) return;
@@ -3473,18 +3736,15 @@ function initGraphCanvas() {
     }
   });
 
-  // Mouse / Touch event listeners
   graphCanvas.addEventListener("mousedown", onGraphMouseDown);
   window.addEventListener("mousemove", onGraphMouseMove);
   window.addEventListener("mouseup", onGraphMouseUp);
   graphCanvas.addEventListener("wheel", onGraphWheel, { passive: false });
 
-  // Touch support
   graphCanvas.addEventListener("touchstart", onGraphTouchStart, { passive: false });
   window.addEventListener("touchmove", onGraphTouchMove, { passive: false });
   window.addEventListener("touchend", onGraphTouchEnd);
 
-  // Keyboard shortcut listener
   window.addEventListener("keydown", (e) => {
     const modal = document.getElementById("edgesGraphModalOverlay");
     if (!modal || !modal.classList.contains("show")) return;
@@ -3536,35 +3796,66 @@ function startGraphSimulation() {
 }
 
 function updatePhysics() {
+  // 1. Structured Layouts (Smooth Spring Settling)
+  if (graphCurrentLayout === 'concentric' || graphCurrentLayout === 'clustered') {
+    let maxDelta = 0;
+    for (let i = 0; i < graphNodes.length; i++) {
+      const n = graphNodes[i];
+      if (n === graphDraggedNode) continue;
+      if (n.targetX !== undefined && n.targetY !== undefined) {
+        const dx = n.targetX - n.x;
+        const dy = n.targetY - n.y;
+        n.x += dx * 0.14;
+        n.y += dy * 0.14;
+        const delta = Math.abs(dx) + Math.abs(dy);
+        if (delta > maxDelta) maxDelta = delta;
+      }
+    }
+    if (maxDelta < 0.2) {
+      graphAlpha *= 0.95;
+    }
+    return;
+  }
+
+  // 2. Force-Directed Mode (High Repulsion, Low Gravity, No Hairball)
   const container = document.getElementById("graphCanvasContainer");
   const rect = container ? container.getBoundingClientRect() : { width: 1000, height: 700 };
   const cx = rect.width / 2;
   const cy = rect.height / 2;
 
   const nodeCount = graphNodes.length;
-  const repForce = 450;
-  const springK = 0.045;
-  const targetDist = 70;
-  const gravityK = 0.012;
+  const repForce = 3200;
+  const springK = 0.022;
+  const gravityK = 0.0028;
 
-  // 1. Center gravity
+  // Center gravity
   for (let i = 0; i < nodeCount; i++) {
     const n = graphNodes[i];
     n.vx += (cx - n.x) * gravityK * graphAlpha;
     n.vy += (cy - n.y) * gravityK * graphAlpha;
   }
 
-  // 2. Node-node repulsion
+  // Node-Node Repulsion with collision buffer
   for (let i = 0; i < nodeCount; i++) {
     const n1 = graphNodes[i];
     for (let j = i + 1; j < nodeCount; j++) {
       const n2 = graphNodes[j];
       const dx = n2.x - n1.x;
       const dy = n2.y - n1.y;
-      const distSq = dx * dx + dy * dy + 80;
-      if (distSq < 90000) {
-        const dist = Math.sqrt(distSq);
-        const f = (repForce / distSq) * graphAlpha;
+      const distSq = dx * dx + dy * dy + 1;
+      const dist = Math.sqrt(distSq);
+      const minDist = n1.radius + n2.radius + 24;
+
+      if (dist < minDist) {
+        const overlap = (minDist - dist);
+        const pushX = (dx / dist) * overlap * 0.5;
+        const pushY = (dy / dist) * overlap * 0.5;
+        n1.vx -= pushX;
+        n1.vy -= pushY;
+        n2.vx += pushX;
+        n2.vy += pushY;
+      } else if (distSq < 300000) {
+        const f = (repForce / (distSq + 200)) * graphAlpha;
         const fx = (dx / dist) * f;
         const fy = (dy / dist) * f;
         n1.vx -= fx / n1.mass;
@@ -3575,7 +3866,7 @@ function updatePhysics() {
     }
   }
 
-  // 3. Edge spring attraction
+  // Edge Spring Attraction (degree-scaled)
   for (let i = 0; i < graphEdges.length; i++) {
     const e = graphEdges[i];
     const s = e.sourceNode;
@@ -3583,6 +3874,7 @@ function updatePhysics() {
     const dx = t.x - s.x;
     const dy = t.y - s.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const targetDist = 110 + Math.sqrt((s.degree || 1) * (t.degree || 1)) * 6;
     const f = (dist - targetDist) * springK * graphAlpha;
     const fx = (dx / dist) * f;
     const fy = (dy / dist) * f;
@@ -3592,7 +3884,7 @@ function updatePhysics() {
     t.vy -= fy / t.mass;
   }
 
-  // 4. Update positions with damping
+  // Damping & Position Update
   const damping = 0.88;
   for (let i = 0; i < nodeCount; i++) {
     const n = graphNodes[i];
@@ -3603,8 +3895,10 @@ function updatePhysics() {
     n.y += n.vy;
   }
 
-  graphAlpha *= 0.996;
+  graphAlpha *= 0.995;
 }
+
+// ---------------- High-Precision Renderer ---------------- //
 
 function renderGraph() {
   if (!graphCtx || !graphCanvas) return;
@@ -3624,39 +3918,51 @@ function renderGraph() {
   drawCanvasGrid(graphCtx, width, height);
 
   const isFiltering = graphActiveCategory !== 'all' || graphSearchTerm !== '';
-  const isFocusing = graphHoveredNode || graphSelectedNode;
   const focusNode = graphHoveredNode || graphSelectedNode;
+  const isFocusing = !!focusNode;
 
   // Active connected sets
   const connectedNodeIds = new Set();
-  const connectedEdgeIds = new Set();
+  const outgoingEdgeIds = new Set();
+  const incomingEdgeIds = new Set();
   if (focusNode) {
     connectedNodeIds.add(focusNode.id);
     (focusNode.out_edges || []).forEach(id => connectedNodeIds.add(id));
     (focusNode.in_edges || []).forEach(id => connectedNodeIds.add(id));
     graphEdges.forEach(e => {
-      if (e.source === focusNode.id || e.target === focusNode.id) {
-        connectedEdgeIds.add(e.id);
-      }
+      if (e.source === focusNode.id) outgoingEdgeIds.add(e.id);
+      if (e.target === focusNode.id) incomingEdgeIds.add(e.id);
     });
   }
 
   // 1. Draw Edges
   for (let i = 0; i < graphEdges.length; i++) {
     const e = graphEdges[i];
-    const isConn = isFocusing && connectedEdgeIds.has(e.id);
+    const isOut = isFocusing && outgoingEdgeIds.has(e.id);
+    const isIn = isFocusing && incomingEdgeIds.has(e.id);
+    const isConn = isOut || isIn;
+
+    if (graphIsolateSelected && focusNode && !isConn) {
+      continue; // Hide in isolation mode
+    }
 
     if (isFocusing && !isConn) {
       graphCtx.strokeStyle = GRAPH_COLORS.edgeDimmed;
-      graphCtx.lineWidth = 0.8;
-    } else if (isConn) {
-      graphCtx.strokeStyle = GRAPH_COLORS.edgeActive;
+      graphCtx.lineWidth = 0.5;
+    } else if (isOut) {
+      graphCtx.strokeStyle = GRAPH_COLORS.edgeOutgoing;
       graphCtx.lineWidth = 2.4;
       graphCtx.shadowColor = '#c084fc';
       graphCtx.shadowBlur = 8;
+    } else if (isIn) {
+      graphCtx.strokeStyle = GRAPH_COLORS.edgeIncoming;
+      graphCtx.lineWidth = 2.4;
+      graphCtx.shadowColor = '#38bdf8';
+      graphCtx.shadowBlur = 8;
     } else {
-      graphCtx.strokeStyle = GRAPH_COLORS.edge;
-      graphCtx.lineWidth = 1.0;
+      graphCtx.strokeStyle = (e.sourceNode.category === 'internal' && e.targetNode.category === 'internal')
+        ? GRAPH_COLORS.edgeInternal : GRAPH_COLORS.edge;
+      graphCtx.lineWidth = 0.75;
       graphCtx.shadowBlur = 0;
     }
 
@@ -3667,67 +3973,176 @@ function renderGraph() {
     graphCtx.shadowBlur = 0;
 
     // Draw direction arrow
-    if (isConn || graphZoom > 1.2) {
-      drawEdgeArrow(graphCtx, e.sourceNode, e.targetNode, isConn);
+    if (isConn || (graphZoom > 1.3 && !isFocusing)) {
+      drawEdgeArrow(graphCtx, e.sourceNode, e.targetNode, isConn, isOut);
     }
   }
 
-  // 2. Draw Nodes
+  // Reset collision detector box array for this frame
+  drawnLabelBoxes = [];
+
+  // Separate nodes into unhighlighted and highlighted for clean z-ordering
+  const normalNodes = [];
+  const priorityNodes = [];
+
   for (let i = 0; i < graphNodes.length; i++) {
     const n = graphNodes[i];
-    const isMatchingSearch = !graphSearchTerm || n.id.toLowerCase().includes(graphSearchTerm);
+    const isMatchingSearch = !graphSearchTerm || n.id.toLowerCase().includes(graphSearchTerm) || (n.short_label && n.short_label.toLowerCase().includes(graphSearchTerm));
     const isMatchingCat = (graphActiveCategory === 'all') ||
       (graphActiveCategory === 'internal' && n.category === 'internal') ||
       (graphActiveCategory === 'external' && n.category === 'external') ||
       (graphActiveCategory === 'stdlib' && n.category === 'stdlib') ||
-      (graphActiveCategory === 'hubs' && n.degree >= 10);
+      (graphActiveCategory === 'hubs' && (n.degree || 0) >= 10);
 
     const isVisible = isMatchingSearch && isMatchingCat;
     const isConnected = isFocusing ? connectedNodeIds.has(n.id) : true;
     const isHighlight = (n === focusNode);
 
-    let alpha = 1.0;
-    if (!isVisible) alpha = 0.15;
-    else if (isFocusing && !isConnected) alpha = 0.2;
-
-    graphCtx.globalAlpha = alpha;
-
-    // Outer glow for hubs / selected
-    if (isHighlight) {
-      graphCtx.beginPath();
-      graphCtx.arc(n.x, n.y, n.radius + 8, 0, Math.PI * 2);
-      graphCtx.fillStyle = n.colorInfo.glow;
-      graphCtx.fill();
+    if (graphIsolateSelected && focusNode && !isConnected) {
+      continue; // Hidden in isolation mode
     }
 
-    // Node body
-    graphCtx.beginPath();
-    graphCtx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-    graphCtx.fillStyle = n.colorInfo.fill;
-    graphCtx.fill();
-    graphCtx.strokeStyle = n.colorInfo.stroke;
-    graphCtx.lineWidth = isHighlight ? 3.0 : 1.6;
-    graphCtx.stroke();
+    n._isVisible = isVisible;
+    n._isConnected = isConnected;
+    n._isHighlight = isHighlight;
 
-    // Inner bright center dot
-    graphCtx.beginPath();
-    graphCtx.arc(n.x, n.y, Math.max(2, n.radius * 0.35), 0, Math.PI * 2);
-    graphCtx.fillStyle = n.colorInfo.stroke;
-    graphCtx.fill();
-
-    // Node Label
-    const showLabel = isHighlight || (isFocusing && isConnected) || (n.degree >= 12) || (graphZoom > 1.1 && isVisible);
-    if (showLabel) {
-      drawNodeLabel(graphCtx, n, isHighlight);
+    if (isHighlight || (isFocusing && isConnected)) {
+      priorityNodes.push(n);
+    } else {
+      normalNodes.push(n);
     }
+  }
+
+  // Draw background / normal nodes
+  for (let i = 0; i < normalNodes.length; i++) {
+    drawSingleNode(graphCtx, normalNodes[i], isFocusing, false);
+  }
+
+  // Draw priority / connected nodes on top
+  for (let i = 0; i < priorityNodes.length; i++) {
+    drawSingleNode(graphCtx, priorityNodes[i], isFocusing, true);
   }
 
   graphCtx.globalAlpha = 1.0;
   graphCtx.restore();
 }
 
+function drawSingleNode(ctx, n, isFocusing, isPriority) {
+  let alpha = 1.0;
+  if (!n._isVisible) alpha = 0.12;
+  else if (isFocusing && !n._isConnected) alpha = 0.15;
+
+  ctx.globalAlpha = alpha;
+
+  // Outer glow for hubs / selected
+  if (n._isHighlight) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius + 9, 0, Math.PI * 2);
+    ctx.fillStyle = n.colorInfo.glow;
+    ctx.fill();
+  } else if (n.degree >= 12 && !isFocusing) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.radius + 5, 0, Math.PI * 2);
+    ctx.fillStyle = n.colorInfo.glow.replace('0.45', '0.15');
+    ctx.fill();
+  }
+
+  // Node Circle Body
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+  ctx.fillStyle = n.colorInfo.fill;
+  ctx.fill();
+  ctx.strokeStyle = n.colorInfo.stroke;
+  ctx.lineWidth = n._isHighlight ? 2.8 : (isPriority ? 2.0 : 1.4);
+  ctx.stroke();
+
+  // Inner bright center core
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, Math.max(2, n.radius * 0.35), 0, Math.PI * 2);
+  ctx.fillStyle = n._isHighlight ? '#ffffff' : n.colorInfo.stroke;
+  ctx.fill();
+
+  // Smart Collision-Free Label Drawing
+  const shouldLabel = shouldShowNodeLabel(n, isFocusing);
+  if (shouldLabel) {
+    drawNodeLabel(ctx, n, n._isHighlight, isPriority);
+  }
+}
+
+function shouldShowNodeLabel(n, isFocusing) {
+  if (n._isHighlight) return true;
+  if (graphSelectedNode && n._isConnected) return true;
+
+  if (graphLabelMode === 'hover') {
+    return false;
+  }
+
+  if (graphLabelMode === 'all') {
+    return true; // Still collision-checked, so zero clutter guaranteed!
+  }
+
+  // 'smart' mode:
+  if (graphTopHubs.has(n.id) && !isFocusing) return true;
+  if (graphZoom > 1.7 && (n.degree || 0) >= 5) return true;
+  if (graphZoom > 2.5) return true;
+  return false;
+}
+
+function doesLabelCollide(b1, boxes) {
+  const pad = 3;
+  for (let i = 0; i < boxes.length; i++) {
+    const b2 = boxes[i];
+    if (b1.x - pad < b2.x + b2.w && b1.x + b1.w + pad > b2.x &&
+        b1.y - pad < b2.y + b2.h && b1.y + b1.h + pad > b2.y) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function drawNodeLabel(ctx, n, isHighlight, isConnectedToSelected) {
+  const text = n.short_label || n.label || n.id;
+  ctx.save();
+  ctx.font = isHighlight ? 'bold 11.5px JetBrains Mono, monospace' : '10px JetBrains Mono, monospace';
+
+  const metrics = ctx.measureText(text);
+  const textWidth = metrics.width;
+  const paddingX = 6;
+  const boxW = textWidth + paddingX * 2;
+  const boxH = 18;
+  const boxX = n.x - boxW / 2;
+  const boxY = n.y + n.radius + 4;
+
+  const box = { x: boxX, y: boxY, w: boxW, h: boxH };
+
+  // Strict Occlusion Culling: if it collides with an already drawn priority label, skip!
+  if (!isHighlight && !isConnectedToSelected) {
+    if (doesLabelCollide(box, drawnLabelBoxes)) {
+      ctx.restore();
+      return;
+    }
+  }
+
+  drawnLabelBoxes.push(box);
+
+  // Sleek glassmorphic badge pill
+  ctx.fillStyle = isHighlight ? 'rgba(15, 23, 42, 0.95)' : 'rgba(8, 12, 22, 0.84)';
+  ctx.strokeStyle = isHighlight ? '#c084fc' : (n.colorInfo ? n.colorInfo.stroke + '55' : 'rgba(255, 255, 255, 0.15)');
+  ctx.lineWidth = isHighlight ? 1.5 : 1.0;
+
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  // Text inside badge
+  ctx.fillStyle = isHighlight ? '#ffffff' : (n.category === 'internal' ? '#f3e8ff' : '#cbd5e1');
+  ctx.fillText(text, boxX + paddingX, boxY + 12.5);
+  ctx.restore();
+}
+
 function drawCanvasGrid(ctx, w, h) {
-  ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
   const step = 80;
   const startX = Math.floor((-graphPanX / graphZoom) / step) * step - step;
   const endX = startX + (w / graphZoom) + step * 2;
@@ -3741,13 +4156,12 @@ function drawCanvasGrid(ctx, w, h) {
   }
 }
 
-function drawEdgeArrow(ctx, s, t, isConn) {
+function drawEdgeArrow(ctx, s, t, isConn, isOut) {
   const dx = t.x - s.x;
   const dy = t.y - s.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist < 20) return;
+  if (dist < 22) return;
 
-  // Arrow placed at 65% distance
   const arrowX = s.x + dx * 0.65;
   const arrowY = s.y + dy * 0.65;
   const angle = Math.atan2(dy, dx);
@@ -3761,34 +4175,13 @@ function drawEdgeArrow(ctx, s, t, isConn) {
   ctx.lineTo(-arrowSize, -arrowSize * 0.5);
   ctx.lineTo(-arrowSize, arrowSize * 0.5);
   ctx.closePath();
-  ctx.fillStyle = isConn ? '#c084fc' : 'rgba(192, 132, 252, 0.4)';
+  ctx.fillStyle = isConn ? (isOut ? '#c084fc' : '#38bdf8') : 'rgba(192, 132, 252, 0.35)';
   ctx.fill();
   ctx.restore();
 }
 
-function drawNodeLabel(ctx, n, isHighlight) {
-  ctx.save();
-  ctx.font = isHighlight ? 'bold 12px JetBrains Mono, monospace' : '10.5px JetBrains Mono, monospace';
-  const text = n.label;
-  const textWidth = ctx.measureText(text).width;
-  const boxX = n.x - textWidth / 2 - 4;
-  const boxY = n.y + n.radius + 4;
+// ---------------- Mouse and Touch Interactions ---------------- //
 
-  // Dark background pill for crisp readability
-  ctx.fillStyle = 'rgba(6, 9, 17, 0.88)';
-  ctx.strokeStyle = isHighlight ? '#c084fc' : 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(boxX, boxY, textWidth + 8, 18, 4);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = isHighlight ? '#fff' : (n.category === 'internal' ? '#e9d5ff' : '#cbd5e1');
-  ctx.fillText(text, n.x - textWidth / 2, boxY + 13);
-  ctx.restore();
-}
-
-// Mouse and Touch Interaction Handlers
 function getCanvasMousePos(e) {
   const rect = graphCanvas.getBoundingClientRect();
   const screenX = e.clientX - rect.left;
@@ -3803,7 +4196,7 @@ function findNodeAt(worldX, worldY) {
     const n = graphNodes[i];
     const dx = n.x - worldX;
     const dy = n.y - worldY;
-    if (dx * dx + dy * dy <= (n.radius + 6) * (n.radius + 6)) {
+    if (dx * dx + dy * dy <= (n.radius + 7) * (n.radius + 7)) {
       return n;
     }
   }
@@ -3817,7 +4210,7 @@ function onGraphMouseDown(e) {
   if (clicked) {
     graphIsDraggingNode = true;
     graphDraggedNode = clicked;
-    graphAlpha = 0.3; // Wake up physics
+    graphAlpha = 0.35;
   } else {
     graphIsPanning = true;
     graphPanStartX = e.clientX - graphPanX;
@@ -3834,9 +4227,11 @@ function onGraphMouseMove(e) {
   if (graphIsDraggingNode && graphDraggedNode) {
     graphDraggedNode.x = pos.worldX;
     graphDraggedNode.y = pos.worldY;
+    graphDraggedNode.targetX = pos.worldX;
+    graphDraggedNode.targetY = pos.worldY;
     graphDraggedNode.vx = 0;
     graphDraggedNode.vy = 0;
-    graphAlpha = 0.25;
+    graphAlpha = 0.3;
     return;
   }
 
@@ -3853,10 +4248,11 @@ function onGraphMouseMove(e) {
 
   const tooltip = document.getElementById("graphTooltip");
   if (hovered && tooltip) {
-    const catLabel = hovered.category === 'internal' ? 'Internal Module' :
+    const catLabel = hovered.category === 'internal' ? 'Internal Code' :
                      hovered.category === 'stdlib' ? 'Python Stdlib' : 'External Package';
     tooltip.innerHTML = `
-      <div style="font-weight:700; color:#fff; font-family:var(--font-mono); margin-bottom:4px;">${escapeHtml(hovered.id)}</div>
+      <div style="font-weight:700; color:#fff; font-family:var(--font-mono); margin-bottom:4px; font-size:12px;">${escapeHtml(hovered.short_label)}</div>
+      <div style="font-size:10px; color:var(--txt-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:6px;">${escapeHtml(hovered.id)}</div>
       <div style="font-size:11px; color:var(--txt-muted); display:flex; gap:8px;">
         <span style="color:${hovered.colorInfo.stroke}; font-weight:600;">${catLabel}</span>
         <span>•</span>
@@ -3896,15 +4292,13 @@ function onGraphWheel(e) {
   e.preventDefault();
   const pos = getCanvasMousePos(e);
   const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-  const newZoom = Math.max(0.15, Math.min(6.0, graphZoom * zoomFactor));
+  const newZoom = Math.max(0.12, Math.min(6.0, graphZoom * zoomFactor));
 
-  // Zoom centered on cursor
   graphPanX = pos.screenX - (pos.screenX - graphPanX) * (newZoom / graphZoom);
   graphPanY = pos.screenY - (pos.screenY - graphPanY) * (newZoom / graphZoom);
   graphZoom = newZoom;
 }
 
-// Touch Handling
 let touchStartDist = 0;
 function onGraphTouchStart(e) {
   if (e.touches.length === 1) {
@@ -3932,7 +4326,8 @@ function onGraphTouchEnd(e) {
   onGraphMouseUp(e);
 }
 
-// Node Selection & Inspector
+// ---------------- Node Selection & Inspector ---------------- //
+
 function selectGraphNode(node) {
   graphSelectedNode = node;
   const drawer = document.getElementById("graphInspectorDrawer");
@@ -3941,7 +4336,12 @@ function selectGraphNode(node) {
   drawer.classList.remove("collapsed");
 
   const titleEl = document.getElementById("inspNodeTitle");
-  if (titleEl) titleEl.innerText = node.id;
+  if (titleEl) {
+    titleEl.innerHTML = `
+      <div style="font-size:15px; font-weight:700; color:#fff; font-family:var(--font-mono);">${escapeHtml(node.short_label)}</div>
+      <div style="font-size:11px; color:var(--txt-dim); font-family:var(--font-mono); margin-top:3px; word-break:break-all;">${escapeHtml(node.id)}</div>
+    `;
+  }
 
   const catBadge = document.getElementById("inspCategoryBadge");
   if (catBadge) {
@@ -3970,8 +4370,9 @@ function selectGraphNode(node) {
       depList.innerHTML = '<div class="insp-empty">No dependencies</div>';
     } else {
       depList.innerHTML = node.out_edges.map(tgt => {
-        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(tgt)}')">
-          <span>${escapeHtml(tgt)}</span>
+        const shortName = tgt.includes('/') || tgt.includes('\\') ? tgt.replace(/\\/g, '/').split('/').pop() : tgt;
+        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(tgt)}')" title="${escapeHtml(tgt)}">
+          <span style="font-weight:600;">${escapeHtml(shortName)}</span>
           <span style="font-size:10px; color:var(--accent-purple);">→</span>
         </div>`;
       }).join("");
@@ -3985,8 +4386,9 @@ function selectGraphNode(node) {
       reqList.innerHTML = '<div class="insp-empty">No incoming dependents</div>';
     } else {
       reqList.innerHTML = node.in_edges.map(src => {
-        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(src)}')">
-          <span>${escapeHtml(src)}</span>
+        const shortName = src.includes('/') || src.includes('\\') ? src.replace(/\\/g, '/').split('/').pop() : src;
+        return `<div class="insp-item" onclick="focusOnNode('${escapeHtml(src)}')" title="${escapeHtml(src)}">
+          <span style="font-weight:600;">${escapeHtml(shortName)}</span>
           <span style="font-size:10px; color:var(--accent-cyan);">←</span>
         </div>`;
       }).join("");
@@ -3998,6 +4400,9 @@ function closeGraphInspector() {
   const drawer = document.getElementById("graphInspectorDrawer");
   if (drawer) drawer.classList.add("collapsed");
   graphSelectedNode = null;
+  if (graphIsolateSelected) {
+    toggleGraphIsolation();
+  }
 }
 
 function focusOnNode(nodeId) {
@@ -4010,20 +4415,20 @@ function focusOnNode(nodeId) {
   const width = graphCanvas.width / dpr;
   const height = graphCanvas.height / dpr;
 
-  // Smooth camera pan to target
-  graphZoom = 1.4;
+  graphZoom = 1.35;
   graphPanX = (width / 2) - target.x * graphZoom;
   graphPanY = (height / 2) - target.y * graphZoom;
-  graphAlpha = 0.2; // slight wake up
+  graphAlpha = 0.25;
 }
 
-// Toolbar & Filter Controls
+// ---------------- Toolbar Controls ---------------- //
+
 function zoomGraph(factor) {
   if (!graphCanvas) return;
   const dpr = window.devicePixelRatio || 1;
   const cx = (graphCanvas.width / dpr) / 2;
   const cy = (graphCanvas.height / dpr) / 2;
-  const newZoom = Math.max(0.15, Math.min(6.0, graphZoom * factor));
+  const newZoom = Math.max(0.12, Math.min(6.0, graphZoom * factor));
   graphPanX = cx - (cx - graphPanX) * (newZoom / graphZoom);
   graphPanY = cy - (cy - graphPanY) * (newZoom / graphZoom);
   graphZoom = newZoom;
@@ -4045,11 +4450,11 @@ function fitGraphView() {
 
   const graphW = maxX - minX || 800;
   const graphH = maxY - minY || 600;
-  const pad = 80;
+  const pad = 90;
 
   const scaleX = (w - pad * 2) / graphW;
   const scaleY = (h - pad * 2) / graphH;
-  graphZoom = Math.min(1.5, Math.max(0.2, Math.min(scaleX, scaleY)));
+  graphZoom = Math.min(1.4, Math.max(0.18, Math.min(scaleX, scaleY)));
 
   const graphCenterX = (minX + maxX) / 2;
   const graphCenterY = (minY + maxY) / 2;
@@ -4067,7 +4472,7 @@ function toggleGraphPhysics() {
     } else {
       btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
       btn.title = "Pause Physics (Space)";
-      graphAlpha = 0.5; // wake up
+      graphAlpha = 0.5;
     }
   }
 }
@@ -4078,7 +4483,7 @@ function filterGraphByCategory(cat) {
   pills.forEach(p => p.classList.remove("active"));
   const clicked = event ? event.currentTarget : null;
   if (clicked) clicked.classList.add("active");
-  graphAlpha = 0.3;
+  graphAlpha = 0.35;
 }
 
 function onGraphSearchChange(val) {
@@ -4087,7 +4492,7 @@ function onGraphSearchChange(val) {
   if (clearBtn) clearBtn.style.display = graphSearchTerm ? "block" : "none";
 
   if (graphSearchTerm) {
-    const match = graphNodes.find(n => n.id.toLowerCase().includes(graphSearchTerm));
+    const match = graphNodes.find(n => n.id.toLowerCase().includes(graphSearchTerm) || (n.short_label && n.short_label.toLowerCase().includes(graphSearchTerm)));
     if (match) {
       focusOnNode(match.id);
     }
