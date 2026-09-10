@@ -19,6 +19,9 @@ CACHE_DIR = Path.home() / ".genesis"
 CACHE_FILE = CACHE_DIR / "pricing_cache.json"
 CATALOG_URL = "https://openrouter.ai/api/v1/models"
 CACHE_TTL_SECONDS = 3600 * 6  # 6 hours TTL
+# Offline-first: a normalized snapshot ships inside the wheel so the engine is
+# deterministic on first launch / air-gapped hosts (no network, no ~/.genesis state).
+BUNDLED_CATALOG_FILE = Path(__file__).resolve().parent / "pricing_catalog.json"
 
 # Fallback baseline pricing per 1M tokens (USD) if completely offline on first launch
 STATIC_DEFAULTS: Dict[str, Dict[str, float]] = {
@@ -35,13 +38,47 @@ STATIC_DEFAULTS: Dict[str, Dict[str, float]] = {
 }
 
 
+def normalize_catalog(models: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Converts an OpenRouter-style model list into the per-1M-token GENESIS catalog shape."""
+    catalog: Dict[str, Dict[str, Any]] = {}
+    for m in models:
+        mid = str(m.get("id", "")).strip()
+        if not mid:
+            continue
+        pricing = m.get("pricing", {}) or {}
+        # Source pricing is per raw token (e.g. 0.0000025) -> USD per 1M tokens
+        try:
+            prompt_per_m = float(pricing.get("prompt", 0) or 0) * 1_000_000
+            comp_per_m = float(pricing.get("completion", 0) or 0) * 1_000_000
+        except (TypeError, ValueError):
+            continue
+        low = mid.lower()
+        # Prompt-cache discount factors: Anthropic 90%, Gemini/DeepSeek 75%, default 50%
+        if "anthropic" in low:
+            cached_per_m = prompt_per_m * 0.10
+        elif "gemini" in low or "google" in low or "deepseek" in low:
+            cached_per_m = prompt_per_m * 0.25
+        else:
+            cached_per_m = prompt_per_m * 0.50
+        catalog[mid] = {
+            "name": m.get("name", mid),
+            "input_per_m": round(prompt_per_m, 4),
+            "cached_per_m": round(cached_per_m, 4),
+            "output_per_m": round(comp_per_m, 4),
+            "context_length": m.get("context_length", 0) or 0,
+        }
+    return catalog
+
+
 class ModelPricingEngine:
     """Manages real-time LLM token rates and exact multi-model cost savings accounting."""
 
     def __init__(self, auto_fetch: bool = True):
         self._catalog: Dict[str, Dict[str, Any]] = {}
         self._last_fetched: float = 0.0
-        self._load_from_disk_cache()
+        self.source: str = "none"
+        if not self._load_from_disk_cache():
+            self._load_bundled_catalog()
         if auto_fetch and (time.time() - self._last_fetched > CACHE_TTL_SECONDS or not self._catalog):
             self.refresh_catalog_sync()
 
@@ -50,12 +87,29 @@ class ModelPricingEngine:
             try:
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    self._catalog = data.get("catalog", {})
-                    self._last_fetched = data.get("timestamp", 0.0)
+                catalog = data.get("catalog", {})
+                if catalog:
+                    self._catalog = catalog
+                    self._last_fetched = float(data.get("timestamp", 0.0) or 0.0)
+                    self.source = "disk_cache"
                     return True
             except Exception as exc:
                 logger.warning("Failed to read disk pricing cache: %s", exc)
         return False
+
+    def _load_bundled_catalog(self) -> bool:
+        if not BUNDLED_CATALOG_FILE.exists():
+            return False
+        try:
+            with open(BUNDLED_CATALOG_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._catalog = data.get("catalog", {})
+            self._last_fetched = float(data.get("timestamp", 0.0) or 0.0)
+            self.source = "bundled"
+            return bool(self._catalog)
+        except Exception as exc:
+            logger.warning("Failed to read bundled pricing catalog: %s", exc)
+            return False
 
     def _save_to_disk_cache(self) -> None:
         try:
@@ -79,36 +133,11 @@ class ModelPricingEngine:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status == 200:
                     payload = json.loads(resp.read().decode("utf-8"))
-                    models = payload.get("data", [])
-                    new_catalog = {}
-                    for m in models:
-                        mid = m.get("id", "").strip()
-                        if not mid:
-                            continue
-                        pricing = m.get("pricing", {})
-                        # Pricing in source is per raw token (e.g. 0.0000025) -> convert to USD per 1M tokens
-                        prompt_per_m = float(pricing.get("prompt", 0) or 0) * 1_000_000
-                        comp_per_m = float(pricing.get("completion", 0) or 0) * 1_000_000
-                        # Prompt caching discount: default 50% for OpenAI, 90% for Anthropic, 75% for Gemini
-                        if "anthropic" in mid.lower():
-                            cached_per_m = prompt_per_m * 0.10
-                        elif "gemini" in mid.lower() or "google" in mid.lower():
-                            cached_per_m = prompt_per_m * 0.25
-                        elif "deepseek" in mid.lower():
-                            cached_per_m = prompt_per_m * 0.25
-                        else:
-                            cached_per_m = prompt_per_m * 0.50
-
-                        new_catalog[mid] = {
-                            "name": m.get("name", mid),
-                            "input_per_m": round(prompt_per_m, 4),
-                            "cached_per_m": round(cached_per_m, 4),
-                            "output_per_m": round(comp_per_m, 4),
-                            "context_length": m.get("context_length", 0),
-                        }
+                    new_catalog = normalize_catalog(payload.get("data", []))
                     if new_catalog:
                         self._catalog = new_catalog
                         self._last_fetched = time.time()
+                        self.source = "live"
                         self._save_to_disk_cache()
                         logger.info("Real-time pricing catalog refreshed: %d models loaded.", len(self._catalog))
                         return len(self._catalog)

@@ -81,7 +81,10 @@ def compute_fixture_sha(fixture_dir: Path) -> str:
     h = hashlib.sha256()
     for p in sorted(fixture_dir.rglob("*")):
         if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith(".pyc"):
-            h.update(str(p.relative_to(fixture_dir)).encode("utf-8") + b"\0" + p.read_bytes())
+            # Canonical form: POSIX separators + LF so the lock is OS/checkout independent.
+            rel = p.relative_to(fixture_dir).as_posix()
+            body = p.read_bytes().replace(b"\r\n", b"\n")
+            h.update(rel.encode("utf-8") + b"\0" + body)
     return h.hexdigest()
 
 
