@@ -374,6 +374,9 @@ class GenesisProxyServer:
         reasoning_effort: Optional[str] = None,
     ) -> None:
         self.upstream_url = upstream_url.rstrip("/")
+        self.anthropic_upstream_url = os.environ.get(
+            "GENESIS_ANTHROPIC_UPSTREAM_URL", "https://api.anthropic.com/v1").rstrip("/")
+        self.anthropic_key = os.environ.get("GENESIS_ANTHROPIC_KEY") or os.environ.get("ANTHROPIC_API_KEY")
         env_mode = os.environ.get("GENESIS_PROXY_MODE")
         self.mode = (env_mode or mode).lower().strip()
         self.telemetry = telemetry or ProxyTelemetry(mode=self.mode)
@@ -462,6 +465,9 @@ class GenesisProxyServer:
         self.app.router.add_get("/", self.handle_root)
         self.app.router.add_post("/v1/chat/completions", self.handle_chat_completions)
         self.app.router.add_post("/chat/completions", self.handle_chat_completions)
+        # Anthropic Messages API (drop-in for the Anthropic SDK: ANTHROPIC_BASE_URL=http://127.0.0.1:8000)
+        self.app.router.add_post("/v1/messages", self.handle_anthropic_messages)
+        self.app.router.add_post("/messages", self.handle_anthropic_messages)
         self.app.router.add_get("/v1/models", self.handle_models)
         self.app.router.add_get("/models", self.handle_models)
         self.app.router.add_get("/v1/pricing", self.handle_pricing)
@@ -886,6 +892,117 @@ class GenesisProxyServer:
                                 if "google" not in tc["extra_content"] or not isinstance(tc["extra_content"]["google"], dict):
                                     tc["extra_content"]["google"] = {}
                                 tc["extra_content"]["google"]["thought_signature"] = sig
+
+    async def handle_anthropic_messages(self, request: web.Request) -> web.StreamResponse:
+        """Anthropic Messages API passthrough with structural compaction + memory capsule.
+
+        Same fail-open contract as the OpenAI route: any validator rejection or
+        unknown shape forwards the *original* payload untouched. Streaming is a
+        byte-exact SSE relay (no buffering, TTFT preserved).
+        """
+        target_url = f"{self.anthropic_upstream_url}/messages"
+        headers = {k: v for k, v in request.headers.items()
+                   if k.lower() not in {"host", "content-length", "transfer-encoding", "connection"}}
+        if self.anthropic_key and not headers.get("x-api-key") and not headers.get("X-Api-Key"):
+            headers["x-api-key"] = self.anthropic_key
+        headers.setdefault("anthropic-version", "2023-06-01")
+
+        try:
+            payload = await request.json()
+        except Exception:
+            self.telemetry.record_bypass("unknown_shape")
+            return web.json_response({"type": "error", "error": {"type": "invalid_request_error",
+                                                                "message": "Invalid JSON payload"}}, status=400)
+
+        messages = payload.get("messages")
+        memory_capsule: Optional[str] = None
+        if isinstance(messages, list) and messages:
+            # Last user text (Anthropic content may be a string or a block list).
+            last_user_text = ""
+            for m in reversed(messages):
+                if isinstance(m, dict) and m.get("role") == "user":
+                    c = m.get("content")
+                    if isinstance(c, str):
+                        last_user_text = c
+                    elif isinstance(c, list):
+                        last_user_text = " ".join(
+                            b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
+                    break
+            if self.store and last_user_text.strip() and len(messages) > 1:
+                try:
+                    try:
+                        recall_res = self.store.recall(last_user_text, limit=3, fallback=False)
+                    except TypeError:
+                        recall_res = self.store.recall(last_user_text, limit=3)
+                    engrams = recall_res.get("results", []) if isinstance(recall_res, dict) else (recall_res or [])
+                    if engrams:
+                        memory_capsule = "\n".join(
+                            f"- [{e.get('kind', 'fact')}]: {e.get('text') or e.get('snippet', '')}" for e in engrams)[:4000]
+                except Exception as exc:
+                    logger.warning("Anthropic route recall failed: %s", exc)
+            if self.enable_compaction:
+                try:
+                    compacted, meta = compact_messages(
+                        copy.deepcopy(messages), max_history_turns=self.max_history_turns,
+                        format_type="anthropic", memory_capsule=memory_capsule)
+                    if self.mode == "live":
+                        payload["messages"] = compacted
+                    self.telemetry.record_compaction(
+                        tokens_stripped=meta["tokens_stripped"], tokens_retained=meta["tokens_retained"],
+                        turns_compacted=meta["turns_compacted"])
+                except ToolIntegrityError as tie:
+                    logger.warning("Anthropic compaction validator reject: %s (Fail-Open bypass)", tie)
+                    self.telemetry.record_bypass("validator_reject")
+                except Exception as exc:
+                    logger.warning("Anthropic compaction error: %s (Fail-Open bypass)", exc)
+                    self.telemetry.record_bypass("unknown_shape")
+
+        is_streaming = bool(payload.get("stream", False))
+        start = time.perf_counter()
+        assert self.client_session is not None
+        try:
+            upstream_ctx = self.client_session.post(target_url, json=payload, headers=headers)
+            upstream_resp = await upstream_ctx.__aenter__()
+        except Exception as exc:
+            self.telemetry.record_upstream_status(502)
+            self.telemetry.record_bypass("upstream_error")
+            return web.json_response({"type": "error", "error": {"type": "api_error",
+                                                                "message": f"Upstream connection failed: {exc}"}}, status=502)
+        self.telemetry.record_upstream_status(upstream_resp.status)
+        try:
+            if upstream_resp.status >= 400 or not is_streaming:
+                body = await upstream_resp.read()
+                usage = {}
+                if upstream_resp.status < 400:
+                    try:
+                        usage = json.loads(body.decode("utf-8")).get("usage", {}) or {}
+                    except Exception:
+                        usage = {}
+                    elapsed = (time.perf_counter() - start) * 1000.0
+                    self.telemetry.record_request(
+                        is_streaming=False, ttft_ms=elapsed, total_latency_ms=elapsed,
+                        prompt_tokens=int(usage.get("input_tokens", 0) or 0),
+                        cached_tokens=int(usage.get("cache_read_input_tokens", 0) or 0),
+                        completion_tokens=int(usage.get("output_tokens", 0) or 0))
+                return web.Response(body=body, status=upstream_resp.status,
+                                    content_type=upstream_resp.content_type or "application/json")
+            response = web.StreamResponse(status=upstream_resp.status, headers={
+                "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "X-Genesis-Route": "anthropic"})
+            await response.prepare(request)
+            first = None
+            async for chunk in upstream_resp.content.iter_any():
+                if first is None:
+                    first = (time.perf_counter() - start) * 1000.0
+                await response.write(chunk)
+            total = (time.perf_counter() - start) * 1000.0
+            self.telemetry.record_request(is_streaming=True, ttft_ms=first or total, total_latency_ms=total)
+            await response.write_eof()
+            return response
+        finally:
+            try:
+                await upstream_ctx.__aexit__(None, None, None)
+            except Exception:
+                pass
 
     async def handle_chat_completions(self, request: web.Request) -> web.StreamResponse:
         """Handle /v1/chat/completions with pass-through streaming, session isolation, and telemetry."""
