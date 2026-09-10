@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genesis-memory"
-version = "0.4.0"
-description = "Autonomous Cognitive Memory OS & Stateless Prompt Proxy for LLM Agents"
+version = "0.5.0"
+description = "Universal Cognitive Memory OS, Zero-Trust Privacy Shield & Stateless Token-Diet Gateway for every AI coding agent"
 readme = "README.md"
 authors = [
     { name = "GENESIS Team" }
@@ -38,3 +38,13 @@ genesis-sleep = "genesis_memory.sleep.sleep_daemon:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["genesis_memory*"]
+
+[tool.setuptools.package-data]
+"genesis_memory.proxy" = ["pricing_catalog.json"]
+"genesis_memory.cli" = ["templates/*.js"]
+"genesis_memory.dashboard" = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider -q"
+filterwarnings = ["ignore::DeprecationWarning:aiohttp.*"]

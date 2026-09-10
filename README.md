@@ -1,249 +1,236 @@
 <p align="center">
-  <img src="site/public/favicon.svg" width="80" alt="GENESIS Memory Logo" />
+  <img src="site/public/favicon.svg" width="84" alt="GENESIS Memory" />
 </p>
 
 <h1 align="center">GENESIS Memory</h1>
 
 <p align="center">
-  <strong>The Persistent Brain & Token Diet for AI Coding Agents</strong>
+  <strong>The persistent brain &amp; token diet for <em>every</em> AI coding agent.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/HamidRezaeian/genesis-memory/actions"><img src="https://img.shields.io/badge/tests-232%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" /></a>
-  <a href="https://github.com/HamidRezaeian/genesis-memory"><img src="https://img.shields.io/badge/version-0.4.0-38BDF8?style=flat-square" alt="Version" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/MCP%20Tools-19-8B5CF6?style=flat-square" alt="MCP Tools" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-gray?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/badge/tests-421%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
+  <img src="https://img.shields.io/badge/version-0.5.0-00F0FF?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
+  <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/license-MIT-gray?style=flat-square" alt="License" />
 </p>
 
 <p align="center">
-  Stop repeating yourself. Keep <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>OpenCode</strong>, <strong>Antigravity</strong>, and <strong>VS Code</strong> in sync — while cutting LLM token bills by <strong>40% to 70%</strong>.
+  One local SQLite memory shared by <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>VS Code</strong>, <strong>Zed</strong>, <strong>Windsurf</strong>, <strong>JetBrains</strong>, <strong>Neovim</strong>, <strong>Emacs</strong>, <strong>OpenCode</strong>, <strong>Antigravity</strong>, every terminal agent and every SDK —<br/>
+  while collapsing 4,000-line tool outputs into 84-token pointers and scrubbing secrets before they ever touch disk.
 </p>
 
 ---
 
-## The Problem
+## Why
 
-Every AI coding agent suffers from **the Goldfish Effect** — ephemeral session amnesia. Each new conversation starts from scratch. Your agent forgets architectural decisions, active work threads, verified invariants, and hard-won debugging insights. You repeat yourself. Tokens are wasted. Context windows overflow.
+Every AI coding agent has the **Goldfish Effect**: each session starts from nothing. Decisions, invariants, half-finished threads and hard-won debugging insight evaporate. You repeat yourself; the agent re-reads 80k tokens of test output; your bill grows.
 
-**GENESIS Memory solves this.**
+GENESIS is a **local-first cognitive memory OS** that sits *between* your agents and their models:
 
-It provides a local-first, sub-millisecond cognitive memory layer that persists knowledge across sessions, clients, and even sleep cycles — without cloud dependencies, without context bloat, and without compromising privacy.
+| Primitive | What it does | Who uses it |
+|---|---|---|
+| **MCP** (stdio) | 19 cognitive tools — `remember`, `recall`, `reinforce`, `challenge_rule`, `attest_closure`, `genesis_log`, … — or a single `genesis` gateway tool that routes them all | Cursor, Claude Code/Desktop, VS Code, Zed, Windsurf, JetBrains, Neovim, Emacs, Codex, Gemini CLI, Amazon Q, Goose, Cline, Roo, Continue |
+| **Hook** (pre-prompt) | Injects a ≤200-token *subconscious capsule*: active thread, last cross-client dialogue turn, matching skills, top engrams, one recall directive | Cursor 1.7 hooks, Claude Code `PrePrompt`, OpenCode plugin, Antigravity |
+| **Proxy** (stateless gateway) | `OPENAI_BASE_URL` / `ANTHROPIC_BASE_URL` → `127.0.0.1:8000`. Structural tool-pair compaction, anaphora rewriting, memory capsule injection, byte-exact SSE relay, fail-open | Any SDK, LangChain, LlamaIndex, CrewAI, AutoGen, Aider, anything with a base URL |
+
+Everything is stdlib-only Python, runs under 100 MB RSS, stores to one WAL-mode SQLite file, and never phones home.
 
 ---
 
-## Key Capabilities
+## Quick start
 
-### Subconscious Pre-Invocation Hook
-Automatically injects the most relevant architectural decisions, active threads, and solidified rules into every agent prompt — under a strict **200-token budget**. Your agent starts every session already knowing what matters.
-
-### Stateless Prompt Proxy & Token Optimizer
-Intercepts LLM traffic and applies **Structural Tool-Pair Compaction**, collapsing verbose tool outputs while preserving critical schemas. Dynamic caching separates cached vs. uncached tokens and enforces the *Rule of Three*: memory is only valuable when it replaces action.
-
-### Cross-Client Memory Continuity
-One unified memory graph across **Antigravity**, **Claude Code**, **OpenCode**, **VS Code/Cline**, and **Cursor**. Start a task in Cursor, continue in Claude Code, finish in OpenCode — without losing a single byte of context.
-
-### Biomimetic Sleep Consolidation
-Emulates NREM/REM memory consolidation cycles. Raw episodic events are distilled into high-order semantic decisions. Stale or contradictory knowledge is automatically flagged for decay. Skills are synthesized from recurring patterns.
-
-### Hebbian Reinforcement & Challenge Protocol
-Agents can reinforce (+1) or penalize (-1) memory engrams based on outcomes. The **Respectful Challenge** mechanism lets agents propose improvements to solidified rules — with human approval required before any change takes effect.
-
-### Zero-Trust Privacy Shield
-Automatic entropy-based detection and redaction of API keys, secrets, and tokens before any data hits SQLite. Your proprietary code never leaves your machine.
-
-### Live Observability Dashboard
-Real-time WebSocket telemetry with interactive Engram Explorer, Timeline View, Token/Cost Savings visualizer, AST Dependency Graph, and Memory Inspector — all in a premium Dark Mode UI.
-
-### 1-Click Multi-Client Setup
 ```bash
-genesis setup --preview    # See what will be wired
-genesis setup              # Wire all detected clients automatically
-genesis setup --client cursor --client opencode  # Target specific clients
+pip install genesis-memory          # or: git clone … && pip install -e .
+
+genesis setup --preview             # read-only: what is installed, what would be wired
+genesis setup --yes                 # wire every detected client (timestamped backups; --revert undoes)
+
+genesis dashboard --open            # Mission Control at http://127.0.0.1:8090
+genesis run -- pytest tests/        # headless, spooled, exit-code preserving
+```
+
+Anything not auto-detected:
+
+```bash
+genesis clients                                     # the universal matrix with detection status
+genesis export-config --client zed --format native  # exact snippet in the client's own dialect
+genesis export-config --format toml                 # canonical mcpServers as TOML / yaml / json / env / lua / elisp
+genesis export-config --all --out ./snippets        # one file per client
 ```
 
 ---
 
-## Quick Start
+## Universal client support
 
-### Installation
+`genesis setup` is a **data-driven registry** (`genesis_memory/cli/client_registry.py`): each client declares where its config lives, how to detect it, which primitives it supports and how to render the patch in its own dialect. JSON/JSONC files are deep-merged (your existing servers and comments survive); YAML/TOML/Lisp/dotenv files get an idempotent `>>> genesis-memory >>>` marker block that re-runs replace and `--revert` removes.
 
-```bash
-git clone https://github.com/HamidRezaeian/genesis-memory.git
-cd genesis-memory
-pip install -e .
+| Client | Config | Primitives | Format |
+|---|---|---|---|
+| Cursor | `~/.cursor/mcp.json` + `hooks.json` | MCP · Hook · Proxy | json |
+| Claude Code | `~/.claude/settings.json` + `~/.claude.json` | Hook · MCP · Proxy | json |
+| Claude Desktop | `…/Claude/claude_desktop_config.json` | MCP | json |
+| OpenCode | `~/.config/opencode/opencode.jsonc` + `plugins/genesis-memory.js` | MCP · Proxy · Hook | jsonc |
+| Antigravity IDE | `.agents/` (native) | MCP · Hook | native |
+| Windsurf (Codeium) | `~/.codeium/windsurf/mcp_config.json` | MCP · Proxy | json |
+| Zed | `~/.config/zed/settings.json` → `context_servers` | MCP · Proxy | jsonc |
+| VS Code (Copilot agent mode) | `…/Code/User/mcp.json` → `servers` | MCP · Proxy | jsonc |
+| Cline | `…/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` | MCP · Proxy | json |
+| Roo Code | `…/rooveterinaryinc.roo-cline/settings/mcp_settings.json` | MCP · Proxy | json |
+| Continue.dev | `~/.continue/mcpServers/genesis-memory.yaml` | MCP · Proxy | yaml |
+| JetBrains Junie / AI Assistant | `~/.junie/mcp/mcp.json` | MCP · Proxy | json |
+| Neovim (mcphub · Avante · CodeCompanion · Copilot.lua) | `~/.config/mcphub/servers.json` (+ Lua via export) | MCP · Proxy | json / lua |
+| Emacs (gptel · aidermacs · mcp.el) | `~/.emacs.d/genesis-memory.el` | MCP · Proxy | elisp |
+| Aider | `~/.aider.conf.yml` | Proxy | yaml |
+| OpenAI Codex CLI | `~/.codex/config.toml` | MCP · Proxy | toml |
+| Gemini CLI | `~/.gemini/settings.json` | MCP | json |
+| Amazon Q Developer CLI | `~/.aws/amazonq/mcp.json` | MCP | json |
+| Goose (Block) | `~/.config/goose/config.yaml` | MCP · Proxy | yaml |
+| Any SDK / framework (LangChain, LlamaIndex, CrewAI, AutoGen, OpenAI, Anthropic) | `~/.genesis/genesis.env` | Proxy | env |
+
+```python
+# Zero code changes for any framework: point the base URL at the gateway.
+from openai import OpenAI
+client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="not-needed")
 ```
-
-### Wire All Your AI Clients (1-Click)
-
-```bash
-genesis setup
-```
-
-This auto-detects and configures Cursor, Claude Code, OpenCode, Antigravity, and VS Code/Cline.
-
-### Start the MCP Daemon
-
-```bash
-genesis-daemon
-```
-
-### Launch the Dashboard
-
-```bash
-genesis-dashboard
-```
-
-Open [http://localhost:8080](http://localhost:8080) in your browser.
-
-### Run Commands with Headless Spooling
-
-```bash
-genesis run -- pytest tests/
-genesis run -- npm test
-genesis run -- cargo build
-```
-
-Zero-spam output capture with intelligent summarization — no context window explosion.
 
 ---
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  subgraph Clients["20 AI clients · any SDK"]
+    C1[Cursor] --- C2[Claude Code] --- C3[VS Code / Zed / JetBrains] --- C4[Neovim / Emacs] --- C5[LangChain · CrewAI · …]
+  end
+  Clients -- "stdio MCP (19 tools)" --> D[genesis-daemon<br/>&lt;100 MB RSS · stdlib only]
+  Clients -- "pre-prompt hook<br/>≤200-token capsule" --> H[subconscious_hook.py]
+  Clients -- "OPENAI_BASE_URL / ANTHROPIC_BASE_URL" --> P[genesis-proxy :8000<br/>/v1/chat/completions · /v1/messages]
+  D & H & P --> S[(memory.db<br/>SQLite WAL · busy 5000ms<br/>BEGIN IMMEDIATE + retry)]
+  R[genesis run<br/>headless spooler] -- "redacted bytes" --> SP[(~/.genesis/spool<br/>TTL 7d · LRU 500MB)]
+  S --> SL[sleep daemon<br/>Hebbian decay · skills · digest]
+  S & SP & P --> M[Mission Control :8090<br/>SSE telemetry · read-only]
+  PS[[Privacy Shield<br/>15 patterns + Shannon entropy]] -.guards.-> S & SP
+```
+
+### Repository layout
+
 ```text
-genesis-memory/
-├── pyproject.toml              # Modern Python packaging (v0.4.0)
-├── genesis_memory/             # Core Python package
-│   ├── cli/                    # 1-click setup, headless spooler, auth commands
-│   ├── daemon/                 # MCP Server (19 cognitive memory tools)
-│   ├── proxy/                  # Stateless prompt proxy & tool-result compactor
-│   ├── hooks/                  # Subconscious pre-invocation lifecycle hooks
-│   ├── sleep/                  # Biomimetic sleep consolidation & digest generator
-│   ├── dashboard/              # FastAPI + WebSocket live telemetry dashboard
-│   ├── core/                   # AST edge extractors, licensing engine, verification
-│   └── eval/                   # Cognitive benchmark harness (Step 4)
-├── site/                       # React/Vite commercial landing page
-├── docs/                       # Technical specs and interactive diagrams
-├── scripts/                    # Quick launch scripts (Windows & Linux)
-└── tests/                      # 232 tests — chaos, concurrency & unit suite
+genesis_memory/
+├── core/
+│   ├── db.py                 # WAL + busy_timeout + BEGIN IMMEDIATE + jittered retry (shared by every process)
+│   ├── privacy_shield.py     # structural patterns + Shannon-entropy detector; redact()/scan()/redact_bytes()
+│   ├── hebbian_engine.py     # stability τ, decay, reinforcement
+│   ├── skill_synthesizer.py  # recurring outcomes → procedural skills
+│   ├── ast_edge_extractor.py # dependency closure for attest_closure
+│   ├── licensing.py          # offline HMAC-SHA256 tiers
+│   └── team_sync.py          # enterprise vector-clock sync
+├── daemon/server.py          # stdio MCP daemon · versioned schema · lock-storm resilient dispatch
+├── hooks/subconscious_hook.py# ≤200-token capsule, ambient turn capture
+├── proxy/                    # aiohttp gateway (OpenAI + Anthropic), compactor, distiller, pricing engine (+ bundled catalog)
+├── cli/
+│   ├── run.py                # genesis CLI · 60+ toolchain headless spooler
+│   ├── client_registry.py    # universal data-driven client matrix (20 specs, aliases, dialect renderers)
+│   ├── config_formats.py     # dependency-free JSON/YAML/TOML/env emitters + marker-block merger
+│   ├── export_config.py      # genesis export-config / genesis clients
+│   ├── init_cmd.py           # genesis setup · preview · backup · --revert
+│   └── templates/opencode_plugin.js
+├── sleep/                    # consolidation cycle, digest, ledger
+└── dashboard/                # Mission Control (stdlib HTTP + SSE) and static/index.html cockpit
+site/                         # React 19 + Vite 7 landing page with live interactive demos
+tests/                        # 421 tests: chaos, concurrency, multi-process, privacy, clients, dashboard, proxy
 ```
 
 ---
 
-## MCP Tools Reference
+## Capabilities
 
-GENESIS Memory exposes **19 standard MCP tools** to connected LLM agents:
+### Lossless headless spooling — `genesis run`
+Wraps **60+ toolchains** (`pytest ruff mypy black tsc npm pnpm yarn bun deno cargo go dotnet gradle mvn make docker kubectl helm terraform pip uv poetry git gh …`) in a strict headless environment (`CI=1 TERM=dumb NO_COLOR=1 PAGER=cat GIT_TERMINAL_PROMPT=0 PIP_NO_INPUT=1 …`), refuses interactive shapes (`git rebase -i`, `docker run -it`, `--watch`), captures every byte to an atomic spool, prints a ≤10-line summary with a `ctx:log/<id>` pointer and preserves the exit code. Agents dereference with `genesis_log(id, grep=…)`.
 
-| Tool | Description |
-|------|-------------|
-| `remember` | Persist verified architectural decisions, facts, or patterns |
-| `recall` | Semantic search over knowledge base with Hebbian weighting |
-| `reinforce` | Reinforce (+1) or penalize (-1) memory engrams with outcome feedback |
-| `forget` | Soft-delete/tombstone invalid knowledge |
-| `invalidate` | Mark knowledge as superseded by newer findings |
-| `resolve_conflict` | Resolve contradictory engrams with human-approved resolution |
-| `challenge_rule` | Propose improvements to solidified rules (requires human approval) |
-| `get_dependencies` | Retrieve AST-level code dependency edges |
-| `attest_closure` | Verify and attest task completion with evidence |
-| `synthesize_skill` | Store deterministic procedural skills from recurring patterns |
-| `skill_recall` | Recall procedural skills matching prompt patterns |
-| `sleep_now` | Trigger immediate biomimetic sleep consolidation cycle |
-| `genesis_log` | Spool-based command output inspector (zero context explosion) |
-| `status` | Memory footprint, RSS, engram counts, cache telemetry |
-| `thread_update` | Synchronize active work threads across all clients |
-| `thread_get` | Retrieve the current active work thread |
-| `dialogue_update` | Update cross-agent dialogue memory |
-| `dialogue_get` | Retrieve cross-agent dialogue state |
-| `cross_client_resolve` | Resolve cross-client memory conflicts |
+### Zero-trust privacy shield
+Two independent detectors — 15 structural vendor patterns (OpenAI, Anthropic, Google, GitHub, AWS, Slack, Stripe, SendGrid, npm, Hugging Face, JWT, Bearer, PEM, basic-auth URLs, `KEY=value`) and a **Shannon-entropy gate at 4.0 bits/char** for credentials with no known prefix. Git SHAs, URLs, paths and identifiers pass untouched. Applied at `remember()` (reject), thread/dialogue fields (redact), and the **spool before the atomic write** (`GENESIS_SPOOL_RAW=1` opts out).
+
+### Bulletproof SQLite concurrency
+Every connection goes through `core/db.py`: WAL journal, `busy_timeout=5000`, `synchronous=NORMAL`, `BEGIN IMMEDIATE` transaction scope, jittered exponential retry, and read-only URIs for dashboards/reports. The MCP dispatcher rolls back and retries a tool call that loses a write race. The suite runs 8 threads × 25 writes and 4 processes × 15 JSON-RPC calls against one file and asserts **zero `database is locked`**.
+
+### Stateless gateway — OpenAI *and* Anthropic
+`POST /v1/chat/completions` and `POST /v1/messages` both get structural tool-pair compaction, memory capsule injection and streaming passthrough with TTFT preserved. Shadow mode measures without mutating. `GET /v1/telemetry`, `/v1/pricing`, `/v1/receipts/{id}`, `/v1/recovery/{id}`.
+
+### Biomimetic sleep consolidation
+Engrams carry a stability τ; retention decays as e^(−age/τ). Reinforcement widens τ, contradiction narrows it, dormant engrams are tombstoned, recurring wins are distilled into skills, and a bounded Active Digest primes the next session.
+
+### Mission Control dashboard — `genesis dashboard`
+Zero-dependency cockpit on `:8090`, streaming `/api/stream` SSE: token/dollar diet ticker, orbital **Memory Universe** (drag · zoom · inspect · reinforce), BM25 **Engram Explorer** with keyboard navigation, **Conflict Deck** (accept / keep / dismiss), **Skill Browser**, Hebbian **Sleep** curves, **Client Mesh** with live detection, **Privacy Shield sandbox**, spool & ledger, and a `⌘K` command palette. Read-only over WAL; every action is an explicit audited POST.
 
 ---
 
-## Commercial Licensing
+## MCP tools
 
-GENESIS Memory uses an **offline-first cryptographic licensing system** (HMAC-SHA256). No network calls required — works fully air-gapped.
+| Tool | Purpose |
+|---|---|
+| `remember` / `recall` / `forget` / `invalidate` | Episodic store with FTS5 BM25 ranking, utility scoring, supersession |
+| `reinforce` | Hebbian +1 / −1 from outcomes |
+| `challenge_rule` / `resolve_conflict` | Propose a better rule; human veto queue |
+| `thread_update` / `thread_get` | Unified cross-client active work thread |
+| `dialogue_update` / `dialogue_get` / `cross_client_resolve` | Cross-client conversational continuity with provenance |
+| `synthesize_skill` / `skill_recall` | Procedural memory |
+| `get_dependencies` / `attest_closure` | AST dependency closure attestation |
+| `genesis_log` | Dereference spooled output (grep / pagination / chunked) |
+| `sleep_now` / `status` | Consolidation trigger; health & counters |
+| `genesis` | One-tool gateway: `{op: "recall", query: …}` routes every op above |
 
-### Tiers
+Set `GENESIS_MCP_TOOL_MODE=gateway` to advertise only the gateway tool and shrink every-turn schema bytes.
 
-| | Community | Developer Pro | Enterprise Gateway |
+---
+
+## Benchmarks (reference machine, `tests/`)
+
+| Scenario | Before | After | Δ |
 |---|---|---|---|
-| **Price** | Free & Open Source | $14/mo or $99 lifetime | $39/seat/month |
-| Local SQLite Memory | ✅ | ✅ | ✅ |
-| Subconscious Hook | ✅ | ✅ | ✅ |
-| Headless Spooling | ✅ | ✅ | ✅ |
-| 1-Click Client Setup | ✅ | ✅ | ✅ |
-| High-Ratio Compactor | — | ✅ | ✅ |
-| Hebbian Sleep Distillation | — | ✅ | ✅ |
-| Visual Telemetry Dashboard | — | ✅ | ✅ |
-| Priority Token Budget | — | ✅ | ✅ |
-| Team Shared Memory Sync | — | — | ✅ |
-| On-Premises Docker Gateway | — | — | ✅ |
-| Zero-Leak Audit Logs | — | — | ✅ |
-| SLA Support | — | — | ✅ |
-
-### Activation
-
-```bash
-genesis auth --key GEN-PRO-<your-license-key>
-genesis license              # Check current tier and status
-```
-
----
-
-## Supported Clients
-
-| Client | Config Path | Status |
-|--------|-------------|--------|
-| **Cursor** | `~/.cursor/mcp.json` | ✅ Full Support |
-| **Claude Code** | `~/.claude/mcp.json` | ✅ Full Support |
-| **OpenCode** | `~/.config/opencode/opencode.jsonc` | ✅ Full Support |
-| **Antigravity** | `~/.gemini/antigravity-ide/mcp/` | ✅ Full Support |
-| **VS Code / Cline** | `.vscode/mcp.json` | ✅ Full Support |
+| `pytest` run, 4,000 lines in agent context | ~79,200 tok | 84 tok | **−98.4 %** |
+| Subconscious capsule vs. whole store | 21,480 tok | 176 tok | **−99.2 %** |
+| 14-turn conversation + 2,200 tool lines via gateway | 60,800 tok | 3,030 tok | **−95.0 %** |
+| Recall latency @ 10k engrams | — | < 50 ms | — |
+| Daemon RSS steady state | — | ≈ 30 MB | budget 100 MB |
+| 8 procs × concurrent writes to one DB | — | 0 lock errors | — |
 
 ---
 
 ## Testing
 
 ```bash
-# Run full test suite
-pytest tests/
-
-# Run specific test modules
-pytest tests/test_genesis_daemon.py      # Core MCP daemon
-pytest tests/test_licensing.py           # Licensing engine
-pytest tests/test_challenge_rule.py      # Challenge protocol
-pytest tests/test_hebbian_and_skills.py  # Sleep & skills
-pytest tests/test_tool_compactor.py      # Token compaction
-pytest tests/test_genesis_proxy.py       # Proxy TTFT
+python -m pytest tests/                     # 421 passed, 1 skipped
+python -m pytest tests/test_db_hardening.py # multi-thread + multi-process lock storm
+python -m pytest tests/test_privacy_shield.py tests/test_universal_clients.py tests/test_dashboard_server.py
 ```
-
-**Current status:** 232 tests, 231 passed, 1 skipped, 0 failures.
 
 ---
 
-## Contributing
+## Licensing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Write tests for your changes
-4. Ensure all 232+ tests pass (`pytest tests/`)
-5. Commit with conventional commits (`feat:`, `fix:`, `docs:`)
-6. Open a Pull Request
+Offline-first HMAC-SHA256 — works air-gapped.
+
+| | Community | Developer Pro | Enterprise Gateway |
+|---|---|---|---|
+| Price | Free / MIT | $14 mo · $12 annual | $39 seat/mo · $32 annual |
+| Local SQLite memory · hook · spooler · 20-client setup · privacy shield | ✅ | ✅ | ✅ |
+| High-ratio compactor · Hebbian sleep · dashboard · live pricing · Anthropic route | — | ✅ | ✅ |
+| Team shared memory sync · on-prem Docker gateway · audit logs · SLA | — | — | ✅ |
+
+```bash
+genesis auth --key GEN-PRO-<key>
+genesis license
+```
 
 ---
 
 ## Links
 
-- [GitHub Repository](https://github.com/HamidRezaeian/genesis-memory)
-- [Landing Page](https://genesis-memory.dev) *(coming soon)*
-- [Documentation](docs/)
+- [RELEASE_CHANGELOG.md](RELEASE_CHANGELOG.md) — every change in v0.5.0, with rationale and impact
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/MCP_SPEC.md](docs/MCP_SPEC.md) · [llms.txt](llms.txt) · [openapi.json](openapi.json)
+- Landing page: `cd site && npm install && npm run build && npm run preview` → http://localhost:4173
 
----
-
-<p align="center">
-  <strong>Built with obsessive attention to token efficiency and developer experience.</strong><br/>
-  <sub>GENESIS Memory — because your AI agent deserves a brain that doesn't reset every session.</sub>
-</p>
-
-## License
-
-MIT License. Open and modular.
+<p align="center"><sub>GENESIS Memory — because your AI agent deserves a brain that doesn't reset every session.</sub></p>
