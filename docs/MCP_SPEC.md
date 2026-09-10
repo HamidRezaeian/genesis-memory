@@ -17,3 +17,7 @@ The Model Context Protocol (MCP) server runs via standard I/O (JSON-RPC) and exp
 | `status` | none | Returns database statistics, RSS consumption, episode counts, and schema version. |
 | `get_dependencies` | `engram_id` (int) | Retrieves graph relationships and AST links for an engram. |
 | `attest_closure` | `engram_id` (int), `proof` (str) | Attests mathematical or test-backed closure to an engram. |
+| `reinforce` | `id` (int), `outcome` (success/failure), `note` (str) | Reinforces (+1) or penalizes (-1) a memory engram based on feedback (Hebbian learning). |
+| `synthesize_skill` | `name` (str), `action_recipe` (str), `trigger_patterns` (list), `invariants` (str) | Persists an executable procedural skill / recipe with trigger patterns. |
+| `skill_recall` | `query` (str), `min_confidence` (float), `limit` (int) | Recalls procedural skills and actionable recipes matching a prompt or error pattern. |
+| `sleep_now` | `deep` (bool) | Triggers an immediate biomimetic sleep consolidation cycle. |

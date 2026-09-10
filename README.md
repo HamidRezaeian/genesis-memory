@@ -81,9 +81,13 @@ genesis run -- pytest tests/
 
 ## 🛠️ MCP Tools (Model Context Protocol)
 
-GENESIS Memory exposes 15 standard MCP tools to connected LLM agents:
+GENESIS Memory exposes 19 standard MCP tools to connected LLM agents:
 - `remember(content, kind, confidence, tags)`: Persist verified architectural decisions or facts.
-- `recall(query, k, min_confidence, tags)`: Semantic search over knowledge base.
+- `recall(query, k, min_confidence, tags)`: Semantic search over knowledge base with Hebbian weighting.
+- `reinforce(id, outcome, note)`: Reinforce (+1) or penalize (-1) memory engrams with feedback.
+- `synthesize_skill(name, action_recipe, trigger_patterns)`: Store deterministic procedural skills.
+- `skill_recall(query)`: Recall procedural skills matching prompt patterns.
+- `sleep_now(deep)`: Trigger immediate biomimetic sleep consolidation.
 - `forget(id, reason)`: Soft-delete/tombstone invalid knowledge.
 - `invalidate(id, superseded_by, reason)`: Mark knowledge as superseded.
 - `resolve_conflict(engram_id_a, engram_id_b, resolution)`: Resolve contradictory findings.
@@ -91,7 +95,7 @@ GENESIS Memory exposes 15 standard MCP tools to connected LLM agents:
 - `thread_get()`: Retrieve the active work thread.
 - `dialogue_update` & `dialogue_get`: Real-time cross-agent dialogue memory.
 - `genesis_log`: Spool-based command output inspector without context explosion.
-- `status`: Memory footprint, RSS, count, and cache telemetry.
+- `status`: Memory footprint, RSS, count, solidified/dormant engrams, and cache telemetry.
 
 ---
 

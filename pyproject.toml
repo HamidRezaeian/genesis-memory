@@ -33,6 +33,7 @@ genesis = "genesis_memory.cli.run:main"
 genesis-daemon = "genesis_memory.daemon.server:main"
 genesis-dashboard = "genesis_memory.dashboard.server:main"
 genesis-proxy = "genesis_memory.proxy.launcher:main"
+genesis-sleep = "genesis_memory.sleep.sleep_daemon:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

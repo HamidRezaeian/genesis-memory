@@ -239,8 +239,18 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         # Check schema capability (supports v2 legacy and v3 active status)
         cols = [c[1] for c in cur.execute("PRAGMA table_info(episodes)").fetchall()]
         has_status = "status" in cols
-        status_filter = "WHERE (status = 'active' OR status IS NULL)" if has_status else ""
-        status_join = "AND (e.status = 'active' OR e.status IS NULL)" if has_status else ""
+        status_filter = "WHERE (status IN ('active', 'solidified') OR status IS NULL)" if has_status else ""
+        status_join = "AND (e.status IN ('active', 'solidified') OR e.status IS NULL)" if has_status else ""
+
+        # Check matching procedural skills (SkillSynthesizer)
+        skill_entries: list = []
+        try:
+            from genesis_memory.core.skill_synthesizer import SkillSynthesizer
+            synth = SkillSynthesizer(conn)
+            matched_skills = synth.match_skills(query_text, min_confidence=0.6, limit=1)
+            skill_entries = synth.format_skills_for_prompt(matched_skills, max_chars=180)
+        except Exception:
+            pass
 
         # Exclude IDs already pinned in AGENTS.md digest to eliminate token duplication
         agents_md = os.path.join(REPO_ROOT, ".agents", "AGENTS.md")
@@ -253,11 +263,11 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
             except Exception:
                 pass
 
-        # 1. Working Buffer Anchor: Prime the newest active state not in digest
+        # 1. Working Buffer Anchor: Prime the newest active state not in digest (solidified first)
         anchor_sql = (
             f"SELECT id, kind, text FROM episodes "
             f"{status_filter} "
-            f"ORDER BY ts DESC LIMIT 8"
+            f"ORDER BY CASE WHEN status = 'solidified' THEN 0 ELSE 1 END, ts DESC LIMIT 8"
         )
         for rid, kind, text in cur.execute(anchor_sql).fetchall():
             if rid not in seen_ids:
@@ -587,6 +597,11 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         if total_chars + len(older) <= budget_chars:
             formatted.append(older)
             total_chars += len(older)
+
+    for s_line in skill_entries:
+        if total_chars + len(s_line) <= budget_chars:
+            formatted.append(s_line)
+            total_chars += len(s_line)
 
     for rid, kind, text in results:
         # Standardized 40 words per snippet matching Store.recall invariant

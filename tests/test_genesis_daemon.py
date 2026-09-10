@@ -68,9 +68,13 @@ def test_mcp_handshake_and_tools(live):
         "get_dependencies",
         "invalidate",
         "recall",
+        "reinforce",
         "remember",
         "resolve_conflict",
+        "skill_recall",
+        "sleep_now",
         "status",
+        "synthesize_skill",
         "thread_get",
         "thread_update",
     ]

@@ -19,6 +19,11 @@ import sqlite3
 import sys
 import time
 
+# Ensure package root is always in sys.path when invoked directly as a standalone script
+_pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
+
 # NOTE (RSS discipline): argparse/logging import ONLY inside main()/setup_logging().
 # The stdio server path must stay import-lean; every top-level import costs resident MB.
 
@@ -116,7 +121,7 @@ CREATE TABLE IF NOT EXISTS counters(
 # v0.5: versioned schema. Baseline above IS version 1. Future upgrades append
 # {new_version: [sql, ...]} here; migrate() applies pending ones in order.
 # RULE: migrations only ever ADD (tables/columns/indexes); never drop/alter user data.
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 MIGRATIONS = {
     1: [],  # baseline (episodes + fts + triggers), recorded for provenance
     2: [
@@ -149,6 +154,14 @@ MIGRATIONS = {
         "CREATE TABLE IF NOT EXISTS dialogue_buffer(session_id TEXT PRIMARY KEY, client TEXT, updated_at REAL, user_prompt TEXT, assistant_summary TEXT, salient_terms TEXT)",
         "CREATE INDEX IF NOT EXISTS idx_dialogue_updated ON dialogue_buffer(updated_at)",
         "INSERT OR IGNORE INTO counters(name, count) VALUES ('dialogue_updates', 0)",
+    ],
+    8: [
+        "ALTER TABLE episodes ADD COLUMN stability REAL DEFAULT 7.0",
+        "ALTER TABLE episodes ADD COLUMN reinforcements INTEGER DEFAULT 0",
+        "ALTER TABLE episodes ADD COLUMN last_reinforced REAL",
+        "CREATE TABLE IF NOT EXISTS skills(id TEXT PRIMARY KEY, name TEXT NOT NULL, trigger_patterns TEXT, preconditions TEXT, action_recipe TEXT NOT NULL, invariants TEXT, confidence REAL DEFAULT 1.0, success_count INTEGER DEFAULT 0, status TEXT DEFAULT 'active', created_at REAL, updated_at REAL)",
+        "CREATE INDEX IF NOT EXISTS idx_skills_status ON skills(status)",
+        "INSERT OR IGNORE INTO counters(name, count) VALUES ('reinforce', 0), ('synthesize_skill', 0), ('skill_recall', 0), ('sleep_cycles', 0)",
     ],
 }
 
@@ -288,6 +301,34 @@ TOOLS = [
                      "properties": {"question": {"type": "string"},
                                     "max_chars": {"type": "integer", "default": 1200}},
                      "required": ["question"]}},
+    {"name": "reinforce",
+     "description": "Reinforce (+1) or penalize (-1) a memory engram based on task outcome and feedback (Hebbian learning).",
+     "inputSchema": {"type": "object",
+                     "properties": {"id": {"type": "integer"},
+                                    "outcome": {"type": "string", "enum": ["success", "failure"], "default": "success"},
+                                    "note": {"type": "string", "default": ""}},
+                     "required": ["id"]}},
+    {"name": "synthesize_skill",
+     "description": "Persist a deterministic procedural skill / actionable recipe with trigger patterns into procedural memory.",
+     "inputSchema": {"type": "object",
+                     "properties": {"name": {"type": "string"},
+                                    "action_recipe": {"type": "string"},
+                                    "trigger_patterns": {"type": "array", "items": {"type": "string"}},
+                                    "preconditions": {"type": "string", "default": ""},
+                                    "invariants": {"type": "string", "default": ""},
+                                    "confidence": {"type": "number", "default": 1.0}},
+                     "required": ["name", "action_recipe"]}},
+    {"name": "skill_recall",
+     "description": "Recall procedural skills and actionable recipes matching a prompt, keyword, or error pattern.",
+     "inputSchema": {"type": "object",
+                     "properties": {"query": {"type": "string"},
+                                    "min_confidence": {"type": "number", "default": 0.5},
+                                    "limit": {"type": "integer", "default": 3}},
+                     "required": ["query"]}},
+    {"name": "sleep_now",
+     "description": "Trigger an immediate biomimetic sleep consolidation cycle (Hebbian decay, skill extraction, Active Digest generation).",
+     "inputSchema": {"type": "object",
+                     "properties": {"deep": {"type": "boolean", "default": False}}}},
 ]
 
 # One-tool gateway: the entire surface above behind a single schema, so the
@@ -299,7 +340,8 @@ GATEWAY_TOOL_NAME = "genesis"
 GATEWAY_OPS = ("help", "remember", "recall", "forget", "invalidate",
                "resolve_conflict", "get_dependencies", "attest_closure",
                "genesis_log", "status", "thread_update", "thread_get",
-               "dialogue_update", "dialogue_get", "cross_client_resolve")
+               "dialogue_update", "dialogue_get", "cross_client_resolve",
+               "reinforce", "synthesize_skill", "skill_recall", "sleep_now")
 GATEWAY_TOOL = {
     "name": GATEWAY_TOOL_NAME,
     "description": (
@@ -387,7 +429,7 @@ class Store:
                          "vetoes_applied", "vetoes_dismissed", "edges_extracted", "edges_invalidated",
                          "faults_triggered", "faults_resolved", "fault_caps_hit", "attestations_passed",
                          "spools_created", "spools_dereferenced", "spooled_bytes", "dereferenced_bytes",
-                         "spools_full_reads"):
+                         "spools_full_reads", "reinforce", "synthesize_skill", "skill_recall", "sleep_cycles"):
                 self.db.execute("INSERT OR IGNORE INTO counters(name, count) VALUES (?, 0)", (name,))
             # Synchronize baseline ground truth from existing database records
             ep_count = self.db.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
@@ -543,40 +585,49 @@ class Store:
 
     def recall(self, query, project=None, limit=5, max_tokens_estimate=800,
                snippet_words=SNIPPET_WORDS, fallback=True):
-        # v0.2: sentence -> content-term OR query (build_fts_query) + BM25 ranking.
-        # Empty-term queries fall back to utility order (no silent zero-results).
+        # v0.3: BM25 ranking + Hebbian synaptic weight & Ebbinghaus decay
         self._inc_counter("recall")
         fts_q = build_fts_query(query)
         now = time.time()
         scored = []
+        rows = []
         if fts_q:
             sql = ("SELECT e.id, e.project, e.kind, e.text, e.utility, e.accesses, e.updated,"
-                   " bm25(episodes_fts) FROM episodes_fts JOIN episodes e"
+                   " bm25(episodes_fts), COALESCE(e.reinforcements, 0), COALESCE(e.stability, 7.0), e.status"
+                   " FROM episodes_fts JOIN episodes e"
                    " ON e.id = episodes_fts.rowid WHERE episodes_fts MATCH ?"
-                   " AND (e.status = 'active' OR e.status IS NULL)")
+                   " AND (e.status IN ('active', 'solidified') OR e.status IS NULL)")
             args = [fts_q]
             if project:
                 sql += " AND e.project = ?"
                 args.append(project)
             rows = self.db.execute(sql, args).fetchall()
-            # rows: (id, project, kind, text, util, acc, upd, bm25neg); lower bm25 = better.
-            for rid, proj, kind, text, util, acc, upd, bm in rows:
-                age_days = max(0.0, (now - upd) / 86400.0)
-                score = -float(bm) + 2.0 * float(util) + 1.0 * (1.0 + acc) ** 0.5 - 0.05 * age_days
+            from genesis_memory.core.hebbian_engine import compute_retention, compute_synaptic_weight
+            for rid, proj, kind, text, util, acc, upd, bm, reinf, stab, st in rows:
+                age_s = max(0.0, now - (upd or now))
+                ret = compute_retention(age_s, stab)
+                w = compute_synaptic_weight(util, ret, acc, reinf)
+                score = -float(bm) + 1.5 * w + (0.8 if st == 'solidified' else 0.0)
                 scored.append((score, rid, proj, kind, text, util, acc))
 
         # Working memory fallback: if enabled and (FTS returned 0 hits or query was empty)
         if not scored and fallback:
-            cond = "WHERE (status = 'active' OR status IS NULL)"
+            cond = "WHERE (status IN ('active', 'solidified') OR status IS NULL)"
             args = []
             if project:
                 cond += " AND project = ?"
                 args.append(project)
             rows = self.db.execute(
-                f"SELECT id, project, kind, text, utility, accesses, updated FROM episodes {cond}"
+                f"SELECT id, project, kind, text, utility, accesses, updated, "
+                f"COALESCE(reinforcements, 0), COALESCE(stability, 7.0), status FROM episodes {cond}"
                 " ORDER BY utility DESC, accesses DESC, updated DESC LIMIT 50", args).fetchall()
-            scored = [(2.0 * float(util) + 1.0 * (1.0 + acc) ** 0.5, rid, proj, kind, text, util, acc)
-                      for rid, proj, kind, text, util, acc, upd in rows]
+            from genesis_memory.core.hebbian_engine import compute_retention, compute_synaptic_weight
+            for rid, proj, kind, text, util, acc, upd, reinf, stab, st in rows:
+                age_s = max(0.0, now - (upd or now))
+                ret = compute_retention(age_s, stab)
+                w = compute_synaptic_weight(util, ret, acc, reinf)
+                score = 1.5 * w + (0.8 if st == 'solidified' else 0.0)
+                scored.append((score, rid, proj, kind, text, util, acc))
         scored.sort(reverse=True)
         out, used, ids = [], 0, []
         for _, rid, proj, kind, text, util, acc in scored[: max(1, limit)]:
@@ -594,8 +645,45 @@ class Store:
                 f"UPDATE episodes SET accesses = accesses + 1, updated = {now}"
                 f" WHERE id IN ({','.join('?' for _ in ids)})", ids)
             self.db.commit()
+            try:
+                from genesis_memory.core.hebbian_engine import HebbianEngine
+                HebbianEngine(self.db).record_co_activation(ids, now=now)
+            except Exception:
+                pass
         return {"results": out, "tokens_estimate_total": used,
                 "candidates_considered": len(rows), "budget_tokens_estimate": max_tokens_estimate}
+
+    def reinforce(self, id, outcome="success", note=""):
+        self._inc_counter("reinforce")
+        from genesis_memory.core.hebbian_engine import HebbianEngine
+        hebbian = HebbianEngine(self.db)
+        return hebbian.reinforce_memory(int(id), outcome=outcome, note=note)
+
+    def synthesize_skill(self, name, action_recipe, trigger_patterns=None, preconditions="", invariants="", confidence=1.0, skill_id=None):
+        self._inc_counter("synthesize_skill")
+        from genesis_memory.core.skill_synthesizer import SkillSynthesizer
+        syn = SkillSynthesizer(self.db)
+        trigs = trigger_patterns if isinstance(trigger_patterns, list) else [t.strip() for t in (trigger_patterns or "").split(",") if t.strip()]
+        return syn.create_or_update_skill(
+            name=name,
+            action_recipe=action_recipe,
+            trigger_patterns=trigs,
+            skill_id=skill_id,
+            preconditions=preconditions,
+            invariants=invariants,
+            confidence=float(confidence),
+        )
+
+    def skill_recall(self, query, min_confidence=0.5, limit=3):
+        self._inc_counter("skill_recall")
+        from genesis_memory.core.skill_synthesizer import SkillSynthesizer
+        syn = SkillSynthesizer(self.db)
+        return {"skills": syn.match_skills(query, min_confidence=float(min_confidence), limit=int(limit))}
+
+    def sleep_now(self, deep=False):
+        self._inc_counter("sleep_cycles")
+        from genesis_memory.sleep.sleep_daemon import run_sleep_cycle
+        return run_sleep_cycle(self.path, deep=bool(deep))
 
     def forget(self, mid):
         self._inc_counter("forget")
@@ -612,6 +700,21 @@ class Store:
             "SELECT COUNT(*) FROM episodes WHERE status = 'superseded'").fetchone()[0]
         n_invalidated = self.db.execute(
             "SELECT COUNT(*) FROM episodes WHERE status = 'invalidated'").fetchone()[0]
+        try:
+            n_solidified = self.db.execute(
+                "SELECT COUNT(*) FROM episodes WHERE status = 'solidified'").fetchone()[0]
+        except Exception:
+            n_solidified = 0
+        try:
+            n_dormant = self.db.execute(
+                "SELECT COUNT(*) FROM episodes WHERE status = 'dormant'").fetchone()[0]
+        except Exception:
+            n_dormant = 0
+        try:
+            n_skills_active = self.db.execute(
+                "SELECT COUNT(*) FROM skills WHERE status = 'active'").fetchone()[0]
+        except Exception:
+            n_skills_active = 0
         try:
             n_conflicts_pending = self.db.execute(
                 "SELECT COUNT(*) FROM conflicts WHERE status = 'pending'").fetchone()[0]
@@ -631,6 +734,8 @@ class Store:
         counters = self._get_counters()
         return {"episodes": n_active, "episodes_total": n_total,
                 "superseded": n_superseded, "invalidated": n_invalidated,
+                "solidified": n_solidified, "dormant": n_dormant,
+                "skills_active": n_skills_active,
                 "conflicts_pending": n_conflicts_pending,
                 "edges_active": n_edges_active,
                 "db_bytes": size, "rss_mb": rss,
@@ -962,6 +1067,18 @@ def handle(store, msg):
             if name == "cross_client_resolve":
                 return ok({"content": [{"type": "text",
                                         "text": json.dumps(store.cross_client_resolve(**args))}]})
+            if name == "reinforce":
+                return ok({"content": [{"type": "text",
+                                        "text": json.dumps(store.reinforce(**args))}]})
+            if name == "synthesize_skill":
+                return ok({"content": [{"type": "text",
+                                        "text": json.dumps(store.synthesize_skill(**args))}]})
+            if name == "skill_recall":
+                return ok({"content": [{"type": "text",
+                                        "text": json.dumps(store.skill_recall(**args))}]})
+            if name == "sleep_now":
+                return ok({"content": [{"type": "text",
+                                        "text": json.dumps(store.sleep_now(**args))}]})
 
         if method.startswith("notifications/"):
             return None

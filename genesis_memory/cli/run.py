@@ -178,7 +178,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             "  genesis init --yes\n"
             "  genesis doctor\n"
             "  genesis run -- pytest tests/\n"
-            "  genesis proxy status",
+            "  genesis proxy status\n"
+            "  genesis sleep [--now | --daemon]\n"
+            "  genesis skills",
             file=sys.stderr,
         )
         return 1
@@ -193,6 +195,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         from genesis_memory.cli.doctor import run_doctor
         verbose = "-v" in args[1:] or "--verbose" in args[1:]
         return run_doctor(verbose=verbose)
+
+    if subcmd == "sleep":
+        from genesis_memory.sleep.sleep_daemon import main as sleep_main
+        return sleep_main(args[1:])
+
+    if subcmd in ("skills", "skill"):
+        db_path = os.environ.get("GENESIS_DAEMON_DB", os.path.expanduser("~/.genesis/memory.db"))
+        if not os.path.exists(db_path):
+            print(f"[genesis] Database not found: {db_path}", file=sys.stderr)
+            return 1
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT id, name, action_recipe, confidence, success_count, status FROM skills ORDER BY success_count DESC, confidence DESC"
+            ).fetchall()
+            if not rows:
+                print("[genesis] No synthesized skills recorded yet.")
+                return 0
+            print(f"[genesis] 🧠 Procedural Skills ({len(rows)} registered):")
+            for sid, name, recipe, conf, succ, st in rows:
+                print(f"  • [{sid}] {name} (conf={conf}, success={succ}, status={st})")
+                print(f"    Recipe: {recipe[:100]}...")
+            return 0
+        finally:
+            conn.close()
 
     if subcmd == "proxy":
         from genesis_memory.proxy.supervisor import ensure_proxy_running, stop_proxy, is_proxy_healthy
