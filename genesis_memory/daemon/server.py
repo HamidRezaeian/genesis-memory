@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS counters(
 # v0.5: versioned schema. Baseline above IS version 1. Future upgrades append
 # {new_version: [sql, ...]} here; migrate() applies pending ones in order.
 # RULE: migrations only ever ADD (tables/columns/indexes); never drop/alter user data.
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 MIGRATIONS = {
     1: [],  # baseline (episodes + fts + triggers), recorded for provenance
     2: [
@@ -162,6 +162,10 @@ MIGRATIONS = {
         "CREATE TABLE IF NOT EXISTS skills(id TEXT PRIMARY KEY, name TEXT NOT NULL, trigger_patterns TEXT, preconditions TEXT, action_recipe TEXT NOT NULL, invariants TEXT, confidence REAL DEFAULT 1.0, success_count INTEGER DEFAULT 0, status TEXT DEFAULT 'active', created_at REAL, updated_at REAL)",
         "CREATE INDEX IF NOT EXISTS idx_skills_status ON skills(status)",
         "INSERT OR IGNORE INTO counters(name, count) VALUES ('reinforce', 0), ('synthesize_skill', 0), ('skill_recall', 0), ('sleep_cycles', 0)",
+    ],
+    9: [
+        "ALTER TABLE episodes ADD COLUMN model_source TEXT",
+        "INSERT OR IGNORE INTO counters(name, count) VALUES ('challenge_rule', 0)",
     ],
 }
 
@@ -329,6 +333,13 @@ TOOLS = [
      "description": "Trigger an immediate biomimetic sleep consolidation cycle (Hebbian decay, skill extraction, Active Digest generation).",
      "inputSchema": {"type": "object",
                      "properties": {"deep": {"type": "boolean", "default": False}}}},
+    {"name": "challenge_rule",
+     "description": "Challenge a solidified golden rule with a better alternative. Registers a conflict for user review instead of silently complying with a possibly outdated rule.",
+     "inputSchema": {"type": "object",
+                     "properties": {"solidified_id": {"type": "integer", "description": "ID of the solidified engram to challenge"},
+                                    "proposed_text": {"type": "string", "description": "The proposed better rule or approach"},
+                                    "reason": {"type": "string", "description": "Why the new approach is better"}},
+                     "required": ["solidified_id", "proposed_text"]}},
 ]
 
 # One-tool gateway: the entire surface above behind a single schema, so the
@@ -341,7 +352,8 @@ GATEWAY_OPS = ("help", "remember", "recall", "forget", "invalidate",
                "resolve_conflict", "get_dependencies", "attest_closure",
                "genesis_log", "status", "thread_update", "thread_get",
                "dialogue_update", "dialogue_get", "cross_client_resolve",
-               "reinforce", "synthesize_skill", "skill_recall", "sleep_now")
+               "reinforce", "synthesize_skill", "skill_recall", "sleep_now",
+               "challenge_rule")
 GATEWAY_TOOL = {
     "name": GATEWAY_TOOL_NAME,
     "description": (
@@ -429,7 +441,8 @@ class Store:
                          "vetoes_applied", "vetoes_dismissed", "edges_extracted", "edges_invalidated",
                          "faults_triggered", "faults_resolved", "fault_caps_hit", "attestations_passed",
                          "spools_created", "spools_dereferenced", "spooled_bytes", "dereferenced_bytes",
-                         "spools_full_reads", "reinforce", "synthesize_skill", "skill_recall", "sleep_cycles"):
+                         "spools_full_reads", "reinforce", "synthesize_skill", "skill_recall", "sleep_cycles",
+                         "challenge_rule"):
                 self.db.execute("INSERT OR IGNORE INTO counters(name, count) VALUES (?, 0)", (name,))
             # Synchronize baseline ground truth from existing database records
             ep_count = self.db.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
@@ -552,6 +565,79 @@ class Store:
         )
         self.db.commit()
         return {"conflict_id": int(conflict_id), "status": "resolved", "action": action, "winner_id": winner_id}
+
+    def challenge_rule(self, solidified_id, proposed_text, reason=""):
+        """Challenge a solidified golden rule with a proposed better alternative.
+
+        Instead of silently complying with a potentially outdated solidified rule,
+        this registers a formal conflict for user review. The solidified rule is NOT
+        automatically replaced — the user decides via resolve_conflict.
+        """
+        self._inc_counter("challenge_rule")
+        now = time.time()
+
+        # 1. Validate target is actually solidified
+        row = self.db.execute(
+            "SELECT id, text, status, utility, reinforcements FROM episodes WHERE id = ?",
+            (int(solidified_id),)
+        ).fetchone()
+        if not row:
+            raise ValueError(f"Episode #{solidified_id} not found")
+        eid, old_text, status, old_util, old_reinf = row
+        if status != "solidified":
+            return {
+                "challenged": False,
+                "reason": f"Episode #{solidified_id} is '{status}', not 'solidified'. "
+                          "Only solidified golden rules can be challenged.",
+                "solidified_id": eid,
+            }
+
+        # 2. Check for secret content in proposed text
+        if scan_secrets(proposed_text):
+            self._inc_counter("secrets_blocked")
+            raise ValueError("Secret detected in proposed text: rejected by security invariant")
+
+        # 3. Store the proposed alternative as a pending_challenge episode
+        challenge_text = proposed_text.strip()
+        if reason:
+            challenge_text += f" [challenge reason: {reason.strip()}]"
+        cur = self.db.execute(
+            "INSERT INTO episodes(ts, project, kind, text, utility, accesses, updated, status) "
+            "VALUES(?, 'default', 'decision', ?, ?, 0, ?, 'pending_challenge')",
+            (now, challenge_text, float(old_util), now)
+        )
+        new_id = cur.lastrowid
+
+        # 4. Register formal conflict between solidified rule and challenger
+        self.db.execute(
+            "INSERT INTO conflicts(ts, new_id, conflicting_id, similarity, status, updated) "
+            "VALUES(?, ?, ?, ?, 'challenge_pending', ?)",
+            (now, new_id, eid, 1.0, now)
+        )
+        conflict_id = self.db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        self._inc_counter("conflicts_detected")
+        self.db.commit()
+
+        return {
+            "challenged": True,
+            "conflict_id": conflict_id,
+            "solidified_rule": {
+                "id": eid,
+                "text": old_text,
+                "reinforcements": old_reinf or 0,
+            },
+            "proposed_rule": {
+                "id": new_id,
+                "text": proposed_text.strip(),
+                "reason": reason,
+            },
+            "action_required": (
+                f"⚠️ CONFLICT: Solidified rule #{eid} is being challenged. "
+                f"Resolve with: resolve_conflict(conflict_id={conflict_id}, "
+                f"action='superseded', winner_id=<winning_id>) or "
+                f"resolve_conflict(conflict_id={conflict_id}, action='dismissed')"
+            ),
+        }
 
     def get_dependencies(self, source, depth=1):
         """Retrieve AST-extracted code dependencies (graph closure) for a module or file path."""
@@ -1079,6 +1165,9 @@ def handle(store, msg):
             if name == "sleep_now":
                 return ok({"content": [{"type": "text",
                                         "text": json.dumps(store.sleep_now(**args))}]})
+            if name == "challenge_rule":
+                return ok({"content": [{"type": "text",
+                                        "text": json.dumps(store.challenge_rule(**args))}]})
 
         if method.startswith("notifications/"):
             return None

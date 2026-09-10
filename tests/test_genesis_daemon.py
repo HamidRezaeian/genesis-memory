@@ -59,6 +59,7 @@ def test_mcp_handshake_and_tools(live):
     names = sorted(t["name"] for t in rpc_call(live, "tools/list")["result"]["tools"])
     assert names == [
         "attest_closure",
+        "challenge_rule",
         "cross_client_resolve",
         "dialogue_get",
         "dialogue_update",

@@ -96,6 +96,10 @@ RESOLUTION_LADDER_LINE = (
     "• [Resolution order]: answer from this capsule first; then dialogue_buffer; "
     "then episodic recall; local client storage only as last resort."
 )
+CHALLENGE_PROTOCOL_LINE = (
+    "• [Challenge protocol]: if you have a genuinely BETTER approach than any solidified rule above, "
+    "call challenge_rule(solidified_id, proposed_text, reason) instead of silently complying."
+)
 # Fresh-session boost: one-time extra budget when NO fresh dialogue exists
 # (new/returning session). Bounded and telemetry-visible.
 BOOST_CHARS = 400
@@ -638,6 +642,12 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         total_chars += len(RESOLUTION_LADDER_LINE)
         resolution_applied = True
 
+    challenge_protocol_applied = False
+    if total_chars + len(CHALLENGE_PROTOCOL_LINE) <= budget_chars:
+        formatted.append(CHALLENGE_PROTOCOL_LINE)
+        total_chars += len(CHALLENGE_PROTOCOL_LINE)
+        challenge_protocol_applied = True
+
     diet_applied = False
     if _diet_enabled() and total_chars + len(HOOK_DIET_LINE) <= budget_chars:
         formatted.append(HOOK_DIET_LINE)
@@ -655,6 +665,7 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         "recall_hint_applied": recall_hint_applied,
         "grounding_applied": grounding_applied,
         "resolution_applied": resolution_applied,
+        "challenge_protocol_applied": challenge_protocol_applied,
         "ambient_captured": ambient_captured,
         "boosted": boosted,
         "dialogue_turns": 1 + len(extra_dialogue) if dialogue_entry else len(extra_dialogue),
