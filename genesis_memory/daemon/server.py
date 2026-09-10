@@ -557,8 +557,16 @@ class Store:
             target_winner = int(winner_id) if winner_id is not None else new_id
             target_loser = old_id if target_winner == new_id else new_id
             self.invalidate(target_loser, superseded_by=target_winner)
+            self.db.execute(
+                "UPDATE episodes SET status = 'active', updated = ? WHERE id = ? AND status = 'pending_challenge'",
+                (now, target_winner)
+            )
         else:
             self._inc_counter("vetoes_dismissed")
+            self.db.execute(
+                "UPDATE episodes SET status = 'invalidated', updated = ? WHERE id = ? AND status = 'pending_challenge'",
+                (now, new_id)
+            )
         self.db.execute(
             "UPDATE conflicts SET status = 'resolved', updated = ? WHERE id = ?",
             (now, int(conflict_id))
