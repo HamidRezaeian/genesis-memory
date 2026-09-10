@@ -85,8 +85,7 @@ MICRO_DIRECTIVE_LINE = (
     "call thread_update first."
 )
 RECALL_HINT_LINE = (
-    "• [Recall rule]: on questions referring to earlier discussion, "
-    "if this capsule lacks the detail, call recall first, then answer."
+    "• [Recall rule]: on questions referring to earlier discussion without detail here, call recall first."
 )
 GROUNDING_LINE = (
     "• [Grounding rule]: quote numbers with their source; "
@@ -94,11 +93,11 @@ GROUNDING_LINE = (
 )
 RESOLUTION_LADDER_LINE = (
     "• [Resolution order]: answer from this capsule first; then dialogue_buffer; "
-    "then episodic recall; local client storage only as last resort."
+    "then recall; last resort: local store."
 )
 CHALLENGE_PROTOCOL_LINE = (
-    "• [Challenge protocol]: if you have a genuinely BETTER approach than any solidified rule above, "
-    "call challenge_rule(solidified_id, proposed_text, reason) instead of silently complying."
+    "• [Challenge rule]: if better than a rule above, "
+    "call challenge_rule(solidified_id, proposed_text, reason)."
 )
 # Fresh-session boost: one-time extra budget when NO fresh dialogue exists
 # (new/returning session). Bounded and telemetry-visible.
