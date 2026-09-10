@@ -18,43 +18,157 @@ from typing import List, Optional
 from genesis_memory.proxy.spool import SpoolEngine
 from genesis_memory.proxy.summary_parser import parse_pytest_summary, parse_generic_summary
 
-# Commands certified for headless lossless spooling
+# Commands certified for headless lossless spooling (every major toolchain).
 ALLOWLIST_COMMANDS = {
-    "pytest",
-    "tsc",
-    "cargo",
-    "ruff",
-    "mypy",
-    "git",
-    "npm",
-    "go",
+    # Python
+    "pytest", "ruff", "mypy", "black", "flake8", "pylint", "isort", "pyright", "tox", "nox",
+    "pip", "pip3", "uv", "poetry", "pdm", "hatch",
+    # JavaScript / TypeScript
+    "tsc", "npm", "npx", "pnpm", "yarn", "bun", "deno", "node", "eslint", "prettier", "vitest", "jest", "vite",
+    # Rust / Go / .NET / JVM / C-family
+    "cargo", "rustc", "clippy-driver", "go", "gofmt", "golangci-lint", "dotnet",
+    "gradle", "gradlew", "mvn", "mvnw", "make", "cmake", "ninja", "bazel",
+    # Ruby / PHP / Elixir / Swift
+    "bundle", "rake", "rspec", "composer", "phpunit", "mix", "swift",
+    # VCS / containers / infra
+    "git", "gh", "docker", "docker-compose", "podman", "kubectl", "helm", "terraform", "tofu", "pulumi",
 }
 
-# Subcommands allowed for multi-word tools (e.g., git log, npm test)
+# Subcommands allowed for multi-word tools; anything interactive (shell, attach,
+# rebase -i, watch) is deliberately absent so the child can never block on a TTY.
 ALLOWLIST_SUBCOMMANDS = {
-    "git": {"log", "diff", "status", "show", "branch"},
-    "npm": {"test", "run", "build", "lint"},
-    "cargo": {"test", "build", "check"},
-    "go": {"test", "build"},
+    "git": {"log", "diff", "status", "show", "branch", "blame", "grep", "ls-files", "rev-parse",
+            "describe", "tag", "remote", "fetch", "stash", "worktree", "shortlog", "cherry"},
+    "gh": {"pr", "issue", "run", "repo", "api", "release", "workflow"},
+    "npm": {"test", "run", "build", "lint", "ci", "install", "audit", "ls", "outdated", "pack", "view"},
+    "pnpm": {"test", "run", "build", "lint", "install", "audit", "ls", "outdated"},
+    "yarn": {"test", "run", "build", "lint", "install", "audit", "list", "outdated"},
+    "bun": {"test", "run", "build", "install", "x"},
+    "deno": {"test", "run", "lint", "fmt", "check", "task", "compile"},
+    "node": {"--test", "--check", "--version"},
+    "cargo": {"test", "build", "check", "clippy", "fmt", "doc", "bench", "run", "tree", "metadata", "audit", "nextest"},
+    "go": {"test", "build", "vet", "run", "mod", "fmt", "generate", "list", "install"},
+    "dotnet": {"test", "build", "restore", "run", "format", "publish", "pack", "clean", "list"},
+    "gradle": {"test", "build", "check", "assemble", "clean", "dependencies", "tasks"},
+    "gradlew": {"test", "build", "check", "assemble", "clean", "dependencies", "tasks"},
+    "mvn": {"test", "package", "compile", "verify", "install", "clean", "dependency:tree"},
+    "mvnw": {"test", "package", "compile", "verify", "install", "clean"},
+    "docker": {"build", "compose", "ps", "images", "logs", "inspect", "pull", "push", "version", "info"},
+    "docker-compose": {"build", "ps", "logs", "config", "pull", "up", "down"},
+    "podman": {"build", "ps", "images", "logs", "inspect", "pull"},
+    "kubectl": {"get", "describe", "logs", "apply", "diff", "version", "explain", "rollout"},
+    "helm": {"lint", "template", "list", "status", "dependency", "version"},
+    "terraform": {"plan", "validate", "fmt", "init", "show", "output", "version"},
+    "tofu": {"plan", "validate", "fmt", "init", "show", "output", "version"},
+    "pulumi": {"preview", "stack", "config", "version"},
+    "pip": {"install", "list", "show", "freeze", "check", "download", "wheel"},
+    "pip3": {"install", "list", "show", "freeze", "check", "download", "wheel"},
+    "uv": {"pip", "run", "sync", "lock", "build", "tree", "venv", "add"},
+    "poetry": {"install", "run", "build", "lock", "show", "check", "update"},
+    "pdm": {"install", "run", "build", "lock", "list", "sync"},
+    "hatch": {"test", "run", "build", "fmt", "version"},
+    "bundle": {"exec", "install", "update", "list", "outdated"},
+    "composer": {"install", "update", "test", "validate", "show", "outdated"},
+    "mix": {"test", "compile", "format", "deps.get", "credo", "dialyzer"},
+    "swift": {"test", "build", "package", "run"},
+    "bazel": {"test", "build", "query", "run"},
 }
+
+# Env vars that make every toolchain non-interactive, colour-free and deterministic.
+HEADLESS_ENV = {
+    "CI": "1",
+    "TERM": "dumb",
+    "NO_COLOR": "1",
+    "FORCE_COLOR": "0",
+    "CLICOLOR": "0",
+    "PAGER": "cat",
+    "GIT_PAGER": "cat",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GIT_EDITOR": "true",
+    "EDITOR": "true",
+    "VISUAL": "true",
+    "DEBIAN_FRONTEND": "noninteractive",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "PIP_NO_INPUT": "1",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "PIP_PROGRESS_BAR": "off",
+    "UV_NO_PROGRESS": "1",
+    "npm_config_yes": "true",
+    "npm_config_progress": "false",
+    "npm_config_fund": "false",
+    "npm_config_audit": "false",
+    "npm_config_update_notifier": "false",
+    "YARN_ENABLE_PROGRESS_BARS": "false",
+    "CARGO_TERM_COLOR": "never",
+    "CARGO_TERM_PROGRESS_WHEN": "never",
+    "RUST_BACKTRACE": "1",
+    "GOFLAGS": "-mod=mod",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_NOLOGO": "1",
+    "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+    "GRADLE_OPTS": "-Dorg.gradle.daemon=false -Dorg.gradle.console=plain",
+    "MAVEN_OPTS": "-Djansi.passthrough=true",
+    "MAVEN_ARGS": "--batch-mode --no-transfer-progress",
+    "DOCKER_CLI_HINTS": "false",
+    "BUILDKIT_PROGRESS": "plain",
+    "TF_IN_AUTOMATION": "1",
+    "TF_INPUT": "0",
+    "PULUMI_SKIP_UPDATE_CHECK": "true",
+    "HELM_NO_UPDATE_NOTIFIER": "1",
+    "GH_PROMPT_DISABLED": "1",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "COMPOSER_NO_INTERACTION": "1",
+    "MIX_ENV": "test",
+}
+
+# Flags that turn a child into an interactive/long-lived session. Scoped per tool
+# so that e.g. `pytest -p plugin` or `pip install -e .` stay spoolable.
+_INTERACTIVE_FLAGS_GLOBAL = {"--watch", "--interactive"}
+_INTERACTIVE_FLAGS_BY_PROG = {
+    "git": {"-i", "-p", "--patch", "-e", "--edit"},
+    "docker": {"-i", "-t", "-it", "-ti", "--tty", "attach", "exec", "run"},
+    "podman": {"-i", "-t", "-it", "-ti", "--tty", "attach", "exec", "run"},
+    "kubectl": {"-i", "-t", "-it", "-ti", "--tty", "exec", "attach", "edit", "port-forward", "-w", "-f", "--follow"},
+    "cargo": {"watch"},
+    "vitest": {"--ui"},
+    "jest": {"--watchAll"},
+}
+_INTERACTIVE_GIT_SUBS = {"rebase", "commit", "add", "merge", "checkout", "switch", "reset", "push", "pull", "clone"}
+
+
+def normalize_program(argv0: str) -> str:
+    """``/usr/bin/Pytest.EXE`` -> ``pytest``; ``./gradlew`` -> ``gradlew``."""
+    prog = os.path.basename(argv0).lower()
+    for ext in (".exe", ".cmd", ".bat", ".ps1", ".sh"):
+        if prog.endswith(ext):
+            prog = prog[: -len(ext)]
+            break
+    return prog
 
 
 def is_spoolable_command(argv: List[str]) -> bool:
-    """Evaluates whether a command line qualifies for headless lossless spooling."""
+    """Evaluates whether a command line qualifies for headless lossless spooling.
+
+    Allowlisted program + (for multi-word tools) allowlisted subcommand, and no
+    flag that would turn the child into an interactive session.
+    """
     if not argv:
         return False
 
-    prog = os.path.basename(argv[0]).lower()
-    if prog.endswith(".exe") or prog.endswith(".cmd") or prog.endswith(".ps1"):
-        prog = prog.rsplit(".", 1)[0]
+    prog = normalize_program(argv[0])
 
-    # Handle 'python -m pytest'
-    if prog in ("python", "python3", "py") and len(argv) >= 3 and argv[1] == "-m":
-        mod = argv[2].lower()
-        if mod == "pytest":
-            return True
+    # Handle 'python -m pytest' / 'python -m ruff' etc.
+    if prog in ("python", "python3", "py", "pypy3") and len(argv) >= 3 and argv[1] == "-m":
+        return argv[2].lower() in ALLOWLIST_COMMANDS
 
     if prog not in ALLOWLIST_COMMANDS:
+        return False
+
+    rest = list(argv[1:])
+    blocked = _INTERACTIVE_FLAGS_GLOBAL | _INTERACTIVE_FLAGS_BY_PROG.get(prog, set())
+    if any(a in blocked for a in rest):
         return False
 
     suballowed = ALLOWLIST_SUBCOMMANDS.get(prog)
@@ -62,24 +176,23 @@ def is_spoolable_command(argv: List[str]) -> bool:
         if len(argv) < 2:
             return False
         sub = argv[1].lower()
+        if prog == "git" and sub in _INTERACTIVE_GIT_SUBS:
+            return False
         return sub in suballowed
 
     return True
 
 
+def build_headless_env(base: Optional[dict] = None) -> dict:
+    """Returns a copy of the environment with every headless flag applied."""
+    env = dict(base if base is not None else os.environ)
+    env.update(HEADLESS_ENV)
+    return env
+
+
 def execute_spooled(cmd_args: List[str]) -> int:
     """Executes an allowlisted command with headless environment, spools output, and prints summary."""
-    env = os.environ.copy()
-    env.update({
-        "CI": "1",
-        "TERM": "dumb",
-        "NO_COLOR": "1",
-        "FORCE_COLOR": "0",
-        "PYTHONUNBUFFERED": "1",
-        "PYTHONUTF8": "1",
-        "PYTHONIOENCODING": "utf-8",
-        "npm_config_yes": "true",
-    })
+    env = build_headless_env()
 
     is_pytest = (
         "pytest" in cmd_args[0].lower()
@@ -169,24 +282,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(
             "Usage: genesis <command> [options]\n\n"
             "Commands:\n"
-            "  setup      1-Click multi-client auto-wiring (Cursor, Claude, OpenCode)\n"
-            "  init       Initialize local environment and zero-friction onboarding\n"
-            "  license    View active license, entitlements, and seat status\n"
-            "  auth       Activate commercial Pro or Enterprise license key\n"
-            "  doctor     Diagnose system health, storage, RSS, and connectivity\n"
-            "  run        Execute allowlisted commands with headless lossless spooling\n"
-            "  proxy      Manage on-demand stateless proxy gateway (start|stop|status)\n"
+            "  setup          1-Click universal auto-wiring (20+ AI clients: Cursor, Claude Code, VS Code, Zed, JetBrains, Neovim, ...)\n"
+            "  clients        Show the universal client matrix with detection status (--json)\n"
+            "  export-config  Emit config snippets for any tool (--format json|yaml|toml|env|lua|native)\n"
+            "  init           Initialize local environment and zero-friction onboarding\n"
+            "  license        View active license, entitlements, and seat status\n"
+            "  auth           Activate commercial Pro or Enterprise license key\n"
+            "  doctor         Diagnose system health, storage, RSS, and connectivity\n"
+            "  run            Execute allowlisted commands with headless lossless spooling\n"
+            "  proxy          Manage on-demand stateless gateway (start|stop|status)\n"
+            "  dashboard      Launch the Mission Control telemetry dashboard\n"
+            "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
+            "  skills         List synthesized procedural skills\n"
             "\n"
             "Examples:\n"
             "  genesis setup --preview\n"
-            "  genesis setup --yes\n"
-            "  genesis license\n"
-            "  genesis auth --key GEN-PRO-...\n"
-            "  genesis doctor\n"
+            "  genesis setup --yes --client cursor,zed,neovim\n"
+            "  genesis export-config --client codex --format toml\n"
+            "  genesis export-config --format env   # OPENAI_BASE_URL for any SDK\n"
             "  genesis run -- pytest tests/\n"
-            "  genesis proxy status\n"
-            "  genesis sleep [--now | --daemon]\n"
-            "  genesis skills",
+            "  genesis run -- cargo test\n"
+            "  genesis dashboard",
             file=sys.stderr,
         )
         return 1
@@ -196,6 +312,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     if subcmd in ("init", "setup"):
         from genesis_memory.cli.init_cmd import main as init_main
         return init_main(args[1:])
+
+    if subcmd in ("clients", "matrix"):
+        from genesis_memory.cli.export_config import clients_matrix
+        print(clients_matrix(as_json="--json" in args[1:]))
+        return 0
+
+    if subcmd in ("export-config", "export_config", "export", "snippet"):
+        from genesis_memory.cli.export_config import main as export_main
+        return export_main(args[1:])
+
+    if subcmd == "dashboard":
+        from genesis_memory.dashboard.server import main as dashboard_main
+        return dashboard_main(args[1:])
 
     if subcmd == "doctor":
         from genesis_memory.cli.doctor import run_doctor
@@ -211,8 +340,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not os.path.exists(db_path):
             print(f"[genesis] Database not found: {db_path}", file=sys.stderr)
             return 1
-        import sqlite3
-        conn = sqlite3.connect(db_path)
+        from genesis_memory.core import db as _dbx
+        conn = _dbx.connect(db_path, readonly=True)
         try:
             rows = conn.execute(
                 "SELECT id, name, action_recipe, confidence, success_count, status FROM skills ORDER BY success_count DESC, confidence DESC"

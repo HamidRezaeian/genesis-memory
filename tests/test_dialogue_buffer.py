@@ -560,12 +560,8 @@ def test_resolution_ladder_universal_not_client_specific(temp_db, monkeypatch):
 def test_plugin_assistant_handoff_invariants():
     """Template must track per-ID longest text, hand off via env, and clear
     after use — logging lengths only, never content."""
-    p = hook_repo_root() / "genesis_memory" / "cli" / "client_registry.py"
-    if not p.exists():
-        p = hook_repo_root() / "src" / "genesis" / "cli" / "client_registry.py"
-    if not p.exists():
-        p = hook_repo_root().parent / "src" / "genesis" / "cli" / "client_registry.py"
-    src = p.read_text(encoding="utf-8")
+    from genesis_memory.cli.client_registry import opencode_plugin_source
+    src = opencode_plugin_source()
     assert "GENESIS_LAST_ASSISTANT_TEXT" in src
     assert "seenMessageTexts" in src and "mostRecentMessageId" in src
     assert "MAX_ASSISTANT_CHARS" in src
