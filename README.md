@@ -50,6 +50,8 @@ genesis setup --yes                 # wire every detected client (timestamped ba
 
 genesis dashboard --open            # Mission Control at http://127.0.0.1:8090
 genesis run -- pytest tests/        # headless, spooled, exit-code preserving
+genesis doctor                      # system diagnostics, client matrix & update check
+genesis upgrade                     # 1-click self-upgrade to the latest release
 ```
 
 Anything not auto-detected:

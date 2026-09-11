@@ -292,6 +292,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "  run            Execute allowlisted commands with headless lossless spooling\n"
             "  proxy          Manage on-demand stateless gateway (start|stop|status)\n"
             "  dashboard      Launch the Mission Control telemetry dashboard\n"
+            "  upgrade        1-Click self-upgrade to the latest official release\n"
             "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
             "  skills         List synthesized procedural skills\n"
             "\n"
@@ -309,6 +310,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     subcmd = args[0].lower()
 
+    if subcmd in ("--version", "-version", "-v", "version"):
+        from genesis_memory import __version__
+        print(f"GENESIS Memory OS v{__version__}")
+        return 0
+
     if subcmd in ("init", "setup"):
         from genesis_memory.cli.init_cmd import main as init_main
         return init_main(args[1:])
@@ -321,6 +327,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     if subcmd in ("export-config", "export_config", "export", "snippet"):
         from genesis_memory.cli.export_config import main as export_main
         return export_main(args[1:])
+
+    if subcmd in ("upgrade", "update"):
+        from genesis_memory.cli.update_checker import run_upgrade
+        return run_upgrade()
 
     if subcmd == "dashboard":
         from genesis_memory.dashboard.server import main as dashboard_main

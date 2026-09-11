@@ -153,7 +153,9 @@ def run_doctor(verbose: bool = False) -> int:
         if verbose or not ok:
             print(f"           └── {detail}")
 
-    print("-" * 68)
+    from genesis_memory.cli.update_checker import print_update_notice_if_available
+    print_update_notice_if_available()
+
     if all_vital_passed:
         print("  🎉 All critical diagnostic checks passed! GENESIS is healthy.")
         return 0
