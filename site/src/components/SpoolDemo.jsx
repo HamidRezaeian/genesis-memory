@@ -65,7 +65,7 @@ export default function SpoolDemo() {
           <Reveal>
             <div className="term" style={{ height: 460, display: 'flex', flexDirection: 'column', position: 'relative' }}>
               <div className="bar"><i /><i /><i /><span>genesis run -- pytest tests/ &nbsp;·&nbsp; CI=1 TERM=dumb NO_COLOR=1</span>
-                <span style={{ marginLeft: 'auto' }} className={`pill ${phase === 'pointer' ? 'emerald' : phase === 'idle' ? '' : 'cyan'}`}>{phase === 'streaming' ? 'capturing' : phase === 'collapsing' ? 'compacting' : phase === 'pointer' ? 'pointer emitted' : 'ready'}</span></div>
+                <span style={{ marginLeft: 'auto' }} className={`pill ${phase === 'pointer' ? 'cyan' : phase === 'idle' ? '' : 'cyan'}`}>{phase === 'streaming' ? 'capturing' : phase === 'collapsing' ? 'compacting' : phase === 'pointer' ? 'pointer emitted' : 'ready'}</span></div>
               <div ref={bodyRef} className="body" style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
                 <AnimatePresence mode="wait">
                   {phase === 'streaming' && (
@@ -94,18 +94,18 @@ export default function SpoolDemo() {
                   {phase === 'idle' && <div key="idle" className="dim">$ genesis run -- pytest tests/<span className="caret" style={{ marginLeft: 6 }} /></div>}
                 </AnimatePresence>
               </div>
-              {phase === 'streaming' && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'linear-gradient(90deg,var(--cyan),var(--emerald))', width: `${(shown / TOTAL_LINES) * 100}%`, transition: 'width .1s', boxShadow: '0 0 12px var(--cyan)' }} />}
+              {phase === 'streaming' && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--cyan)', width: `${(shown / TOTAL_LINES) * 100}%`, transition: 'width .1s', boxShadow: '0 0 12px var(--cyan)' }} />}
             </div>
           </Reveal>
           <Reveal delay={0.15}>
             <Holo tilt={false}>
               <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
                 <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-                  <ProgressRing value={phase === 'pointer' ? 0.984 : (shown / TOTAL_LINES) * 0.02} size={110} stroke={9} color={phase === 'pointer' ? 'var(--emerald)' : 'var(--cyan)'}>
-                    <div style={{ textAlign: 'center' }}><div className="mono" style={{ fontSize: 22, fontWeight: 700, color: phase === 'pointer' ? 'var(--emerald)' : '#fff' }}>{phase === 'pointer' ? '−98.4%' : fmt.pct((shown / TOTAL_LINES) * 100, 0)}</div><div style={{ fontSize: 10, color: 'var(--fg-3)', letterSpacing: '.12em' }}>{phase === 'pointer' ? 'TOKEN DIET' : 'CAPTURED'}</div></div>
+                  <ProgressRing value={phase === 'pointer' ? 0.984 : (shown / TOTAL_LINES) * 0.02} size={110} stroke={9} color="var(--cyan)">
+                    <div style={{ textAlign: 'center' }}><div className="mono" style={{ fontSize: 22, fontWeight: 700, color: phase === 'pointer' ? 'var(--cyan)' : '#fff' }}>{phase === 'pointer' ? '−98.4%' : fmt.pct((shown / TOTAL_LINES) * 100, 0)}</div><div style={{ fontSize: 10, color: 'var(--fg-3)', letterSpacing: '.12em' }}>{phase === 'pointer' ? 'TOKEN DIET' : 'CAPTURED'}</div></div>
                   </ProgressRing>
                   <div>
-                    <div className="mono" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-.04em', lineHeight: 1, color: phase === 'pointer' ? 'var(--emerald)' : 'var(--cyan)' }}>{fmt.int(tokens)}</div>
+                    <div className="mono" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-.04em', lineHeight: 1, color: 'var(--cyan)' }}>{fmt.int(tokens)}</div>
                     <div style={{ fontSize: 12, color: 'var(--fg-3)', letterSpacing: '.12em', textTransform: 'uppercase', marginTop: 4 }}>tokens {phase === 'pointer' ? 'in agent context' : 'without GENESIS'}</div>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export default function SpoolDemo() {
                   <Stat value={fmt.int(shown)} label="lines captured" tone="fg" />
                   <Stat value={`${(shown * 0.0782).toFixed(1)} KB`} label="bytes spooled" tone="fg" />
                   <Stat value={phase === 'pointer' ? '9f3c1a7e' : '········'} label="sha-256 pointer" tone="cyan" />
-                  <Stat value={phase === 'pointer' ? 'exit 1' : '—'} label="exit code preserved" tone="amber" />
+                  <Stat value={phase === 'pointer' ? 'exit 1' : '—'} label="exit code preserved" tone="fg" />
                 </div>
                 <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.6 }}>
                   <b style={{ color: '#fff' }}>Why it matters.</b> A single verbose test run can burn 80k tokens of context. Pointer-not-payload keeps the conversation lean, the log byte-exact, and the agent's judgement intact. Secrets in output are scrubbed <em>before</em> the spool file is written.

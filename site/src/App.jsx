@@ -27,7 +27,7 @@ function CursorLight() {
 function ScrollProgress() {
   const { scrollYProgress } = useScroll()
   const w = useSpring(scrollYProgress, { stiffness: 120, damping: 24 })
-  return <motion.div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 2, transformOrigin: '0 50%', scaleX: w, background: 'linear-gradient(90deg, var(--cyan), var(--emerald))', zIndex: 50, boxShadow: '0 0 12px var(--cyan)' }} />
+  return <motion.div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 2, transformOrigin: '0 50%', scaleX: w, background: 'var(--cyan)', zIndex: 50, boxShadow: '0 0 12px var(--cyan)' }} />
 }
 
 /** Intro curtain: a nucleus that ignites, then reveals the page. */

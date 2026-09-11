@@ -32,7 +32,7 @@ export default function Conduit() {
 
   useEffect(() => {
     const cv = canvasRef.current; const ctx = cv.getContext('2d'); let raf, last = performance.now()
-    const tones = { cyan: '0,240,255', violet: '167,139,250', emerald: '52,211,153', amber: '251,191,36', rose: '251,113,133' }
+    const tones = { cyan: '0,240,255', violet: '216,224,234', emerald: '216,224,234', amber: '216,224,234', rose: '216,224,234' }
     const pos = (i, w, h) => { if (i < 0) return [w / 2, h / 2]; const a = (i / AGENTS.length) * Math.PI * 2 - Math.PI / 2; return [w / 2 + Math.cos(a) * Math.min(w * 0.38, 250), h / 2 + Math.sin(a) * Math.min(h * 0.36, 150)] }
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
@@ -65,7 +65,7 @@ export default function Conduit() {
   return (
     <section id="conduit" className="section">
       <div className="wrap">
-        <SectionHead eyebrow="Cross-Client Conduit" tone="violet" title="Start in Cursor. Continue in Claude Code." grad="Finish in Neovim." lead="One SQLite memory, three primitives (MCP · Hook · Proxy), every editor. Watch a decision made in one agent become working context in the next — thread, dialogue and engrams travel across the conduit in milliseconds, with provenance attached." />
+        <SectionHead eyebrow="Cross-Client Conduit" title="Start in Cursor. Continue in Claude Code." grad="Finish in Neovim." lead="One SQLite memory, three primitives (MCP · Hook · Proxy), every editor. Watch a decision made in one agent become working context in the next — thread, dialogue and engrams travel across the conduit in milliseconds, with provenance attached." />
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,.8fr)', marginTop: 44, alignItems: 'stretch' }}>
           <Reveal>
             <div className="card" style={{ height: 460, position: 'relative' }}>
@@ -74,7 +74,7 @@ export default function Conduit() {
                 <button className="btn sm" onClick={() => setPlaying(p => !p)}>{playing ? '⏸ pause' : '▶ play'}</button>
                 <button className="btn sm ghost" onClick={() => setStep(s => (s + 1) % AGENTS.length)}>step →</button>
               </div>
-              <div style={{ position: 'absolute', right: 14, top: 12 }} className="pill violet">{AGENTS.length} clients · 1 memory</div>
+              <div style={{ position: 'absolute', right: 14, top: 12 }} className="pill">{AGENTS.length} clients · 1 memory</div>
             </div>
           </Reveal>
           <Reveal delay={0.15}>
@@ -86,14 +86,14 @@ export default function Conduit() {
                 <AnimatePresence mode="popLayout">
                   {log.map((e, i) => (
                     <motion.div key={e.id} layout initial={{ opacity: 0, y: -10, scale: .98 }} animate={{ opacity: 1 - i * 0.14, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                      style={{ padding: '12px 14px', borderRadius: 12, border: `1px solid ${i === 0 ? `color-mix(in srgb, var(--${e.agent.tone}) 50%, transparent)` : 'var(--line)'}`, background: i === 0 ? `color-mix(in srgb, var(--${e.agent.tone}) 6%, transparent)` : 'rgba(5,7,11,.5)', marginBottom: 10 }}>
+                      style={{ padding: '12px 14px', borderRadius: 12, border: i === 0 ? '1px solid rgba(0,240,255,.5)' : 'var(--line)', background: i === 0 ? 'rgba(0,240,255,.06)' : 'rgba(5,7,11,.5)', marginBottom: 10 }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, marginBottom: 6 }}><span style={{ color: `var(--${e.agent.tone})`, fontWeight: 700 }}>{e.agent.name}</span><span className="mono" style={{ color: 'var(--fg-3)' }}>{e.ts}</span><span className="mono" style={{ marginLeft: 'auto', color: 'var(--fg-3)', fontSize: 10.5 }}>{e.agent.tool}</span></div>
                       <div style={{ fontSize: 13.5, color: i === 0 ? '#fff' : 'var(--fg-2)' }}>{e.agent.say}</div>
                     </motion.div>))}
                 </AnimatePresence>
               </div>
               <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--fg-3)' }}>
-                <span><b style={{ color: 'var(--cyan)' }}>MCP</b> tools</span><span><b style={{ color: 'var(--violet)' }}>Hook</b> capsule</span><span><b style={{ color: 'var(--emerald)' }}>Proxy</b> gateway</span><span style={{ marginLeft: 'auto' }} className="mono">provenance-labelled · never invents</span>
+                <span><b style={{ color: '#fff' }}>MCP</b> tools</span><span><b style={{ color: '#fff' }}>Hook</b> capsule</span><span><b style={{ color: '#fff' }}>Proxy</b> gateway</span><span style={{ marginLeft: 'auto' }} className="mono">provenance-labelled · never invents</span>
               </div>
             </div>
           </Reveal>

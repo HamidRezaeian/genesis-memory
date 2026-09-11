@@ -1,6 +1,8 @@
 /* ============================================================
    GENESIS — design system
-   OLED black · electric cyan · emerald pulse · deep slate
+   OLED black · one signal cyan · monochrome slate
+   Rule: cyan is the ONLY hue. Everything else is white/slate.
+   Rose survives solely for genuine errors (.term .err).
    ============================================================ */
 :root {
   --bg: #000000;
@@ -14,9 +16,9 @@
   --fg-3: #5f6d80;
   --cyan: #00f0ff;
   --cyan-2: #22d3ee;
-  --emerald: #34d399;
-  --violet: #a78bfa;
-  --amber: #fbbf24;
+  --emerald: #d9e2ec;
+  --violet: #93a1b3;
+  --amber: #c3ccd7;
   --rose: #fb7185;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -61,15 +63,13 @@ p { margin: 0; }
   background: rgba(0, 240, 255, 0.05); backdrop-filter: blur(8px);
 }
 .eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
-.eyebrow.emerald { color: var(--emerald); border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.05); }
-.eyebrow.emerald i { background: var(--emerald); box-shadow: 0 0 10px var(--emerald); }
-.eyebrow.violet { color: var(--violet); border-color: rgba(167, 139, 250, 0.3); background: rgba(167, 139, 250, 0.05); }
-.eyebrow.violet i { background: var(--violet); box-shadow: 0 0 10px var(--violet); }
-.eyebrow.rose { color: var(--rose); border-color: rgba(251, 113, 133, 0.3); background: rgba(251, 113, 133, 0.05); }
-.eyebrow.rose i { background: var(--rose); box-shadow: 0 0 10px var(--rose); }
+/* Tone variants intentionally share the single base style: hue carries no
+   meaning between sections; the mono labels already differentiate them. */
+.eyebrow.emerald, .eyebrow.violet, .eyebrow.rose { color: var(--cyan); border-color: rgba(0, 240, 255, 0.28); background: rgba(0, 240, 255, 0.05); }
+.eyebrow.emerald i, .eyebrow.violet i, .eyebrow.rose i { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
 
 .h2 { font-size: clamp(32px, 4.4vw, 56px); font-weight: 800; margin: 20px 0 14px; }
-.h2 .grad { background: linear-gradient(90deg, #fff 0%, var(--cyan) 55%, var(--emerald) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.h2 .grad { background: linear-gradient(90deg, #fff 0%, var(--cyan) 75%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lead { color: var(--fg-2); font-size: clamp(16px, 1.4vw, 19px); max-width: 680px; }
 .center { text-align: center; }
 .center .lead { margin: 0 auto; }
@@ -88,7 +88,7 @@ p { margin: 0; }
 }
 .card.holo::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
-  background: radial-gradient(500px circle at var(--mx, 50%) var(--my, 50%), rgba(0, 240, 255, 0.7), rgba(52, 211, 153, 0.25) 40%, transparent 70%);
+  background: radial-gradient(500px circle at var(--mx, 50%) var(--my, 50%), rgba(0, 240, 255, 0.7), rgba(0, 240, 255, 0.18) 45%, transparent 70%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   opacity: 0; transition: opacity 0.4s var(--ease);
@@ -125,16 +125,18 @@ p { margin: 0; }
 }
 .term .bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
 .term .bar i { width: 10px; height: 10px; border-radius: 50%; background: #2a3441; }
-.term .bar i:nth-child(1) { background: #ff5f57; } .term .bar i:nth-child(2) { background: #febc2e; } .term .bar i:nth-child(3) { background: #28c840; }
+.term .bar i:nth-child(1) { background: #3a4552; } .term .bar i:nth-child(2) { background: #3a4552; } .term .bar i:nth-child(3) { background: #3a4552; }
 .term .bar span { margin-left: 8px; font-size: 11px; color: var(--fg-3); letter-spacing: 0.06em; }
 .term .body { padding: 14px 16px; white-space: pre-wrap; word-break: break-word; }
-.term .dim { color: var(--fg-3); } .term .ok { color: var(--emerald); } .term .err { color: var(--rose); } .term .cy { color: var(--cyan); } .term .am { color: var(--amber); } .term .vi { color: var(--violet); }
+.term .dim { color: var(--fg-3); } .term .ok { color: #fff; } .term .err { color: var(--rose); } .term .cy { color: var(--cyan); } .term .am { color: var(--fg-2); } .term .vi { color: var(--fg-2); }
 .caret { display: inline-block; width: 8px; height: 14px; background: var(--cyan); vertical-align: -2px; animation: caret 1s steps(2) infinite; box-shadow: 0 0 8px var(--cyan); }
 @keyframes caret { 50% { opacity: 0; } }
 
 /* ---------- misc ---------- */
 .pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); white-space: nowrap; }
-.pill.cyan { border-color: rgba(0, 240, 255, 0.4); color: var(--cyan); } .pill.emerald { border-color: rgba(52, 211, 153, 0.4); color: var(--emerald); } .pill.violet { border-color: rgba(167, 139, 250, 0.4); color: var(--violet); } .pill.rose { border-color: rgba(251, 113, 133, 0.4); color: var(--rose); } .pill.amber { border-color: rgba(251, 191, 36, 0.4); color: var(--amber); }
+.pill.cyan { border-color: rgba(0, 240, 255, 0.4); color: var(--cyan); }
+/* Non-cyan pill tones share the neutral base: hue carries no meaning. */
+.pill.emerald, .pill.violet, .pill.rose, .pill.amber { border-color: var(--line-2); color: var(--fg-2); }
 .kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 6px; color: var(--fg-2); background: var(--bg-2); }
 .grid { display: grid; gap: 20px; }
 .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -143,7 +145,7 @@ p { margin: 0; }
 @media (max-width: 980px) { .g3, .g4 { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 680px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
 .bar-track { height: 8px; border-radius: 8px; background: rgba(148, 163, 184, 0.12); overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--cyan), var(--emerald)); box-shadow: 0 0 16px rgba(0, 240, 255, 0.4); }
+.bar-fill { height: 100%; border-radius: 8px; background: var(--cyan); box-shadow: 0 0 16px rgba(0, 240, 255, 0.4); }
 
 input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: linear-gradient(90deg, var(--cyan) var(--p, 50%), rgba(148, 163, 184, 0.15) var(--p, 50%)); border-radius: 6px; outline: none; }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--cyan); box-shadow: 0 0 20px rgba(0, 240, 255, 0.7); cursor: grab; transition: transform 0.2s; }

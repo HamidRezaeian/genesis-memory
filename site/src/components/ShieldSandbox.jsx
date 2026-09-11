@@ -55,23 +55,23 @@ export default function ShieldSandbox() {
                       ))}
                     </div>
                   </div>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8 }}>{res.tokens.length} tokens ≥ 8 chars · <span style={{ color: 'var(--rose)' }}>{flagged} high-entropy credential{flagged === 1 ? '' : 's'}</span> · amber = above gate but shaped like hex/path (allowed)</div>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 8 }}>{res.tokens.length} tokens ≥ 8 chars · <span style={{ color: 'var(--rose)' }}>{flagged} high-entropy credential{flagged === 1 ? '' : 's'}</span> · slate = above gate but shaped like hex/path (allowed)</div>
                 </div>
               </Holo>
               <Holo tilt={false}>
                 <div className="pad tight">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
                     <span style={{ fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--fg-3)' }}>Detector hits</span>
-                    <span className="mono" style={{ fontSize: 22, fontWeight: 700, color: res.redactions ? 'var(--rose)' : 'var(--emerald)' }}>{res.redactions}</span>
+                    <span className="mono" style={{ fontSize: 22, fontWeight: 700, color: res.redactions ? 'var(--rose)' : '#fff' }}>{res.redactions}</span>
                   </div>
                   {res.findings.length ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {res.findings.map((f, i) => (
                         <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12 }}>
-                          <span className={`pill ${f.detector === 'entropy' ? 'rose' : 'amber'}`}>{f.detector}</span>
+                          <span className={`pill ${f.detector === 'entropy' ? 'rose' : ''}`}>{f.detector}</span>
                           <span className="mono" style={{ color: 'var(--fg-3)' }}>{f.len} chars{f.bits ? ` · ${f.bits.toFixed(2)} bits/char` : ''}</span>
                         </motion.div>))}
-                    </div>) : <div style={{ color: 'var(--emerald)', fontSize: 13 }}>Clean — every byte preserved exactly.</div>}
+                    </div>) : <div style={{ color: '#fff', fontSize: 13 }}>Clean — every byte preserved exactly.</div>}
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)', fontSize: 12.5, color: 'var(--fg-2)', lineHeight: 1.6 }}>
                     Applied at three boundaries: <code className="mono" style={{ color: 'var(--cyan)' }}>remember()</code> rejects the payload outright, thread &amp; dialogue fields are redacted in place, and the spool scrubs command output <em>before</em> the atomic write. Telemetry counts what was blocked — never what it was.
                   </div>

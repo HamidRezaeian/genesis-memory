@@ -44,18 +44,18 @@ export default function DietSlider() {
                 <Slider label="Conversation turns the agent would carry" value={turns} min={1} max={60} onChange={setTurns} suffix="turns" />
                 <Slider label="Lines of tool output (tests, logs, diffs)" value={toolLines} min={0} max={20000} step={100} onChange={setToolLines} suffix="lines" />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <Metric label="naive context" value={fmt.int(rawC)} tone="rose" sub="tokens / request" />
-                  <Metric label="with GENESIS" value={fmt.int(afterC)} tone="emerald" sub="tokens / request" />
+                  <Metric label="naive context" value={fmt.int(rawC)} tone="fg-3" sub="tokens / request" />
+                  <Metric label="with GENESIS" value={fmt.int(afterC)} tone="cyan" sub="tokens / request" />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--fg-3)', marginBottom: 8 }}><span>prompt anatomy after diet</span><span className="mono" style={{ color: 'var(--emerald)' }}>−{pctC.toFixed(1)}%</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--fg-3)', marginBottom: 8 }}><span>prompt anatomy after diet</span><span className="mono" style={{ color: 'var(--cyan)' }}>−{pctC.toFixed(1)}%</span></div>
                   <div style={{ display: 'flex', height: 28, borderRadius: 8, overflow: 'hidden', gap: 2 }}>
                     <Seg w={(900 + 1450) / after} c="var(--cyan)" label="current turn" />
-                    <Seg w={CAPSULE_TOKENS / after} c="var(--emerald)" label="capsule 176" />
-                    <Seg w={(toolCalls * 84) / after} c="var(--violet)" label={`${toolCalls} pointer${toolCalls > 1 ? 's' : ''}`} />
+                    <Seg w={CAPSULE_TOKENS / after} c="#e8eef4" label="capsule 176" />
+                    <Seg w={(toolCalls * 84) / after} c="#8e9cae" label={`${toolCalls} pointer${toolCalls > 1 ? 's' : ''}`} />
                   </div>
                   <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', marginTop: 6, opacity: .35 }}>
-                    <div style={{ width: `${(after / raw) * 100}%`, background: 'var(--emerald)' }} /><div style={{ flex: 1, background: 'repeating-linear-gradient(135deg, var(--rose) 0 4px, transparent 4px 8px)' }} />
+                    <div style={{ width: `${(after / raw) * 100}%`, background: 'var(--cyan)' }} /><div style={{ flex: 1, background: 'repeating-linear-gradient(135deg, rgba(148,163,184,.5) 0 4px, transparent 4px 8px)' }} />
                   </div>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>striped = tokens you no longer pay for · ≈ {fmt.usd(dollars)} / day at GPT-4o rates for a 400-request team</div>
                 </div>
@@ -64,12 +64,12 @@ export default function DietSlider() {
           </Reveal>
           <Reveal delay={0.15}>
             <div className="term" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <div className="bar"><i /><i /><i /><span>subconscious_hook.py --raw · injected before every prompt</span><span className="pill emerald" style={{ marginLeft: 'auto' }}>{CAPSULE_TOKENS} / {BUDGET} tokens</span></div>
+              <div className="bar"><i /><i /><i /><span>subconscious_hook.py --raw · injected before every prompt</span><span className="pill cyan" style={{ marginLeft: 'auto' }}>{CAPSULE_TOKENS} / {BUDGET} tokens</span></div>
               <div className="body" style={{ flex: 1 }}>
                 <div className="dim">[GENESIS Subconscious Memory | Live Telemetry: 6 engrams • {CAPSULE_TOKENS} tokens • ↓ 99.2% payload vs {fmt.int(21_480)} tok DB]:</div>
                 <AnimatePresence>{CAPSULE.map(([k, t], i) => (
                   <motion.div key={k + i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.12 }} style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                    <span className={`pill ${k === 'thread' ? 'cyan' : k === 'dialogue' ? 'violet' : k === 'skill' ? 'amber' : k === 'directive' ? 'rose' : 'emerald'}`} style={{ alignSelf: 'flex-start', flex: 'none' }}>{k}</span>
+                    <span className={`pill ${k === 'thread' ? 'cyan' : ''}`} style={{ alignSelf: 'flex-start', flex: 'none' }}>{k}</span>
                     <span style={{ color: '#cfe3ee' }}>{t}</span>
                   </motion.div>))}
                 </AnimatePresence>

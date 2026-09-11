@@ -15,7 +15,7 @@ function InstallCommand() {
       className="term" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', fontSize: 14, textAlign: 'left', width: '100%', maxWidth: 560, position: 'relative' }}>
       <span className="cy">$</span>
       <span style={{ flex: 1 }}>{cmd}<span className="caret" style={{ marginLeft: 6 }} /></span>
-      <span className="pill" style={{ color: copied ? 'var(--emerald)' : 'var(--fg-3)', borderColor: copied ? 'rgba(52,211,153,.5)' : undefined, transition: '.3s' }}>{copied ? 'copied ✓' : 'copy'}</span>
+      <span className="pill" style={{ color: copied ? 'var(--cyan)' : 'var(--fg-3)', borderColor: copied ? 'rgba(0,240,255,.5)' : undefined, transition: '.3s' }}>{copied ? 'copied ✓' : 'copy'}</span>
     </motion.button>
   )
 }
@@ -36,8 +36,8 @@ function LiveTicker() {
   return (
     <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'center' }}>
       <div><div className="mono" style={{ fontSize: 26, fontWeight: 700, color: 'var(--cyan)', letterSpacing: '-.03em' }}>{fmt.int(tk)}</div><div style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '.14em', textTransform: 'uppercase' }}>tokens dieted · live</div></div>
-      <div><div className="mono" style={{ fontSize: 26, fontWeight: 700, color: 'var(--emerald)', letterSpacing: '-.03em' }}>{fmt.usd(dl)}</div><div style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '.14em', textTransform: 'uppercase' }}>saved this month</div></div>
-      <div><div className="mono" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.03em' }}>421<span style={{ color: 'var(--fg-3)', fontSize: 16 }}>/421</span></div><div style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '.14em', textTransform: 'uppercase' }}>tests green</div></div>
+      <div><div className="mono" style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-.03em' }}>{fmt.usd(dl)}</div><div style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '.14em', textTransform: 'uppercase' }}>saved this month</div></div>
+      <div><div className="mono" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.03em' }}>438<span style={{ color: 'var(--fg-3)', fontSize: 16 }}>/438</span></div><div style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '.14em', textTransform: 'uppercase' }}>tests green</div></div>
     </div>
   )
 }
@@ -49,10 +49,10 @@ export default function Hero() {
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 100%, rgba(0,0,0,.9), transparent 60%), radial-gradient(ellipse 60% 70% at 22% 45%, rgba(0,0,0,.55), transparent 70%), linear-gradient(180deg, rgba(0,0,0,.2), transparent 30%, rgba(0,0,0,.85))', pointerEvents: 'none' }} />
       <div className="wrap hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,.85fr)', gap: 40, alignItems: 'center', paddingBottom: 80 }}>
         <div>
-          <motion.span className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}><i />Cognitive Memory OS · v0.5 · Local-first</motion.span>
+          <motion.span className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}><i />Cognitive Memory OS · v0.6 · Local-first</motion.span>
           <h1 style={{ fontSize: 'clamp(42px, 6.4vw, 88px)', fontWeight: 900, margin: '22px 0 20px', lineHeight: 0.98 }}>
             <Words text="One brain for" delay={0.25} /><br />
-            <span className="grad" style={{ background: 'linear-gradient(90deg,#fff 0%,var(--cyan) 45%,var(--emerald) 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}><Words text="every AI agent." delay={0.55} /></span>
+            <span className="grad" style={{ background: 'linear-gradient(90deg,#fff 0%,var(--cyan) 70%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}><Words text="every AI agent." delay={0.55} /></span>
           </h1>
           <motion.p className="lead" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.8 }} style={{ fontSize: 'clamp(17px,1.5vw,21px)', maxWidth: 620 }}>
             GENESIS gives Cursor, Claude Code, VS Code, Zed, JetBrains, Neovim — <em>every</em> coding agent — a shared, persistent, sub-millisecond memory.
@@ -86,8 +86,8 @@ function HeroOrb() {
     return () => ro.disconnect()
   }, [])
   const chips = [
-    ['decision', 'Use WAL + busy_timeout 5000ms', 'violet'], ['fact', 'Proxy listens on :8000', 'cyan'], ['outcome', '421/421 tests green', 'emerald'],
-    ['skill', 'genesis run -- pytest', 'amber'], ['fact', 'Zed → context_servers', 'cyan'], ['decision', 'Redact before persistence', 'violet'],
+    ['decision', 'Use WAL + busy_timeout 5000ms', 'fg'], ['fact', 'Proxy listens on :8000', 'fg'], ['outcome', '438/438 tests green', 'fg'],
+    ['skill', 'genesis run -- pytest', 'fg'], ['fact', 'Zed → context_servers', 'fg'], ['decision', 'Redact before persistence', 'fg'],
   ]
   const rOuter = Math.max(170, w * 0.4), rInner = Math.max(125, w * 0.29)
   return (

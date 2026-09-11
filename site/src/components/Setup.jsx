@@ -27,7 +27,7 @@ export const CLIENTS = [
   { id: 'claude_desktop', name: 'Claude Desktop', fam: 'Desktop', caps: ['MCP'], path: '…/Claude/claude_desktop_config.json', fmt: 'json', snippet: mcp() },
   { id: 'sdk', name: 'Any SDK · LangChain · CrewAI · AutoGen · LlamaIndex', fam: 'Framework', caps: ['Proxy'], path: 'OPENAI_BASE_URL / ANTHROPIC_BASE_URL', fmt: 'env', snippet: `OPENAI_BASE_URL=http://127.0.0.1:8000/v1\nANTHROPIC_BASE_URL=http://127.0.0.1:8000\nGENESIS_DAEMON_DB=${DB}\n\n# from openai import OpenAI\n# client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="not-needed")` },
 ]
-const capTone = { MCP: 'cyan', Hook: 'violet', Proxy: 'emerald' }
+const capTone = { MCP: '', Hook: '', Proxy: '' }
 const FORMATS = ['native', 'json', 'yaml', 'toml', 'env']
 
 function render(c, f) {

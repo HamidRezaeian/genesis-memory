@@ -9,8 +9,8 @@ import { Holo, SectionHead, Reveal } from './ui'
  */
 const PHASES = [
   { k: 'NREM', title: 'Decay & prune', tone: 'cyan', desc: 'Every engram\'s retention is recomputed from its stability τ. Dormant memories fall below the 20% threshold and are tombstoned — never deleted.' },
-  { k: 'REM', title: 'Distil skills', tone: 'violet', desc: 'Recurring successful outcomes with shared trigger patterns are compressed into one deterministic procedural skill.' },
-  { k: 'WAKE', title: 'Write digest', tone: 'emerald', desc: 'Top decisions and facts are rendered into a bounded Active Digest that primes the next session\'s first prompt.' },
+  { k: 'REM', title: 'Distil skills', tone: 'fg', desc: 'Recurring successful outcomes with shared trigger patterns are compressed into one deterministic procedural skill.' },
+  { k: 'WAKE', title: 'Write digest', tone: 'fg', desc: 'Top decisions and facts are rendered into a bounded Active Digest that primes the next session\'s first prompt.' },
 ]
 const OUTCOMES = ['genesis run -- pytest → 421 passed', 'genesis run -- pytest -x → green', 'pytest tests/ headless → green', 'genesis run -- pytest -q → exit 0']
 
@@ -29,7 +29,7 @@ export default function SleepViz() {
 
   useEffect(() => {
     const cv = canvasRef.current, ctx = cv.getContext('2d'); let raf, last = performance.now()
-    const tones = { cyan: '0,240,255', violet: '167,139,250', emerald: '52,211,153', amber: '251,191,36' }
+    const tones = { cyan: '0,240,255', violet: '216,224,234', emerald: '235,238,242', amber: '0,240,255' }
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect()
@@ -42,7 +42,7 @@ export default function SleepViz() {
       const curves = [[7, 'rgba(163,177,194,.55)', 'fresh τ=7d'], [14, `rgba(${tones.cyan},.9)`, 'reinforced ×1 τ=14d'], [30, `rgba(${tones.violet},.9)`, 'reinforced ×3 τ=30d'], [90, `rgba(${tones.amber},.9)`, 'solidified τ=90d']]
       curves.forEach(([tau, col, label], i) => { ctx.beginPath(); for (let x = 0; x <= W; x += 2) { const days = x / W * 60; const y = pad.t + H * (1 - Math.exp(-days / tau)); x ? ctx.lineTo(pad.l + x, y) : ctx.moveTo(pad.l + x, y) } ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); ctx.fillStyle = col; ctx.font = '11px Inter'; ctx.textAlign = 'left'; ctx.fillText(label, pad.l + 10, pad.t + 14 + i * 15) })
       // dormancy threshold
-      ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(251,113,133,.7)'; ctx.beginPath(); ctx.moveTo(pad.l, pad.t + H * .8); ctx.lineTo(w - pad.r, pad.t + H * .8); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(251,113,133,.9)'; ctx.textAlign = 'right'; ctx.font = '10.5px Inter'; ctx.fillText('dormancy threshold · tombstone below', w - pad.r - 6, pad.t + H * .8 - 5)
+      ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(148,163,184,.5)'; ctx.beginPath(); ctx.moveTo(pad.l, pad.t + H * .8); ctx.lineTo(w - pad.r, pad.t + H * .8); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(148,163,184,.9)'; ctx.textAlign = 'right'; ctx.font = '10.5px Inter'; ctx.fillText('dormancy threshold · tombstone below', w - pad.r - 6, pad.t + H * .8 - 5)
       // engrams sliding down their curve; reinforcement (phase NREM click) bumps tau
       for (const e of engrams.current) {
         e.age += dt * e.speed * (phase === 0 ? 2.2 : 0.7); if (e.age > 60) { e.age = 0; e.tau = [7, 14, 30, 90][Math.floor(Math.random() * 4)] }
@@ -50,7 +50,7 @@ export default function SleepViz() {
         const dormant = ret < 0.2; const col = dormant ? '93,107,125' : tones[e.tone]
         const gg = ctx.createRadialGradient(x, y, 0, x, y, 9); gg.addColorStop(0, `rgba(${col},.9)`); gg.addColorStop(1, `rgba(${col},0)`); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = `rgba(${col},1)`; ctx.beginPath(); ctx.arc(x, y, dormant ? 2 : 3.2, 0, Math.PI * 2); ctx.fill()
-        if (dormant && phase === 0) { ctx.strokeStyle = 'rgba(251,113,133,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke() }
+        if (dormant && phase === 0) { ctx.strokeStyle = 'rgba(148,163,184,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke() }
       }
       raf = requestAnimationFrame(frame)
     }
@@ -90,12 +90,12 @@ export default function SleepViz() {
                   <AnimatePresence mode="wait">
                     {!distilled ? (
                       <motion.div key="raw" exit={{ opacity: 0, scale: .9, filter: 'blur(4px)' }} transition={{ duration: .5 }} style={{ display: 'grid', gap: 6 }}>
-                        {OUTCOMES.map((o, i) => <motion.div key={o} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * .08 }} className="mono" style={{ fontSize: 11.5, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', color: 'var(--fg-2)', display: 'flex', gap: 8 }}><span style={{ color: 'var(--emerald)' }}>outcome</span>{o}</motion.div>)}
+                        {OUTCOMES.map((o, i) => <motion.div key={o} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * .08 }} className="mono" style={{ fontSize: 11.5, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', color: 'var(--fg-2)', display: 'flex', gap: 8 }}><span style={{ color: '#fff' }}>outcome</span>{o}</motion.div>)}
                       </motion.div>
                     ) : (
                       <motion.div key="skill" initial={{ opacity: 0, scale: .85 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 16 }}
-                        style={{ padding: 14, borderRadius: 12, border: '1px solid rgba(251,191,36,.5)', background: 'rgba(251,191,36,.06)', boxShadow: '0 0 40px -10px rgba(251,191,36,.5)' }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="pill amber">skill</span><b>Run test suite headlessly</b><span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--amber)' }}>conf 0.92</span></div>
+                        style={{ padding: 14, borderRadius: 12, border: '1px solid rgba(0,240,255,.5)', background: 'rgba(0,240,255,.06)', boxShadow: '0 0 40px -10px rgba(0,240,255,.5)' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="pill cyan">skill</span><b>Run test suite headlessly</b><span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--cyan)' }}>conf 0.92</span></div>
                         <div className="mono" style={{ fontSize: 12, marginTop: 8, color: '#cfe3ee' }}>genesis run -- pytest tests/ -q</div>
                         <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 6 }}>triggers: run tests · pytest · verify &nbsp;·&nbsp; invariant: exit code preserved &nbsp;·&nbsp; from 4 outcomes</div>
                       </motion.div>)}

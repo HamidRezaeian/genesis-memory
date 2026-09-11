@@ -40,7 +40,7 @@ function MiniUniverse() {
   const ref = useRef(null)
   useEffect(() => {
     const cv = ref.current, ctx = cv.getContext('2d'); let raf, t = 0
-    const N = 46; const nodes = Array.from({ length: N }, (_, i) => ({ o: i % 4, a: (i * 2.399963) % (Math.PI * 2), r: 3 + (i % 5), tone: ['0,240,255', '167,139,250', '52,211,153', '251,191,36'][i % 4], sp: 0.05 + (i % 3) * 0.02 }))
+    const N = 46; const nodes = Array.from({ length: N }, (_, i) => ({ o: i % 4, a: (i * 2.399963) % (Math.PI * 2), r: 3 + (i % 5), tone: i % 7 === 0 ? '0,240,255' : '216,224,234', sp: 0.05 + (i % 3) * 0.02 }))
     const links = []; for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) if ((i * 31 + j * 17) % 23 === 0) links.push([i, j])
     const frame = () => {
       t += 0.016; const dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect()

@@ -97,7 +97,7 @@ export default function NeuralField({ density = 1, intensity = 1, className = ''
         const depth = 1 - proj[o + 2] // 1 = near
         const r = (0.6 + depth * 1.9) * proj[o + 3]
         const spec = Math.max(0, 1 - Math.hypot((proj[o] - ox) / W - mx * 0.15, (proj[o + 1] - oy) / H - my * 0.15) * 3.2)
-        const hue = i % 9 === 0 ? '52,211,153' : i % 13 === 0 ? '167,139,250' : '0,240,255'
+        const hue = i % 9 === 0 ? '255,255,255' : '0,240,255'
         ctx.fillStyle = `rgba(${hue},${(0.25 + depth * 0.7 + spec * 0.4) * intensity})`
         ctx.beginPath(); ctx.arc(proj[o], proj[o + 1], r + spec * 1.2, 0, Math.PI * 2); ctx.fill()
         if (spec > 0.75 && depth > 0.6) { ctx.fillStyle = `rgba(255,255,255,${(spec - 0.75) * 2.5})`; ctx.beginPath(); ctx.arc(proj[o], proj[o + 1], r * 0.6, 0, Math.PI * 2); ctx.fill() }

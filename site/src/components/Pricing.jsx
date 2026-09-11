@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Holo, SectionHead, Reveal, Magnetic, Arrow } from './ui'
 
 const TIERS = [
-  { name: 'Community', price: [0, 0], tone: 'cyan', tag: 'Free & open source', cta: 'pip install genesis-memory', href: 'https://github.com/HamidRezaeian/genesis-memory',
+  { name: 'Community', price: [0, 0], tone: 'fg', tag: 'Free & open source', cta: 'pip install genesis-memory', href: 'https://github.com/HamidRezaeian/genesis-memory',
     feats: ['Local SQLite memory (WAL, 5000 ms busy timeout)', 'Subconscious 200-token hook', 'Lossless headless spooling (60+ toolchains)', 'Universal 1-click setup · 20 clients', 'Zero-trust privacy shield', 'Stdio MCP server · 19 tools'] },
-  { name: 'Developer Pro', price: [14, 12], tone: 'emerald', tag: 'Most popular', hot: true, cta: 'Start Pro', href: '#',
+  { name: 'Developer Pro', price: [14, 12], tone: 'cyan', tag: 'Most popular', hot: true, cta: 'Start Pro', href: '#',
     feats: ['Everything in Community', 'High-ratio structural compactor', 'Hebbian sleep distillation & skills', 'Mission Control dashboard', 'Live pricing · dollars saved', 'Priority token budget', 'OpenAI + Anthropic gateway routes'] },
-  { name: 'Enterprise Gateway', price: [39, 32], tone: 'violet', tag: 'Per seat', cta: 'Talk to us', href: 'mailto:hello@genesis-memory.dev',
+  { name: 'Enterprise Gateway', price: [39, 32], tone: 'fg', tag: 'Per seat', cta: 'Talk to us', href: 'mailto:hello@genesis-memory.dev',
     feats: ['Everything in Pro', 'Team shared memory sync (vector clocks)', 'On-prem Docker gateway', 'Zero-leak audit logs', 'SSO & seat management', 'SLA support'] },
 ]
 
@@ -25,7 +25,7 @@ export default function Pricing() {
         <div className="grid g3" style={{ marginTop: 34, alignItems: 'stretch' }}>
           {TIERS.map((t, i) => (
             <Reveal key={t.name} delay={i * 0.08}>
-              <Holo style={{ height: '100%', border: t.hot ? '1px solid rgba(52,211,153,.45)' : undefined, boxShadow: t.hot ? '0 0 80px -30px rgba(52,211,153,.6)' : undefined }}>
+              <Holo style={{ height: '100%', border: t.hot ? '1px solid rgba(0,240,255,.45)' : undefined, boxShadow: t.hot ? '0 0 80px -30px rgba(0,240,255,.6)' : undefined }}>
                 <div className="pad" style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><b style={{ fontSize: 15 }}>{t.name}</b><span className={`pill ${t.tone}`}>{t.tag}</span></div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
