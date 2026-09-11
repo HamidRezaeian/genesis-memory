@@ -35,7 +35,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: site
-                run: npm install
+        run: npm install
+                
 
       - name: Build landing page
         working-directory: site
