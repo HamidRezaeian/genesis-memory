@@ -99,6 +99,14 @@ CHALLENGE_PROTOCOL_LINE = (
     "• [Challenge rule]: if better than a rule above, "
     "call challenge_rule(solidified_id, proposed_text, reason)."
 )
+# Standing output-discipline order: long tool outputs must never flood the
+# model context. Shipped as a Layer-3 constant (not a recalled memory) so it
+# is known from the very first turn on every client after install — no repo
+# file to read, no user instruction needed. Memory content always outranks it.
+# Kept pointer-short on purpose: the <200-token capsule is nearly full, so
+# this line only names the mechanism; the full manual lives in llms.txt and
+# in the `genesis run` summary itself (ctx:log pointer).
+SPOOL_DISCIPLINE_LINE = "• [Spool]: `genesis run` for long outputs."
 # Fresh-session boost: one-time extra budget when NO fresh dialogue exists
 # (new/returning session). Bounded and telemetry-visible.
 BOOST_CHARS = 400
@@ -648,6 +656,14 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         total_chars += len(CHALLENGE_PROTOCOL_LINE)
         challenge_protocol_applied = True
 
+    # Standing spool discipline: one line, budget-checked, placed with the
+    # other standing rules and BEFORE the diet line (diet stays last).
+    spool_rule_applied = False
+    if total_chars + len(SPOOL_DISCIPLINE_LINE) <= budget_chars:
+        formatted.append(SPOOL_DISCIPLINE_LINE)
+        total_chars += len(SPOOL_DISCIPLINE_LINE)
+        spool_rule_applied = True
+
     diet_applied = False
     if _diet_enabled() and total_chars + len(HOOK_DIET_LINE) <= budget_chars:
         formatted.append(HOOK_DIET_LINE)
@@ -666,6 +682,7 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         "grounding_applied": grounding_applied,
         "resolution_applied": resolution_applied,
         "challenge_protocol_applied": challenge_protocol_applied,
+        "spool_rule_applied": spool_rule_applied,
         "ambient_captured": ambient_captured,
         "boosted": boosted,
         "dialogue_turns": 1 + len(extra_dialogue) if dialogue_entry else len(extra_dialogue),

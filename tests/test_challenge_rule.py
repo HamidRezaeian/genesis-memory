@@ -253,3 +253,31 @@ def test_challenge_protocol_line_injected():
     from genesis_memory.hooks.subconscious_hook import CHALLENGE_PROTOCOL_LINE
     assert "challenge_rule" in CHALLENGE_PROTOCOL_LINE
     assert "solidified_id" in CHALLENGE_PROTOCOL_LINE
+
+
+# =====================================================================
+# 5. Subconscious Hook Standing Spool Discipline
+# =====================================================================
+
+def test_spool_discipline_line_content():
+    """The standing spool order must name the mechanism and stay tiny."""
+    from genesis_memory.hooks.subconscious_hook import SPOOL_DISCIPLINE_LINE
+    assert "genesis run" in SPOOL_DISCIPLINE_LINE
+    # One line, pointer-short: the <200-token capsule is nearly full.
+    assert "\n" not in SPOOL_DISCIPLINE_LINE
+    assert len(SPOOL_DISCIPLINE_LINE) <= 64
+
+
+def test_spool_discipline_line_injected_first_turn(tmp_path, monkeypatch):
+    """A fresh install (empty DB, first turn) must still carry the spool order."""
+    from genesis_memory.hooks import subconscious_hook as hook
+    db_path = str(tmp_path / "test_spool_fresh.db")
+    Store(db_path)
+    monkeypatch.setattr(hook, "DB_PATH", db_path)
+
+    formatted, telemetry = hook.query_subconscious_memories("run the tests", max_tokens=200)
+
+    full_output = "\n".join(formatted)
+    assert "• [Spool]:" in full_output
+    assert telemetry["spool_rule_applied"] is True
+    assert telemetry["injected_tokens"] <= 200
