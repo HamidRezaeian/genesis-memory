@@ -185,6 +185,17 @@ def test_cli_dashboard_subcommand_parses(monkeypatch):
     assert called["port"] == 0 and called["auto_sleep"] is False
 
 
+def test_cli_help_never_spawns_subprocess(capsys):
+    """Fresh-user first command: --help prints usage, exit 0, no traceback."""
+    from genesis_memory.cli.run import main as cli_main
+    assert cli_main(["--help"]) == 0
+    assert cli_main(["-h"]) == 0
+    assert cli_main(["run", "--help"]) == 0
+    out = capsys.readouterr().out
+    assert "Usage: genesis <command>" in out
+    assert "genesis setup --preview" in out
+
+
 def test_contract_files_ship_inside_package():
     """llms.txt/openapi.json must live inside the installed product (no repo needed)."""
     from importlib import resources as _resources

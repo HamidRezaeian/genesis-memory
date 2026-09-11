@@ -274,38 +274,40 @@ def execute_spooled(cmd_args: List[str]) -> int:
     return exit_code
 
 
+USAGE_TEXT = (
+    "Usage: genesis <command> [options]\n\n"
+    "Commands:\n"
+    "  setup          1-Click universal auto-wiring (20+ AI clients: Cursor, Claude Code, VS Code, Zed, JetBrains, Neovim, ...)\n"
+    "  clients        Show the universal client matrix with detection status (--json)\n"
+    "  export-config  Emit config snippets for any tool (--format json|yaml|toml|env|lua|native)\n"
+    "  init           Initialize local environment and zero-friction onboarding\n"
+    "  license        View active license, entitlements, and seat status\n"
+    "  auth           Activate commercial Pro or Enterprise license key\n"
+    "  doctor         Diagnose system health, storage, RSS, and connectivity\n"
+    "  run            Execute allowlisted commands with headless lossless spooling\n"
+    "  proxy          Manage on-demand stateless gateway (start|stop|status)\n"
+    "  dashboard      Launch the Mission Control telemetry dashboard\n"
+    "  upgrade        1-Click self-upgrade to the latest official release\n"
+    "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
+    "  skills         List synthesized procedural skills\n"
+    "\n"
+    "Examples:\n"
+    "  genesis setup --preview\n"
+    "  genesis setup --yes --client cursor,zed,neovim\n"
+    "  genesis export-config --client codex --format toml\n"
+    "  genesis export-config --format env   # OPENAI_BASE_URL for any SDK\n"
+    "  genesis run -- pytest tests/\n"
+    "  genesis run -- cargo test\n"
+    "  genesis dashboard"
+)
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Unified CLI entrypoint for GENESIS."""
     args = list(argv) if argv is not None else sys.argv[1:]
 
     if not args:
-        print(
-            "Usage: genesis <command> [options]\n\n"
-            "Commands:\n"
-            "  setup          1-Click universal auto-wiring (20+ AI clients: Cursor, Claude Code, VS Code, Zed, JetBrains, Neovim, ...)\n"
-            "  clients        Show the universal client matrix with detection status (--json)\n"
-            "  export-config  Emit config snippets for any tool (--format json|yaml|toml|env|lua|native)\n"
-            "  init           Initialize local environment and zero-friction onboarding\n"
-            "  license        View active license, entitlements, and seat status\n"
-            "  auth           Activate commercial Pro or Enterprise license key\n"
-            "  doctor         Diagnose system health, storage, RSS, and connectivity\n"
-            "  run            Execute allowlisted commands with headless lossless spooling\n"
-            "  proxy          Manage on-demand stateless gateway (start|stop|status)\n"
-            "  dashboard      Launch the Mission Control telemetry dashboard\n"
-            "  upgrade        1-Click self-upgrade to the latest official release\n"
-            "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
-            "  skills         List synthesized procedural skills\n"
-            "\n"
-            "Examples:\n"
-            "  genesis setup --preview\n"
-            "  genesis setup --yes --client cursor,zed,neovim\n"
-            "  genesis export-config --client codex --format toml\n"
-            "  genesis export-config --format env   # OPENAI_BASE_URL for any SDK\n"
-            "  genesis run -- pytest tests/\n"
-            "  genesis run -- cargo test\n"
-            "  genesis dashboard",
-            file=sys.stderr,
-        )
+        print(USAGE_TEXT, file=sys.stderr)
         return 1
 
     subcmd = args[0].lower()
@@ -478,8 +480,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         args = args[1:]
 
     if not args:
-        print("Usage: genesis run [--] <command> [args...]", file=sys.stderr)
+        print(USAGE_TEXT, file=sys.stderr)
         return 1
+
+    # Top-level help (also covers `genesis run --help`): usage to stdout, exit 0.
+    # Never fall through to subprocess: there is no executable named --help.
+    if args[0].lower() in ("-h", "--help", "help"):
+        print(USAGE_TEXT)
+        return 0
 
     if is_spoolable_command(args):
         return execute_spooled(args)
