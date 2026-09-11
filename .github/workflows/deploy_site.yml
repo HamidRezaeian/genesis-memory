@@ -35,7 +35,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: site
-        run: npm ci --include=dev
+                run: npm install
 
       - name: Build landing page
         working-directory: site
