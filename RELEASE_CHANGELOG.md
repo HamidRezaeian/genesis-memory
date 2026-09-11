@@ -1,5 +1,13 @@
 # GENESIS Memory — Release Changelog
 
+## v0.6.2 (2026-09-11)
+
+- **License with teeth**: new versions are Business Source License 1.1 (free for
+  individuals, teams under 10, and non-production; converts to MIT on 2029-09-11).
+  v0.6.1 and earlier stay MIT forever. Technical locks live client-side by design
+  (offline-first), so the protection is legal, not theatrical.
+- Suite: **438 passing / 0 failing**.
+
 ## v0.6.1 — "First public PyPI release" (2026-09-11)
 
 First installable release (`pip install genesis-memory && genesis setup`).

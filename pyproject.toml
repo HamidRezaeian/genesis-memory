@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genesis-memory"
-version = "0.6.1"
+version = "0.6.2"
 description = "Universal Cognitive Memory OS, Zero-Trust Privacy Shield & Stateless Token-Diet Gateway for every AI coding agent"
 readme = "README.md"
 authors = [
     { name = "GENESIS Team" }
 ]
-license = { text = "MIT" }
+license = { text = "Business Source License 1.1" }
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.100.0",

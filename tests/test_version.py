@@ -2,6 +2,7 @@
 
 pyproject.toml, genesis_memory.__init__.__version__, dashboard VERSION and the
 changelog entry must always agree — a release tag is cut from exactly this.
+The LICENSE must stay BSL-1.1 going forward (MIT history is grandfathered).
 """
 import re
 from pathlib import Path
@@ -21,3 +22,12 @@ def test_version_single_source_of_truth():
 
     changelog = (REPO / "RELEASE_CHANGELOG.md").read_text(encoding="utf-8")
     assert f"## v{__version__}" in changelog
+
+
+def test_license_is_bsl_going_forward():
+    """LICENSE must keep its BSL-1.1 parameters (Change Date + MIT conversion)."""
+    text = (REPO / "LICENSE").read_text(encoding="utf-8")
+    assert "Business Source License 1.1" in text
+    assert "Change Date: 2029-09-11" in text
+    assert "Change License: MIT License" in text
+    assert "0.6.1" in text  # MIT grandfather clause for old versions

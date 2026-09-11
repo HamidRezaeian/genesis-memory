@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
   <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/license-MIT-gray?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/license-BSL_1.1-gray?style=flat-square" alt="License" />
 </p>
 
 <p align="center">
@@ -213,11 +213,15 @@ python -m pytest tests/test_privacy_shield.py tests/test_universal_clients.py te
 
 ## Licensing
 
+Source-available under the Business Source License 1.1 (free for individuals,
+teams under 10, and all non-production use; converts to MIT on 2029-09-11).
+Versions ≤ v0.6.1 stay MIT forever. See LICENSE.
+
 Offline-first HMAC-SHA256 — works air-gapped.
 
 | | Community | Developer Pro | Enterprise Gateway |
 |---|---|---|---|
-| Price | Free / MIT | $14 mo · $12 annual | $39 seat/mo · $32 annual |
+| Price | Free / Community | $14 mo · $12 annual | $39 seat/mo · $32 annual |
 | Local SQLite memory · hook · spooler · 20-client setup · privacy shield | ✅ | ✅ | ✅ |
 | High-ratio compactor · Hebbian sleep · dashboard · live pricing · Anthropic route | — | ✅ | ✅ |
 | Team shared memory sync · on-prem Docker gateway · audit logs · SLA | — | — | ✅ |
