@@ -1,10 +1,17 @@
 # GENESIS Memory — Release Changelog
 
-## v0.6.0 — "First public PyPI release" (2026-09-11)
+## v0.6.1 — "First public PyPI release" (2026-09-11)
 
-First installable release (`pip install genesis-memory && genesis setup`). Everything
-an agent needs now ships **inside the product** — no repo checkout, no side files,
-no user instruction required:
+First installable release (`pip install genesis-memory && genesis setup`).
+
+- CLI `--help` no longer tracebacks (was `FileNotFoundError` on a fresh install's
+  very first command); `-h/--help/help` print usage, exit 0.
+- Suite: **438 passing / 0 failing**.
+
+## v0.6.0 — tagged, never published (2026-09-11)
+
+Tag pushed but PyPI had no trusted publisher yet, so the upload was rejected;
+v0.6.1 is the first release that actually shipped.
 
 - **Standing spool order in every capsule** (`hooks/subconscious_hook.py`): a permanent
   Layer-3 directive injected from the first turn on every client, so long tool outputs
@@ -13,8 +20,6 @@ no user instruction required:
 - **Contract ships in the wheel** (`genesis_memory/data/llms.txt|openapi.json`):
   the deck resolves them via `importlib.resources` with repo-root fallback; a test
   pins the packaged copy byte-identical to root.
-- **CLI `--help` no longer tracebacks** (`cli/run.py`): `-h/--help/help` print usage,
-  exit 0 (was `FileNotFoundError` — the worst possible first run after install).
 - **Cross-OS fixture SHA** (`eval/step4_harness.py`): sort by POSIX path so the
   locked hash matches on Windows and Linux.
 - Suite: **437 passing / 0 failing**.
