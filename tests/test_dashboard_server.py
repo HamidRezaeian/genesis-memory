@@ -183,3 +183,24 @@ def test_cli_dashboard_subcommand_parses(monkeypatch):
     monkeypatch.setattr(ds, "run_server", lambda **kw: called.update(kw))
     assert cli_main(["dashboard", "--port", "0", "--no-sleep"]) == 0
     assert called["port"] == 0 and called["auto_sleep"] is False
+
+
+def test_contract_files_ship_inside_package():
+    """llms.txt/openapi.json must live inside the installed product (no repo needed)."""
+    from importlib import resources as _resources
+    from pathlib import Path
+    for name in ("llms.txt", "openapi.json"):
+        data = (_resources.files("genesis_memory") / "data" / name).read_bytes()
+        assert len(data) > 500, name
+        # Single source of truth: packaged copy byte-identical to repo root.
+        assert data == (Path(ds.__file__).resolve().parents[2] / name).read_bytes()
+
+
+def test_contract_routes_served_live(live):
+    """Deck serves the packaged contract: /llms.txt 200 text, /openapi.json 200 valid JSON."""
+    with urllib.request.urlopen(live + "/llms.txt", timeout=5) as r:
+        assert r.status == 200
+        assert "text/plain" in r.headers["Content-Type"]
+        assert len(r.read()) > 500
+    code, res = _get(live, "/openapi.json")
+    assert code == 200 and isinstance(res, dict)

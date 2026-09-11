@@ -40,6 +40,7 @@ where = ["."]
 include = ["genesis_memory*"]
 
 [tool.setuptools.package-data]
+"genesis_memory" = ["data/llms.txt", "data/openapi.json"]
 "genesis_memory.proxy" = ["pricing_catalog.json"]
 "genesis_memory.cli" = ["templates/*.js"]
 "genesis_memory.dashboard" = ["static/*.html"]

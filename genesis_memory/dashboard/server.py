@@ -58,6 +58,24 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 HTML_PATH = STATIC_DIR / "index.html"
 LLMS_PATH = REPO_ROOT / "llms.txt"
 OPENAPI_PATH = REPO_ROOT / "openapi.json"
+
+
+def _read_contract(name: str) -> bytes:
+    """Read a shipped contract file (llms.txt / openapi.json).
+
+    Installed package first (importlib.resources: works on user machines
+    with no repo checkout); repo-root fallback for dev checkouts. The rules
+    live inside the product — never depend on ambient files.
+    """
+    try:
+        from importlib import resources as _resources
+        data = (_resources.files("genesis_memory") / "data" / name).read_bytes()
+        if data:
+            return bytes(data)
+    except Exception:
+        pass
+    fpath = LLMS_PATH if name == "llms.txt" else OPENAPI_PATH
+    return fpath.read_bytes()
 DEFAULT_DB = os.environ.get("GENESIS_DAEMON_DB", os.path.expanduser("~/.genesis/memory.db"))
 DEFAULT_PORT = int(os.environ.get("GENESIS_DASHBOARD_PORT", "8090"))
 SERVER_START_TIME = time.time()
@@ -594,8 +612,8 @@ class TelemetryHandler(http.server.BaseHTTPRequestHandler):
             if path == "/api/sleep":
                 return self._json(trigger_auto_sleep(db))
             if path in ("/llms.txt", "/openapi.json"):
-                fpath = LLMS_PATH if path == "/llms.txt" else OPENAPI_PATH
-                content = fpath.read_bytes()
+                name = "llms.txt" if path == "/llms.txt" else "openapi.json"
+                content = _read_contract(name)
                 if path == "/openapi.json":
                     json.loads(content.decode("utf-8"))
                 return self._send(200, content, "text/plain; charset=utf-8" if path == "/llms.txt"
