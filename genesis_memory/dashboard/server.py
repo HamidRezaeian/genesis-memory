@@ -80,7 +80,7 @@ DEFAULT_DB = os.environ.get("GENESIS_DAEMON_DB", os.path.expanduser("~/.genesis/
 DEFAULT_PORT = int(os.environ.get("GENESIS_DASHBOARD_PORT", "8090"))
 SERVER_START_TIME = time.time()
 STREAM_INTERVAL_S = float(os.environ.get("GENESIS_DASHBOARD_STREAM_S", "2.0"))
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 _ID_RE = re.compile(r"^\d{1,12}$")
 

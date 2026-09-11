@@ -1,5 +1,24 @@
 # GENESIS Memory — Release Changelog
 
+## v0.6.0 — "First public PyPI release" (2026-09-11)
+
+First installable release (`pip install genesis-memory && genesis setup`). Everything
+an agent needs now ships **inside the product** — no repo checkout, no side files,
+no user instruction required:
+
+- **Standing spool order in every capsule** (`hooks/subconscious_hook.py`): a permanent
+  Layer-3 directive injected from the first turn on every client, so long tool outputs
+  never flood model context again. Pointer-short (41 chars) to hold the 200-token
+  capsule cap; telemetry `spool_rule_applied`.
+- **Contract ships in the wheel** (`genesis_memory/data/llms.txt|openapi.json`):
+  the deck resolves them via `importlib.resources` with repo-root fallback; a test
+  pins the packaged copy byte-identical to root.
+- **CLI `--help` no longer tracebacks** (`cli/run.py`): `-h/--help/help` print usage,
+  exit 0 (was `FileNotFoundError` — the worst possible first run after install).
+- **Cross-OS fixture SHA** (`eval/step4_harness.py`): sort by POSIX path so the
+  locked hash matches on Windows and Linux.
+- Suite: **437 passing / 0 failing**.
+
 ## v0.5.0 — "Mission Control" (2026-09-10)
 
 This release rebuilds the two user-facing surfaces (landing page and telemetry dashboard) from first principles, makes GENESIS universally compatible with every AI coding environment through a data-driven client registry and config exporter, hardens SQLite for many concurrent agents, ships a real entropy-based privacy shield at every storage boundary, extends the headless spooler to 60+ toolchains, adds an Anthropic-compatible gateway route, and takes the test suite from **274 passing / 6 failing** to **421 passing / 0 failing**.
