@@ -33,7 +33,7 @@ jobs:
           
       - name: Install dependencies
         working-directory: site
-        run: npm install
+        run: npm ci --include=dev
                 
 
       - name: Build landing page
