@@ -70,7 +70,8 @@ def build_hallucination_corpus(seed_memories: List[Dict[str, Any]], fixture_dir:
     """
     corpus_parts = [m["text"] for m in seed_memories]
     if fixture_dir.exists():
-        for p in sorted(fixture_dir.rglob("*")):
+        # Sort by POSIX rel path so order is identical on Windows/Linux (README.md first).
+        for p in sorted(fixture_dir.rglob("*"), key=lambda x: x.relative_to(fixture_dir).as_posix()):
             if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith(".pyc"):
                 corpus_parts.append(p.read_text(encoding="utf-8", errors="replace"))
     return "\n---\n".join(corpus_parts)
@@ -79,7 +80,9 @@ def build_hallucination_corpus(seed_memories: List[Dict[str, Any]], fixture_dir:
 def compute_fixture_sha(fixture_dir: Path) -> str:
     """Computes SHA256 of all fixture files excluding pycache (matching run_exp108_multiturn.py)."""
     h = hashlib.sha256()
-    for p in sorted(fixture_dir.rglob("*")):
+    # Sort by POSIX rel path: sorted(Path) is OS-dependent (Windows puts acme/ before README.md,
+    # Linux does the opposite). Sorting by as_posix() string is canonical across hosts.
+    for p in sorted(fixture_dir.rglob("*"), key=lambda x: x.relative_to(fixture_dir).as_posix()):
         if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith(".pyc"):
             # Canonical form: POSIX separators + LF so the lock is OS/checkout independent.
             rel = p.relative_to(fixture_dir).as_posix()
