@@ -528,7 +528,8 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
                     # TTL prune keeps growth bounded (hook rows only — proxy
                     # and user sessions are never touched here).
                     now_ts = time.time()
-                    hook_session = f"hook:{client}:{int(now_ts * 1000)}"
+                    # ns clock + random suffix: millisecond keys collide on fast hosts.
+                    hook_session = f"hook:{client}:{time.time_ns()}:{os.urandom(3).hex()}"
                     prompt = query_text.strip()[:CAPTURE_PROMPT_CHARS]
                     clean = redact_secrets(prompt)[:CAPTURE_PROMPT_CHARS] if redact_secrets else prompt
                     raw_reply = capture_assistant.strip()[:CAPTURE_PROMPT_CHARS] if isinstance(capture_assistant, str) else ""

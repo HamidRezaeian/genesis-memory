@@ -4,8 +4,10 @@ Captures massive command stdout/stderr to local spool files (~/.genesis/spool/<i
 using atomic write-then-rename, provides byte-identical dereferencing via MCP/CLI,
 enforces retention GC (TTL + size caps), and instruments the critical fetch-rate metric.
 
-Privacy boundary (R2): spool is deliberately RAW command evidence (TTL'd, GC'd,
-local-only) — memory/ledger/thread paths redact via redact_secrets instead.
+Privacy boundary (R2): every byte is passed through the Zero-Trust Privacy Shield
+(structural key patterns + Shannon entropy) *before* it is written, so credentials
+never touch disk. Non-secret output is preserved byte-for-byte. ``GENESIS_SPOOL_RAW=1``
+opts out for deliberate forensic captures.
 """
 
 import hashlib
@@ -16,6 +18,8 @@ from pathlib import Path
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+from genesis_memory.core.privacy_shield import redact_bytes
 
 logger = logging.getLogger("genesis.spool")
 
@@ -51,6 +55,7 @@ class SpoolEngine:
         self.spooled_bytes = 0
         self.dereferenced_bytes = 0
         self.spools_full_reads = 0
+        self.secrets_blocked = 0
         self._sync_counters_from_store()
 
     def _sync_counters_from_store(self) -> None:
@@ -91,6 +96,8 @@ class SpoolEngine:
             self.dereferenced_bytes += amount
         elif name == "spools_full_reads":
             self.spools_full_reads += amount
+        elif name == "secrets_blocked":
+            self.secrets_blocked += amount
 
         if self.store and hasattr(self.store, "db"):
             try:
@@ -112,19 +119,29 @@ class SpoolEngine:
     ) -> Tuple[str, Path]:
         """Atomically writes content to ~/.genesis/spool/<id>.log.
 
-        Returns (spool_id, log_path).
+        Secrets are redacted *before* the bytes touch disk (Zero-Trust Privacy
+        Shield: structural patterns + Shannon entropy). Non-secret bytes are
+        preserved exactly. Set ``GENESIS_SPOOL_RAW=1`` to opt out for forensic
+        captures. Returns (spool_id, log_path).
         """
         # Normalize content to raw bytes
         if isinstance(content, str):
             raw_bytes = content.encode("utf-8")
-            text_str = content
         else:
             raw_bytes = content
-            # Safe decoding with fallback for metadata calculation
-            try:
-                text_str = raw_bytes.decode("utf-8")
-            except UnicodeDecodeError:
-                text_str = raw_bytes.decode("utf-8", errors="replace")
+
+        shield_report: Optional[Dict[str, Any]] = None
+        if os.environ.get("GENESIS_SPOOL_RAW", "") not in ("1", "true", "yes"):
+            raw_bytes, rep = redact_bytes(raw_bytes)
+            if not rep.clean:
+                shield_report = rep.to_dict()
+                self._inc_counter("secrets_blocked", rep.redactions)
+
+        # Safe decoding with fallback for metadata calculation
+        try:
+            text_str = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            text_str = raw_bytes.decode("utf-8", errors="replace")
 
         # Deterministic, collision-resistant 8-hex identifier
         hasher = hashlib.sha256()
@@ -155,6 +172,8 @@ class SpoolEngine:
             "lines_count": len(text_str.splitlines()),
             "extra": metadata or {},
         }
+        if shield_report:
+            meta["privacy_shield"] = shield_report
         with open(temp_meta, "w", encoding="utf-8") as f:
             json.dump(meta, f, indent=2)
             f.flush()

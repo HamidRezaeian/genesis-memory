@@ -33,12 +33,12 @@ graph TD
     Night[Periodic / Session End] -->|4. Sleep Consolidation| Sleep[Sleep Engine]
     Sleep -->|Prune & Abstract| DB
     Sleep -->|Auto-Update| Digest[Active Digest in AGENTS.md]
-    DB -->|5. Telemetry Stream| Dashboard[Dashboard Web UI :8080]
+    DB -->|5. Telemetry Stream| Dashboard[Mission Control :8090 · SSE]
 ```
 
 ---
 
 ## 3. Storage Invariants & Security
-- **Strictly Local:** SQLite with WAL mode enabled. Zero external network calls for memory storage.
-- **Fail-Closed Secret Scanner:** All content passed to `remember()` passes through sub-millisecond regex filters blocking API keys (OpenAI, Anthropic, AWS, GitHub) and private key PEM blocks.
+- **Strictly Local:** SQLite with WAL mode, `busy_timeout=5000`, `BEGIN IMMEDIATE` transactions and jittered retry (`core/db.py`) — many agents in many processes share one file with zero `database is locked`. Zero external network calls for memory storage.
+- **Zero-Trust Privacy Shield (`core/privacy_shield.py`):** 15 structural vendor patterns *plus* a Shannon-entropy gate (≥4.0 bits/char) guard every storage boundary: `remember()` rejects, thread/dialogue fields are redacted, and the spool scrubs command output before the atomic write (`GENESIS_SPOOL_RAW=1` opts out).
 - **Audited Tombstoning:** Memories are never silently destroyed. `forget()` marks them with tombstone markers preserving auditability.

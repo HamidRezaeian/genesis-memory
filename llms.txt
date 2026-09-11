@@ -5,12 +5,15 @@ agents. It strips resend-heavy history (single-prompt execution), pins
 verified memory capsules, and accounts every token honestly
 (inferred / replayed / verified — a number without provenance is not quoted).
 
-## Proxy (OpenAI-compatible, default http://127.0.0.1:8000)
+## Proxy (OpenAI + Anthropic compatible, default http://127.0.0.1:8000)
 
 - `POST /v1/chat/completions` — chat; headers: `Authorization: Bearer <key>`
   (`not-needed` is replaced server-side), `X-Genesis-Session` (session
   isolation), `X-Genesis-Client` (attribution). Body: OpenAI `model`,
   `messages`, `stream`. Non-streaming replies carry `X-Genesis-Receipt`.
+- `POST /v1/messages` — Anthropic Messages API drop-in
+  (`ANTHROPIC_BASE_URL=http://127.0.0.1:8000`): same compaction + capsule,
+  byte-exact SSE relay, `x-api-key` injected from `GENESIS_ANTHROPIC_KEY`.
 - `GET /v1/models` — model catalog (offline fallback built in).
 - `GET /v1/telemetry` — live counters, cache accounting, cost_accounting.
 - `POST /v1/telemetry/reset` — reset counters.
@@ -36,6 +39,18 @@ unresolved) — or the single `genesis` gateway tool
 routing, `help` op). Cross-client thread + dialogue buffer
 give continuity across tabs/clients. Every stored claim is eval-gated
 (recall / hallucination / over-injection); failures are published, not hidden.
+
+## Clients & CLI
+
+`genesis setup` auto-wires 20 environments (Cursor, Claude Code/Desktop,
+OpenCode, Antigravity, Windsurf, Zed, VS Code, Cline, Roo, Continue,
+JetBrains Junie, Neovim/mcphub, Emacs, Aider, Codex CLI, Gemini CLI,
+Amazon Q, Goose, any SDK via env). `genesis clients --json` lists them;
+`genesis export-config --client <id> --format json|yaml|toml|env|lua|native`
+renders the exact snippet. `genesis run -- <cmd>` spools 60+ toolchains
+headlessly (pointer `ctx:log/<id>`, dereference with `genesis_log`).
+`genesis dashboard` serves Mission Control on :8090 (`/api/overview`,
+`/api/stream` SSE, `/api/graph`, `/api/engrams?q=`).
 
 ## Rules for agents working here
 

@@ -10,6 +10,8 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
+
+from genesis_memory.core import db as _dbx
 import time
 from typing import List, Optional, Tuple
 
@@ -25,7 +27,7 @@ def render_digest_content(db_path: Path, max_items: int = 8) -> str:
     if not db_path.exists():
         return ""
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _dbx.connect(str(db_path), readonly=True)
     try:
         # Fetch top active decisions and verified facts
         rows = conn.execute(

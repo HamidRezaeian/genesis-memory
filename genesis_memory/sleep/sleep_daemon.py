@@ -23,6 +23,8 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
+
+from genesis_memory.core import db as _dbx
 import sys
 import threading
 import time
@@ -54,7 +56,7 @@ def run_sleep_cycle(
         return {"ok": False, "error": f"Database not found: {db_file}"}
 
     t0 = time.time()
-    conn = sqlite3.connect(db_file)
+    conn = _dbx.connect(db_file)
     try:
         # Phase 1: NREM Consolidation
         hebbian = HebbianEngine(conn)
@@ -196,7 +198,7 @@ class SleepDaemon:
         if not os.path.exists(self.db_path):
             return 0.0
         try:
-            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
+            conn = _dbx.connect(self.db_path, readonly=True)
             t_ep = conn.execute("SELECT MAX(updated) FROM episodes").fetchone()[0] or 0.0
             t_dia = 0.0
             try:

@@ -11,11 +11,13 @@ Stdlib only (RSS discipline inherited).
 import argparse
 import os
 import sqlite3
+
+from genesis_memory.core import db as _dbx
 import time
 
 
 def build_report(db_path, stale_days=30, top_n=10):
-    db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    db = _dbx.connect(db_path, readonly=True)
     try:
         ver = db.execute("PRAGMA user_version").fetchone()[0]
     except Exception:

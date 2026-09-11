@@ -7,6 +7,7 @@
 - Spool is deliberately RAW (command evidence) — memory paths are redacted.
 Run: python -m pytest tests/test_privacy_redaction.py -q
 """
+import json
 import os
 import sys
 from pathlib import Path
@@ -83,9 +84,33 @@ def test_plugin_template_logs_metadata_not_content():
     assert "content never logged" in src
 
 
-def test_spool_is_deliberately_raw(tmp_path):
-    """Spool captures command evidence byte-identical (GC'd, TTL'd); only
-    memory/ledger paths redact. This test pins that distinction."""
+def test_spool_redacts_before_disk(tmp_path, monkeypatch):
+    """Zero-Trust: spooled command output is scrubbed *before* it hits disk.
+    Benign bytes round-trip exactly; secret spans are replaced; the metadata
+    records that the shield fired (never the secret itself)."""
+    monkeypatch.delenv("GENESIS_SPOOL_RAW", raising=False)
+    engine = SpoolEngine(spool_dir=tmp_path / "spool")
+    raw = f"export KEY={SK}\nplain line stays\n"
+    spool_id, log_path = engine.write_spool(raw, command="env")
+    on_disk = log_path.read_bytes().decode()
+    assert SK not in on_disk
+    assert "plain line stays" in on_disk
+    assert "[REDACTED_API_KEY]" in on_disk
+    meta = json.loads((log_path.parent / f"{spool_id}.meta.json").read_text())
+    assert meta["privacy_shield"]["redactions"] >= 1
+    assert SK not in json.dumps(meta)
+    assert engine.secrets_blocked >= 1
+
+
+def test_spool_benign_bytes_are_byte_identical(tmp_path):
+    engine = SpoolEngine(spool_dir=tmp_path / "spool")
+    payload = b"\xff\xfe binary-ish \x00 and text: 42 passed in 0.3s\n"
+    spool_id, _ = engine.write_spool(payload, command="pytest")
+    assert engine.read_spool_raw_bytes(spool_id) == payload
+
+
+def test_spool_raw_opt_out(tmp_path, monkeypatch):
+    monkeypatch.setenv("GENESIS_SPOOL_RAW", "1")
     engine = SpoolEngine(spool_dir=tmp_path / "spool")
     raw = f"export KEY={SK}\n"
     spool_id, _ = engine.write_spool(raw, command="env")
