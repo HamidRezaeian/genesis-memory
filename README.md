@@ -192,7 +192,7 @@ Set `GENESIS_MCP_TOOL_MODE=gateway` to advertise only the gateway tool and shrin
 | Scenario | Before | After | Δ |
 |---|---|---|---|
 | `pytest` run, 4,000 lines in agent context | ~79,200 tok | 84 tok | **−99.9 %** |
-| Subconscious capsule vs. whole store | 21,480 tok | 176 tok | **−99.2 %** |
+| Subconscious capsule (reference run) | grows with store, unbounded | ~190 tok, hard-capped ≤200 | flat |
 | 14-turn conversation + 2,200 tool lines via gateway | 60,800 tok | 3,030 tok | **−95.0 %** |
 | Recall latency @ 10k engrams | — | < 50 ms | — |
 | Daemon RSS steady state | — | ≈ 30 MB | budget 100 MB |
