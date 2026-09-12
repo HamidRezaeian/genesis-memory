@@ -236,6 +236,6 @@ genesis license
 
 - [RELEASE_CHANGELOG.md](RELEASE_CHANGELOG.md) — every change in v0.5.0, with rationale and impact
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/MCP_SPEC.md](docs/MCP_SPEC.md) · [llms.txt](llms.txt) · [openapi.json](openapi.json)
-- Landing page: `cd site && npm install && npm run build && npm run preview` → http://localhost:4173
+- Landing page (public repo): https://hamidrezaeian.github.io/genesis-memory-site/ · source: `genesis-memory-site` repo
 
 <p align="center"><sub>GENESIS Memory — because your AI agent deserves a brain that doesn't reset every session.</sub></p>
