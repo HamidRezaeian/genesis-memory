@@ -290,6 +290,7 @@ USAGE_TEXT = (
     "  upgrade        1-Click self-upgrade to the latest official release\n"
     "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
     "  skills         List synthesized procedural skills\n"
+    "  extensions     List installed commercial (genesis-pro) extensions\n"
     "\n"
     "Examples:\n"
     "  genesis setup --preview\n"
@@ -320,6 +321,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     if subcmd in ("init", "setup"):
         from genesis_memory.cli.init_cmd import main as init_main
         return init_main(args[1:])
+
+    if subcmd in ("extensions", "extension"):
+        from genesis_memory.extensions import load_extensions
+        exts = load_extensions()
+        if not exts:
+            print("[genesis] No commercial extensions installed.")
+            print("  Pro/Enterprise capabilities ship in the private genesis-pro channel.")
+            print("  See: https://github.com/HamidRezaeian/genesis-memory#licensing")
+            return 0
+        print(f"[genesis] Commercial extensions ({len(exts)} installed):")
+        for name in sorted(exts):
+            print(f"  • {name}")
+        return 0
 
     if subcmd in ("clients", "matrix"):
         from genesis_memory.cli.export_config import clients_matrix

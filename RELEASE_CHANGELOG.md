@@ -1,5 +1,14 @@
 # GENESIS Memory — Release Changelog
 
+## v0.7.0 (2026-09-11)
+
+- **Twin-launch channel**: commercial extension API (`genesis_memory/extensions.py`,
+  entry-point group `genesis_extensions`) + `genesis extensions` listing. Premium
+  capabilities developed from here on ship in the PRIVATE genesis-pro package and
+  plug in here — no Pro source enters the public tree (pinned by
+  tests/test_twin_launch.py guards). Existing modules untouched: nothing breaks.
+- Suite: **444 passing / 0 failing**.
+
 ## v0.6.2 (2026-09-11)
 
 - **License with teeth**: new versions are Business Source License 1.1 (free for
