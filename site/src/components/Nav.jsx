@@ -18,9 +18,8 @@ export default function Nav() {
         background: scrolled ? 'rgba(0,0,0,.62)' : 'transparent', backdropFilter: scrolled ? 'blur(18px) saturate(140%)' : 'none',
         borderBottom: `1px solid ${scrolled ? 'var(--line)' : 'transparent'}` }}>
       <div className="wrap" style={{ display: 'flex', alignItems: 'center', height: 64, gap: 24 }}>
-        <a href="#top" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 900, letterSpacing: '.16em', fontSize: 13 }}>
-          <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'radial-gradient(circle at 35% 35%,#fff,var(--cyan) 35%,rgba(0,240,255,.15) 70%,transparent 72%)', boxShadow: '0 0 22px rgba(0,240,255,.7)' }} />
-          GENESIS
+        <a href="#top" style={{ display: 'flex', alignItems: 'center' }} aria-label="GENESIS home">
+          <img src="./logo.png" alt="GENESIS Memory" height={44} style={{ display: 'block' }} />
         </a>
         <nav style={{ display: 'flex', gap: 4, marginLeft: 'auto' }} className="nav-links">
           {LINKS.map(([l, h]) => <a key={h} href={h} className="btn ghost sm">{l}</a>)}

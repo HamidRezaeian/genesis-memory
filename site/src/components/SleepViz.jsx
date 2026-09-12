@@ -13,9 +13,24 @@ const PHASES = [
   { k: 'WAKE', title: 'Write digest', tone: 'fg', desc: 'Top decisions and facts are rendered into a bounded Active Digest that primes the next session\'s first prompt.' },
 ]
 const OUTCOMES = ['genesis run -- pytest → 421 passed', 'genesis run -- pytest -x → green', 'pytest tests/ headless → green', 'genesis run -- pytest -q → exit 0']
+// Decay curves, strongest last. Rank is encoded in dash + weight, never hue:
+// dotted slate → solid white → dashed white → solid cyan (solidified = goal).
+const CURVES = [
+  { tau: 7, col: 'rgba(163,177,194,.55)', dash: [2, 4], lw: 1.2, label: 'fresh τ=7d' },
+  { tau: 14, col: 'rgba(216,224,234,.8)', dash: [], lw: 1.4, label: 'reinforced ×1 τ=14d' },
+  { tau: 30, col: 'rgba(235,238,242,.9)', dash: [7, 4], lw: 1.6, label: 'reinforced ×3 τ=30d' },
+  { tau: 90, col: 'rgba(0,240,255,.95)', dash: [], lw: 2, label: 'solidified τ=90d' },
+]
 
 export default function SleepViz() {
   const canvasRef = useRef(null)
+  // Perf: skip drawing while offscreen (same pattern as Conduit/NeuralField).
+  const visibleRef = useRef(true)
+  useEffect(() => {
+    const el = canvasRef.current; if (!el || !('IntersectionObserver' in window)) return
+    const io = new IntersectionObserver(([e]) => { visibleRef.current = e.isIntersecting }, { threshold: 0.02 })
+    io.observe(el); return () => io.disconnect()
+  }, [])
   const [phase, setPhase] = useState(0)
   const [reinforced, setReinforced] = useState(0)
   const [distilled, setDistilled] = useState(false)
@@ -32,6 +47,7 @@ export default function SleepViz() {
     const tones = { cyan: '0,240,255', violet: '216,224,234', emerald: '235,238,242', amber: '0,240,255' }
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
+      if (!visibleRef.current) { raf = requestAnimationFrame(frame); return }
       const dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect()
       if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr) }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const w = r.width, h = r.height; ctx.clearRect(0, 0, w, h)
@@ -39,10 +55,9 @@ export default function SleepViz() {
       ctx.strokeStyle = 'rgba(148,163,184,.12)'; ctx.lineWidth = 1
       for (let i = 0; i <= 4; i++) { const y = pad.t + H * i / 4; ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke(); ctx.fillStyle = '#5f6d80'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'right'; ctx.fillText((100 - 25 * i) + '%', pad.l - 8, y + 3) }
       ctx.textAlign = 'center'; for (const d of [0, 15, 30, 45, 60]) ctx.fillText(d + 'd', pad.l + W * d / 60, h - 8)
-      const curves = [[7, 'rgba(163,177,194,.55)', 'fresh τ=7d'], [14, `rgba(${tones.cyan},.9)`, 'reinforced ×1 τ=14d'], [30, `rgba(${tones.violet},.9)`, 'reinforced ×3 τ=30d'], [90, `rgba(${tones.amber},.9)`, 'solidified τ=90d']]
-      curves.forEach(([tau, col, label], i) => { ctx.beginPath(); for (let x = 0; x <= W; x += 2) { const days = x / W * 60; const y = pad.t + H * (1 - Math.exp(-days / tau)); x ? ctx.lineTo(pad.l + x, y) : ctx.moveTo(pad.l + x, y) } ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); ctx.fillStyle = col; ctx.font = '11px Inter'; ctx.textAlign = 'left'; ctx.fillText(label, pad.l + 10, pad.t + 14 + i * 15) })
+      CURVES.forEach(({ tau, col, dash, lw }) => { ctx.beginPath(); for (let x = 0; x <= W; x += 2) { const days = x / W * 60; const y = pad.t + H * (1 - Math.exp(-days / tau)); x ? ctx.lineTo(pad.l + x, y) : ctx.moveTo(pad.l + x, y) } ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]) })
       // dormancy threshold
-      ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(148,163,184,.5)'; ctx.beginPath(); ctx.moveTo(pad.l, pad.t + H * .8); ctx.lineTo(w - pad.r, pad.t + H * .8); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(148,163,184,.9)'; ctx.textAlign = 'right'; ctx.font = '10.5px Inter'; ctx.fillText('dormancy threshold · tombstone below', w - pad.r - 6, pad.t + H * .8 - 5)
+      ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(148,163,184,.5)'; ctx.beginPath(); ctx.moveTo(pad.l, pad.t + H * .8); ctx.lineTo(w - pad.r, pad.t + H * .8); ctx.stroke(); ctx.setLineDash([]); ctx.textAlign = 'right'; ctx.font = '10.5px Inter'; ctx.lineWidth = 3; ctx.strokeStyle = '#0a0f16'; ctx.strokeText('dormancy threshold · tombstone below', w - pad.r - 6, pad.t + H * .8 - 6); ctx.fillStyle = 'rgba(148,163,184,.9)'; ctx.fillText('dormancy threshold · tombstone below', w - pad.r - 6, pad.t + H * .8 - 6)
       // engrams sliding down their curve; reinforcement (phase NREM click) bumps tau
       for (const e of engrams.current) {
         e.age += dt * e.speed * (phase === 0 ? 2.2 : 0.7); if (e.age > 60) { e.age = 0; e.tau = [7, 14, 30, 90][Math.floor(Math.random() * 4)] }
@@ -62,15 +77,20 @@ export default function SleepViz() {
   return (
     <section id="sleep" className="section">
       <div className="wrap">
-        <SectionHead eyebrow="Biomimetic Sleep Consolidation" tone="violet" title="Memory that forgets on purpose" grad="and learns while you sleep." lead="Every engram carries a stability τ. Retention decays as e^(−age/τ); reinforcement widens τ, contradiction narrows it, and dormant memories are tombstoned — never silently deleted. Recurring wins are distilled into deterministic procedural skills. Press reinforce and watch a synapse strengthen." />
+        <SectionHead eyebrow="Biomimetic Sleep Consolidation" tone="violet" title="Memory that forgets on purpose" grad="and learns while you sleep." lead="Memories fade unless you use them — yours do too. Every memory here carries a stability score: recalling it strengthens the trace, dead weight gets archived instead of silently deleted, and repeated wins are distilled into skills you can replay. Press reinforce and watch a synapse strengthen." />
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,.75fr)', marginTop: 44, alignItems: 'stretch' }}>
           <Reveal>
             <div className="card" style={{ height: 440, position: 'relative' }}>
-              <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-              <div style={{ position: 'absolute', right: 14, top: 12, display: 'flex', gap: 6 }}>
-                <button className="btn sm primary" onClick={reinforce}>▲ reinforce a random engram</button>
+              <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 38 }} />
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, borderTop: '1px solid var(--line)', background: 'rgba(5,7,11,.72)' }}>
+                {CURVES.map(c => (
+                  <span key={c.label} className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 22, borderTop: `${c.lw}px ${c.dash.length ? 'dashed' : 'solid'} ${c.col}`, display: 'inline-block' }} />{c.label}
+                  </span>))}
               </div>
-              <div style={{ position: 'absolute', left: 14, bottom: 12 }} className="pill violet">{reinforced} reinforcement{reinforced === 1 ? '' : 's'} · τ widened</div>
+              <div style={{ position: 'absolute', right: 14, top: 12, display: 'flex', gap: 6 }}>
+                <button className="btn sm primary" onClick={reinforce}>▲ reinforce{reinforced ? ` · ${reinforced}` : ' a random engram'}</button>
+              </div>
             </div>
           </Reveal>
           <Reveal delay={0.15}>

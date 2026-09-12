@@ -221,8 +221,8 @@ Offline-first HMAC-SHA256 — works air-gapped.
 | | Community | Developer Pro | Enterprise Gateway |
 |---|---|---|---|
 | Price | Free / Community | $14 mo · $12 annual | $39 seat/mo · $32 annual |
-| Local SQLite memory · hook · spooler · 20-client setup · privacy shield | ✅ | ✅ | ✅ |
-| High-ratio compactor · Hebbian sleep · dashboard · live pricing · Anthropic route | — | ✅ | ✅ |
+| Local SQLite memory · hook · spooler · 20-client setup · privacy shield · compactor · sleep · live pricing · Anthropic route | ✅ | ✅ | ✅ |
+| Mission Control dashboard · license entitlements · priority token budget | — | ✅ | ✅ |
 | Team shared memory sync · on-prem Docker gateway · audit logs · SLA | — | — | ✅ |
 
 ```bash

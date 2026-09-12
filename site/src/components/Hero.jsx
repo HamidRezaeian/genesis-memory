@@ -46,7 +46,7 @@ export default function Hero() {
   return (
     <section id="top" style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden', paddingTop: 90 }}>
       <NeuralField />
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 100%, rgba(0,0,0,.9), transparent 60%), radial-gradient(ellipse 60% 70% at 22% 45%, rgba(0,0,0,.55), transparent 70%), linear-gradient(180deg, rgba(0,0,0,.2), transparent 30%, rgba(0,0,0,.85))', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 100%, rgba(0,0,0,.94), transparent 60%), radial-gradient(ellipse 60% 70% at 22% 45%, rgba(0,0,0,.72), transparent 70%), linear-gradient(180deg, rgba(0,0,0,.45), transparent 30%, rgba(0,0,0,.85))', pointerEvents: 'none' }} />
       <div className="wrap hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1.15fr) minmax(0,.85fr)', gap: 40, alignItems: 'center', paddingBottom: 80 }}>
         <div>
           <motion.span className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}><i />Cognitive Memory OS · v0.6 · Local-first</motion.span>
@@ -86,8 +86,8 @@ function HeroOrb() {
     return () => ro.disconnect()
   }, [])
   const chips = [
-    ['decision', 'Use WAL + busy_timeout 5000ms', 'fg'], ['fact', 'Proxy listens on :8000', 'fg'], ['outcome', '438/438 tests green', 'fg'],
-    ['skill', 'genesis run -- pytest', 'fg'], ['fact', 'Zed → context_servers', 'fg'], ['decision', 'Redact before persistence', 'fg'],
+    ['decision', 'Use WAL + busy_timeout', 'fg'], ['fact', 'Proxy listens on :8000', 'fg'], ['outcome', '438/438 tests green', 'fg'],
+    ['skill', 'genesis run -- pytest', 'fg'], ['fact', 'Zed → context_servers', 'fg'], ['decision', 'Redact first', 'fg'],
   ]
   const rOuter = Math.max(170, w * 0.4), rInner = Math.max(125, w * 0.29)
   return (

@@ -6,10 +6,12 @@ import { usePointer, useReducedMotion } from '../lib/hooks'
  * projection, mouse parallax, depth fog, specular flares, and signal pulses that
  * travel along synapses. Zero dependencies; ~1.5k particles at 60fps.
  */
-export default function NeuralField({ density = 1, intensity = 1, className = '', style }) {
+export default function NeuralField({ density = 0.45, intensity = 0.6, className = '', style }) {
   const canvasRef = useRef(null)
   const pointer = usePointer(0.06)
   const reduced = useReducedMotion()
+  // Perf: skip drawing while offscreen; the loop idles instead of burning GPU.
+  const visibleRef = useRef(true)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -49,12 +51,15 @@ export default function NeuralField({ density = 1, intensity = 1, className = ''
     }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(canvas)
+    const io = ('IntersectionObserver' in window) ? new IntersectionObserver(([e]) => { visibleRef.current = e.isIntersecting }, { threshold: 0.02 }) : null
+    if (io) io.observe(canvas)
 
     const proj = new Float32Array(N * 4) // sx, sy, depth(0..1), scale
     let rotY = 0, rotX = 0.25
 
     const frame = (now) => {
       const dt = Math.min(0.05, (now - t0) / 1000); t0 = now
+      if (!visibleRef.current) { raf = requestAnimationFrame(frame); return }
       const mx = pointer.current.x, my = pointer.current.y
       if (!reduced) rotY += dt * 0.08
       const targetRx = 0.25 + my * 0.22, targetRy = rotY + mx * 0.35
@@ -113,7 +118,7 @@ export default function NeuralField({ density = 1, intensity = 1, className = ''
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
-    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); if (io) io.disconnect() }
   }, [density, intensity, reduced]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', ...style }} />

@@ -38,11 +38,15 @@ export default function Features() {
 /** A compact orbital memory graph, the same visual language as Mission Control. */
 function MiniUniverse() {
   const ref = useRef(null)
+  const visibleRef = useRef(true)
   useEffect(() => {
     const cv = ref.current, ctx = cv.getContext('2d'); let raf, t = 0
+    const io = ('IntersectionObserver' in window) ? new IntersectionObserver(([e]) => { visibleRef.current = e.isIntersecting }, { threshold: 0.02 }) : null
+    if (io) io.observe(cv)
     const N = 46; const nodes = Array.from({ length: N }, (_, i) => ({ o: i % 4, a: (i * 2.399963) % (Math.PI * 2), r: 3 + (i % 5), tone: i % 7 === 0 ? '0,240,255' : '216,224,234', sp: 0.05 + (i % 3) * 0.02 }))
     const links = []; for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) if ((i * 31 + j * 17) % 23 === 0) links.push([i, j])
     const frame = () => {
+      if (!visibleRef.current) { raf = requestAnimationFrame(frame); return }
       t += 0.016; const dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect()
       if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr) }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const w = r.width, h = r.height; ctx.clearRect(0, 0, w, h); const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.46
@@ -54,7 +58,7 @@ function MiniUniverse() {
       nodes.forEach((n, i) => { const [x, y] = pos[i]; const gg = ctx.createRadialGradient(x, y, 0, x, y, n.r * 2.4); gg.addColorStop(0, `rgba(${n.tone},.5)`); gg.addColorStop(1, `rgba(${n.tone},0)`); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, n.r * 2.4, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgba(${n.tone},1)`; ctx.beginPath(); ctx.arc(x, y, n.r * 0.55, 0, Math.PI * 2); ctx.fill() })
       raf = requestAnimationFrame(frame)
     }
-    raf = requestAnimationFrame(frame); return () => cancelAnimationFrame(raf)
+    raf = requestAnimationFrame(frame); return () => { cancelAnimationFrame(raf); if (io) io.disconnect() }
   }, [])
   return (
     <div className="card" style={{ position: 'relative', height: 300, display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden' }}>
