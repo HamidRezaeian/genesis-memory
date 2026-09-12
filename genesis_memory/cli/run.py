@@ -291,6 +291,7 @@ USAGE_TEXT = (
     "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
     "  skills         List synthesized procedural skills\n"
     "  sync           Personal device sync: memory follows you · Pro\n"
+    "  backup         Encrypted snapshots + point-in-time restore · Pro\n"
     "  extensions     List installed commercial (genesis-pro) extensions\n"
     "\n"
     "Examples:\n"
@@ -354,6 +355,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         handler = get_pro_handler("cli_sync")
         if handler is None:
             return pro_required("sync")
+        return handler(args[1:])
+
+    if subcmd == "backup":
+        from genesis_memory.extensions import get_pro_handler, pro_required
+        handler = get_pro_handler("cli_backup")
+        if handler is None:
+            return pro_required("backup")
         return handler(args[1:])
 
     if subcmd == "dashboard":

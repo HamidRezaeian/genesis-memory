@@ -79,3 +79,13 @@ def test_sync_without_channel_is_blocked(monkeypatch, capsys):
     assert cli_main(["sync", "status"]) == 2
     err = capsys.readouterr().err
     assert "Pro/Enterprise" in err
+
+
+def test_backup_without_channel_is_blocked(monkeypatch, capsys):
+    """genesis backup with no pro package installed exits 2 (deterministic)."""
+    import genesis_memory.extensions as _ext
+    monkeypatch.setattr(_ext, "load_extensions", lambda: {})
+    from genesis_memory.cli.run import main as cli_main
+    assert cli_main(["backup", "list"]) == 2
+    err = capsys.readouterr().err
+    assert "Pro/Enterprise" in err

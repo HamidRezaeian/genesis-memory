@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genesis-memory"
-version = "0.9.0"
+version = "0.10.0"
 description = "Universal Cognitive Memory OS, Zero-Trust Privacy Shield & Stateless Token-Diet Gateway for every AI coding agent"
 readme = "README.md"
 authors = [

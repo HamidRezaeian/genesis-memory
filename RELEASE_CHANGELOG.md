@@ -1,5 +1,11 @@
 # GENESIS Memory — Release Changelog
 
+## v0.10.0 (2026-09-11)
+
+- **`genesis backup` (Pro channel route)**: public CLI routes encrypted
+  snapshots + point-in-time restore through the extension bridge; absent
+  channel exits 2. No Pro source in the public tree (guard-pinned).
+
 ## v0.9.0 (2026-09-11)
 
 - **`genesis sync` (Pro channel route)**: public CLI routes personal device sync
