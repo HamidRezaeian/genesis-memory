@@ -114,7 +114,7 @@ flowchart LR
   R[genesis run<br/>headless spooler] -- "redacted bytes" --> SP[(~/.genesis/spool<br/>TTL 7d · LRU 500MB)]
   S --> SL[sleep daemon<br/>Hebbian decay · skills · digest]
   S & SP & P --> M[Mission Control :8090<br/>SSE telemetry · read-only]
-  PS[[Privacy Shield<br/>15 patterns + Shannon entropy]] -.guards.-> S & SP
+  PS[[Privacy Shield<br/>17 patterns + Shannon entropy]] -.guards.-> S & SP
 ```
 
 ### Repository layout
@@ -152,7 +152,7 @@ tests/                        # chaos, concurrency, multi-process, privacy, clie
 Wraps **60+ toolchains** (`pytest ruff mypy black tsc npm pnpm yarn bun deno cargo go dotnet gradle mvn make docker kubectl helm terraform pip uv poetry git gh …`) in a strict headless environment (`CI=1 TERM=dumb NO_COLOR=1 PAGER=cat GIT_TERMINAL_PROMPT=0 PIP_NO_INPUT=1 …`), refuses interactive shapes (`git rebase -i`, `docker run -it`, `--watch`), captures every byte to an atomic spool, prints a ≤10-line summary with a `ctx:log/<id>` pointer and preserves the exit code. Agents dereference with `genesis_log(id, grep=…)`.
 
 ### Zero-trust privacy shield
-Two independent detectors — 15 structural vendor patterns (OpenAI, Anthropic, Google, GitHub, AWS, Slack, Stripe, SendGrid, npm, Hugging Face, JWT, Bearer, PEM, basic-auth URLs, `KEY=value`) and a **Shannon-entropy gate at 4.0 bits/char** for credentials with no known prefix. Git SHAs, URLs, paths and identifiers pass untouched. Applied at `remember()` (reject), thread/dialogue fields (redact), and the **spool before the atomic write** (`GENESIS_SPOOL_RAW=1` opts out).
+Two independent detectors — 17 structural vendor patterns (OpenAI, Anthropic, Google, GitHub, AWS, Slack, Stripe, SendGrid, npm, Hugging Face, JWT, Bearer, PEM, basic-auth URLs, `KEY=value`) and a **Shannon-entropy gate at 4.0 bits/char** for credentials with no known prefix. Git SHAs, URLs, paths and identifiers pass untouched. Applied at `remember()` (reject), thread/dialogue fields (redact), and the **spool before the atomic write** (`GENESIS_SPOOL_RAW=1` opts out).
 
 ### Bulletproof SQLite concurrency
 Every connection goes through `core/db.py`: WAL journal, `busy_timeout=5000`, `synchronous=NORMAL`, `BEGIN IMMEDIATE` transaction scope, jittered exponential retry, and read-only URIs for dashboards/reports. The MCP dispatcher rolls back and retries a tool call that loses a write race. The suite runs 8 threads × 25 writes and 4 processes × 15 JSON-RPC calls against one file and asserts **zero `database is locked`**.
@@ -191,7 +191,7 @@ Set `GENESIS_MCP_TOOL_MODE=gateway` to advertise only the gateway tool and shrin
 
 | Scenario | Before | After | Δ |
 |---|---|---|---|
-| `pytest` run, 4,000 lines in agent context | ~79,200 tok | 84 tok | **−98.4 %** |
+| `pytest` run, 4,000 lines in agent context | ~79,200 tok | 84 tok | **−99.9 %** |
 | Subconscious capsule vs. whole store | 21,480 tok | 176 tok | **−99.2 %** |
 | 14-turn conversation + 2,200 tool lines via gateway | 60,800 tok | 3,030 tok | **−95.0 %** |
 | Recall latency @ 10k engrams | — | < 50 ms | — |
@@ -203,9 +203,9 @@ Set `GENESIS_MCP_TOOL_MODE=gateway` to advertise only the gateway tool and shrin
 ## Testing
 
 ```bash
-python -m pytest tests/                     # 421 passed, 1 skipped
+python -m pytest tests/                     # 378 passed, 1 skipped
 python -m pytest tests/test_db_hardening.py # multi-thread + multi-process lock storm
-python -m pytest tests/test_privacy_shield.py tests/test_universal_clients.py tests/test_dashboard_server.py
+python -m pytest tests/test_privacy_shield.py tests/test_universal_clients.py tests/test_twin_launch.py
 ```
 
 ---
@@ -216,7 +216,7 @@ Source-available under the Business Source License 1.1 (free for individuals,
 teams under 10, and all non-production use; converts to MIT on 2029-09-11).
 Versions ≤ v0.6.1 stay MIT forever. See LICENSE.
 
-Offline-first HMAC-SHA256 — works air-gapped.
+Offline-first Ed25519-signed licensing — works air-gapped.
 
 | | Community | Developer Pro | Enterprise Gateway |
 |---|---|---|---|

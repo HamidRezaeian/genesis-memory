@@ -1,5 +1,11 @@
 # GENESIS Memory — Release Changelog
 
+## v0.11.0 (2026-09-11)
+
+- **`genesis audit` (Enterprise channel route)**: read-only audit export
+  (license identity + sync operations, JSON/CSV) through the extension bridge.
+  No Pro source in the public tree (guard-pinned).
+
 ## v0.10.0 (2026-09-11)
 
 - **`genesis backup` (Pro channel route)**: public CLI routes encrypted

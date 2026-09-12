@@ -89,3 +89,13 @@ def test_backup_without_channel_is_blocked(monkeypatch, capsys):
     assert cli_main(["backup", "list"]) == 2
     err = capsys.readouterr().err
     assert "Pro/Enterprise" in err
+
+
+def test_audit_without_channel_is_blocked(monkeypatch, capsys):
+    """genesis audit with no pro package installed exits 2 (deterministic)."""
+    import genesis_memory.extensions as _ext
+    monkeypatch.setattr(_ext, "load_extensions", lambda: {})
+    from genesis_memory.cli.run import main as cli_main
+    assert cli_main(["audit"]) == 2
+    err = capsys.readouterr().err
+    assert "Pro/Enterprise" in err

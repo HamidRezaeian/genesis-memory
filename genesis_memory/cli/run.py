@@ -364,6 +364,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             return pro_required("backup")
         return handler(args[1:])
 
+    if subcmd == "audit":
+        from genesis_memory.extensions import get_pro_handler, pro_required
+        handler = get_pro_handler("cli_audit")
+        if handler is None:
+            return pro_required("audit")
+        return handler(args[1:])
+
     if subcmd == "dashboard":
         from genesis_memory.extensions import get_pro_handler, pro_required
         handler = get_pro_handler("cli_dashboard")
