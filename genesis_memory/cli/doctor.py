@@ -100,7 +100,7 @@ def check_dashboard_telemetry() -> Tuple[bool, str, str]:
                 return True, "Online (http://127.0.0.1:8090/)", "Observation deck dashboard active"
     except Exception:
         pass
-    return True, "Offline / Optional (Port 8090)", "Start with: genesis-dashboard or python -m genesis_memory.dashboard.server"
+    return True, "Offline / Optional (Port 8090)", "Start with: genesis dashboard (Pro channel)"
 
 
 def check_cli_spooler() -> Tuple[bool, str, str]:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genesis-memory"
-version = "0.7.0"
+version = "0.8.0"
 description = "Universal Cognitive Memory OS, Zero-Trust Privacy Shield & Stateless Token-Diet Gateway for every AI coding agent"
 readme = "README.md"
 authors = [
@@ -31,7 +31,6 @@ dev = [
 [project.scripts]
 genesis = "genesis_memory.cli.run:main"
 genesis-daemon = "genesis_memory.daemon.server:main"
-genesis-dashboard = "genesis_memory.dashboard.server:main"
 genesis-proxy = "genesis_memory.proxy.launcher:main"
 genesis-sleep = "genesis_memory.sleep.sleep_daemon:main"
 
@@ -43,7 +42,6 @@ include = ["genesis_memory*"]
 "genesis_memory" = ["data/llms.txt", "data/openapi.json"]
 "genesis_memory.proxy" = ["pricing_catalog.json"]
 "genesis_memory.cli" = ["templates/*.js"]
-"genesis_memory.dashboard" = ["static/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

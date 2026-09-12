@@ -1,5 +1,14 @@
 # GENESIS Memory — Release Changelog
 
+## v0.8.0 (2026-09-11)
+
+- **Pro extraction (twin-launch, phase 2)**: dashboard, licensing/keygen/auth and
+  team-sync moved to the PRIVATE genesis-pro package (0.2.0); the public tree no
+  longer ships them. CLI routes `dashboard/license/auth/keygen` through the
+  extension bridge with a Pro-required message when absent. Nothing else moved:
+  sleep and proxy premium parts stay until their interfaces are designed.
+- Suite: **376 passing / 0 failing** (69 moved with their modules to genesis-pro).
+
 ## v0.7.0 (2026-09-11)
 
 - **Twin-launch channel**: commercial extension API (`genesis_memory/extensions.py`,

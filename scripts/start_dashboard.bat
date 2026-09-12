@@ -1,6 +1,4 @@
 @echo off
-title GENESIS Memory Dashboard
-cd /d "%~dp0.."
-set PYTHONPATH=%cd%;%PYTHONPATH%
-python -m genesis_memory.dashboard.server %*
+title GENESIS Memory Dashboard (Pro channel)
+genesis dashboard %*
 pause

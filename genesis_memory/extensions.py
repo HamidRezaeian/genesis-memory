@@ -15,6 +15,7 @@ Contract (stable):
 """
 
 from typing import Any, Dict
+import sys
 
 GROUP = "genesis_extensions"
 
@@ -42,3 +43,40 @@ def load_extensions() -> Dict[str, Any]:
 def extension_names() -> list:
     """Sorted names of installed commercial extensions (for CLI display)."""
     return sorted(load_extensions().keys())
+
+
+PRO_CHANNEL_URL = "https://github.com/HamidRezaeian/genesis-memory#licensing"
+
+
+def get_pro_handler(name: str):
+    """Return a commercial handler (e.g. cli_dashboard) or None if absent.
+
+    Entry points yield the registered object — usually the `register`
+    callable, which must be invoked to obtain the handler mapping.
+    Never raises: resolution failures mean "channel absent".
+
+    Public code must NEVER import the private package directly — this is the
+    only bridge (see tests/test_twin_launch.py guards).
+    """
+    try:
+        mod = load_extensions().get("genesis-pro")
+        if mod is None:
+            return None
+        if isinstance(mod, dict):
+            return mod.get(name)
+        if callable(mod):
+            info = mod()
+            if isinstance(info, dict):
+                return info.get(name)
+            return getattr(info, name, None)
+        return getattr(mod, name, None)
+    except Exception:
+        return None
+
+
+def pro_required(feature: str) -> int:
+    """Tell the user a Pro-channel feature is missing. Exit code 2."""
+    print(f"[genesis] '{feature}' is a Pro/Enterprise capability.", file=sys.stderr)
+    print("  Install the private genesis-pro channel, then retry.", file=sys.stderr)
+    print(f"  See: {PRO_CHANNEL_URL}", file=sys.stderr)
+    return 2

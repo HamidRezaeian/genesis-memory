@@ -127,8 +127,7 @@ genesis_memory/
 │   ├── hebbian_engine.py     # stability τ, decay, reinforcement
 │   ├── skill_synthesizer.py  # recurring outcomes → procedural skills
 │   ├── ast_edge_extractor.py # dependency closure for attest_closure
-│   ├── licensing.py          # offline HMAC-SHA256 tiers
-│   └── team_sync.py          # enterprise vector-clock sync
+│   └── extensions.py         # commercial extension bridge (private genesis-pro plugs in here)
 ├── daemon/server.py          # stdio MCP daemon · versioned schema · lock-storm resilient dispatch
 ├── hooks/subconscious_hook.py# ≤200-token capsule, ambient turn capture
 ├── proxy/                    # aiohttp gateway (OpenAI + Anthropic), compactor, distiller, pricing engine (+ bundled catalog)
@@ -140,9 +139,9 @@ genesis_memory/
 │   ├── init_cmd.py           # genesis setup · preview · backup · --revert
 │   └── templates/opencode_plugin.js
 ├── sleep/                    # consolidation cycle, digest, ledger
-└── dashboard/                # Mission Control (stdlib HTTP + SSE) and static/index.html cockpit
+└── (Pro, private channel)  # dashboard · licensing/keygen · team-sync live in genesis-pro
 site/                         # React 19 + Vite 7 landing page with live interactive demos
-tests/                        # 421 tests: chaos, concurrency, multi-process, privacy, clients, dashboard, proxy
+tests/                        # chaos, concurrency, multi-process, privacy, clients, proxy (no pro modules)
 ```
 
 ---

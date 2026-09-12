@@ -39,6 +39,19 @@ def test_no_pro_namespace_in_public_tree():
     assert not (REPO / "genesis_memory" / "pro").exists()
 
 
+def test_pro_modules_stay_private():
+    """Extracted Pro modules must never return: dashboard, licensing, team_sync."""
+    for rel in (
+        "genesis_memory/dashboard",
+        "genesis_memory/core/licensing.py",
+        "genesis_memory/core/team_sync.py",
+    ):
+        assert not (REPO / rel).exists(), f"{rel} belongs to the private channel"
+    text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+    assert "genesis_memory.dashboard" not in text
+    assert "genesis-dashboard" not in text
+
+
 def test_no_hard_import_of_private_package():
     """Only extensions.py may name the entry-point bridge; nothing imports it."""
     hits = []
