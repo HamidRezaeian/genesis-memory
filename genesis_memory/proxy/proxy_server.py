@@ -25,6 +25,12 @@ import aiohttp
 from aiohttp import web
 
 from genesis_memory.proxy.tool_compactor import compact_messages, ToolIntegrityError
+from genesis_memory.core.output_governor import (
+    TINY_TURN_MAX_TOKENS,
+    detect_file_echo,
+    is_tiny_turn,
+    wants_detail,
+)
 from genesis_memory.proxy.structured_distiller import StructuredDistiller
 from genesis_memory.proxy.dialogue_synthesizer import synthesize_dialogue_summary
 from genesis_memory.proxy.anaphora_rewriter import (
@@ -44,14 +50,16 @@ from genesis_memory.proxy.pricing_engine import ModelPricingEngine
 logger = logging.getLogger("genesis.proxy")
 
 
-# Static output-diet directive (30 words, no per-turn variables, prefix-cache
-# stable). Instructs terse prose while keeping technical content byte-exact.
-# Input overhead ~15 tok buys output tok at 2-4x price. Flag-gated, live-only.
+# Static output-diet directive (prefix-cache stable). Instructs terse prose
+# while keeping technical content byte-exact. Reply-with-diffs (never full
+# files) is part of the same static block. Input overhead ~15 tok buys output
+# tok at 2-4x price. Flag-gated, live-only.
 OUTPUT_DIET_TAG = "<!-- GENESIS_OUTPUT_DIET -->"
 OUTPUT_DIET_DIRECTIVE = (
     "Answer tersely. No greetings, filler, hedging, restatement, or summaries. "
     "State only result and reason. Preserve code blocks, commands, error messages, "
-    "file paths, and numbers byte-for-byte. Never paraphrase or reformat them."
+    "file paths, and numbers byte-for-byte. Never paraphrase or reformat them. "
+    "Reply with unified diffs, never full files."
 )
 
 RECEIPT_BUFFER_MAX = 100
@@ -190,6 +198,9 @@ class ProxyTelemetry:
         self.universal_capsules = 0
         self.diet_requests = 0
         self.diet_completion_total = 0
+        self.diet_detail_skips = 0
+        self.budget_caps = 0
+        self.echo_events = 0
         self.content_saved_chars = 0
         self.content_blocks_shrunk = 0
         self.content_recoveries = 0
@@ -330,6 +341,9 @@ class ProxyTelemetry:
                 "universal_capsules": self.universal_capsules,
                 "diet_requests": self.diet_requests,
                 "diet_completion_total": self.diet_completion_total,
+                "diet_detail_skips": self.diet_detail_skips,
+                "budget_caps": self.budget_caps,
+                "echo_events": self.echo_events,
                 "content_saved_chars": self.content_saved_chars,
                 "content_blocks_shrunk": self.content_blocks_shrunk,
                 "content_recoveries": self.content_recoveries,
@@ -365,6 +379,8 @@ class GenesisProxyServer:
         enable_anaphora_rewrite: bool = True,
         enable_universal_capsule: Optional[bool] = None,
         enable_output_diet: Optional[bool] = None,
+        diet_adaptive: Optional[bool] = None,
+        tiny_budget_enabled: Optional[bool] = None,
         enable_content_compress: Optional[bool] = None,
         enable_compaction: bool = True,
         max_history_turns: int = 1,
@@ -401,10 +417,26 @@ class GenesisProxyServer:
             else (env_univ.lower() in ("1", "true", "yes"))
         )
         env_diet = os.environ.get("GENESIS_OUTPUT_DIET", "0")
+        env_diet_lower = env_diet.lower()
+        # Adaptive mode ("auto"): terse by default, yields to explicit asks.
+        self.diet_adaptive = (
+            diet_adaptive
+            if diet_adaptive is not None
+            else (env_diet_lower == "auto")
+        )
         self.enable_output_diet = (
             enable_output_diet
             if enable_output_diet is not None
-            else (env_diet.lower() in ("1", "true", "yes"))
+            else (env_diet_lower in ("1", "true", "yes") or self.diet_adaptive)
+        )
+        # Tiny-turn output budget: cap acknowledgments only when the caller
+        # did not set max_tokens (user sovereignty). Disable with
+        # GENESIS_TINY_BUDGET=0.
+        env_tiny = os.environ.get("GENESIS_TINY_BUDGET", "1")
+        self.tiny_budget_enabled = (
+            tiny_budget_enabled
+            if tiny_budget_enabled is not None
+            else (env_tiny.lower() not in ("0", "false", "no"))
         )
         env_cc = os.environ.get("GENESIS_CONTENT_COMPRESS", "0")
         self.enable_content_compress = (
@@ -1231,12 +1263,23 @@ class GenesisProxyServer:
 
         # Output diet: static tail-push (prefix bytes unchanged → LCP cache
         # preserved). Live-only, flag-gated, idempotent per payload.
+        # Adaptive mode ("auto") yields to explicit asks for depth.
+        diet_user_text = ""
+        if isinstance(payload.get("messages"), list):
+            for _m in reversed(payload["messages"]):
+                if isinstance(_m, dict) and _m.get("role") == "user":
+                    _c = _m.get("content", "")
+                    if isinstance(_c, str):
+                        diet_user_text = _c
+                    break
         if (
             self.enable_output_diet
             and self.mode == "live"
             and isinstance(payload.get("messages"), list)
         ):
-            if not any(
+            if self.diet_adaptive and wants_detail(diet_user_text):
+                self.telemetry.diet_detail_skips += 1
+            elif not any(
                 isinstance(m, dict) and OUTPUT_DIET_TAG in str(m.get("content", ""))[:256]
                 for m in payload["messages"]
             ):
@@ -1244,6 +1287,18 @@ class GenesisProxyServer:
                     {"role": "system", "content": f"{OUTPUT_DIET_TAG}\n{OUTPUT_DIET_DIRECTIVE}"}
                 ]
                 diet_active = True
+
+        # Tiny-turn output budget: cap acknowledgments at 256 completion
+        # tokens, but never override a caller-set max_tokens (sovereignty).
+        if (
+            self.tiny_budget_enabled
+            and self.mode == "live"
+            and isinstance(payload.get("messages"), list)
+            and "max_tokens" not in payload
+            and is_tiny_turn(diet_user_text)
+        ):
+            payload["max_tokens"] = TINY_TURN_MAX_TOKENS
+            self.telemetry.budget_caps += 1
 
         # Ensure thought_signature is present on assistant tool calls when targeting Gemini / Google upstream
         target_check = (payload.get("model") or self.target_model or "").lower()
@@ -1354,6 +1409,30 @@ class GenesisProxyServer:
                 upstream_resp, upstream_ctx, start_time, client_messages, session_id, client=client_name, diet_active=diet_active, model=payload.get("model")
             )
 
+    def _observe_echo(self, messages, resp_text: str) -> bool:
+        """File-echo monitor: flag completions pasting whole files, not diffs.
+
+        Observe-only and fail-open: never mutates the relay, only counts.
+        Enforcement later; visibility now.
+        """
+        try:
+            prompt_text = "\n".join(
+                str(m.get("content", ""))
+                for m in (messages or [])
+                if isinstance(m, dict) and isinstance(m.get("content", ""), str)
+            )
+            hit, ratio, lines = detect_file_echo(prompt_text, resp_text or "")
+            if hit:
+                self.telemetry.echo_events += 1
+                logger.info(
+                    "File echo detected (%.0f%% of %d fenced lines) — "
+                    "diff convention reminder advised",
+                    ratio * 100.0, lines,
+                )
+            return hit
+        except Exception:
+            return False
+
     async def _handle_non_streaming_response(
         self,
         upstream_resp: aiohttp.ClientResponse,
@@ -1415,6 +1494,7 @@ class GenesisProxyServer:
                 completion_tokens=comp_tok,
                 diet_active=diet_active,
             )
+            self._observe_echo(messages, resp_text)
 
             # Update TLB and trigger background distillation
             if messages:
@@ -1553,6 +1633,7 @@ class GenesisProxyServer:
                 completion_tokens=comp_tok,
                 diet_active=diet_active,
             )
+            self._observe_echo(messages, collected_assistant_text)
             # Headers already sent: receipt is stored, retrievable via
             # GET /v1/receipts — never injected into the SSE byte stream.
             self._issue_receipt(

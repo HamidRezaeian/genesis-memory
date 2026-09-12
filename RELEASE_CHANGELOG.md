@@ -1,5 +1,15 @@
 # GENESIS Memory — Release Changelog
 
+## v0.12.0 (2026-09-11)
+
+- **Output-side token governor** (`core/output_governor.py`, proxy + hook):
+  adaptive terse mode (`GENESIS_OUTPUT_DIET=auto`, yields to explicit asks
+  in EN/FA), 256-token cap on ack-only turns (never overrides caller
+  max_tokens; `GENESIS_TINY_BUDGET=0` disables), diff-only convention in the
+  diet directive, and file-echo detection (observe-only) on both response
+  paths. Every decision has a telemetry counter. No invented savings rates:
+  output diet is lossy by nature, input diet is lossless.
+
 ## v0.11.1 (2026-09-11)
 
 - **Honest capsule numbers**: reference capsule pinned by test (100–200 range,

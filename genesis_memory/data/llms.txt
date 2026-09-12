@@ -23,9 +23,15 @@ verified memory capsules, and accounts every token honestly
 - `GET /health` — `{status, mode, target_model, store_active}`.
 
 Flags (env, all default off unless noted): `GENESIS_PROXY_MODE=live`,
-`GENESIS_OUTPUT_DIET=1` (terse answers), `GENESIS_CONTENT_COMPRESS=1`
+`GENESIS_OUTPUT_DIET=1` (terse answers) or `=auto` (terse unless depth is
+asked outright), `GENESIS_TINY_BUDGET=0` (disables the 256-token cap on
+ack-only turns), `GENESIS_CONTENT_COMPRESS=1`
 (bulk shrink + recovery), `GENESIS_UNIVERSAL_CAPSULE=1`,
 `GENESIS_MAX_HISTORY_TURNS=1`.
+Output diet is lossy by nature (input diet is lossless): terse mode,
+per-turn budgets and diff-only conventions ask for less — telemetry
+(`diet_requests`, `diet_detail_skips`, `budget_caps`, `echo_events`) shows
+every decision, and an explicit ask for depth always wins.
 
 Full machine spec: `GET /openapi.json` (this dashboard) or repo `openapi.json`.
 

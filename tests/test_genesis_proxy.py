@@ -159,12 +159,14 @@ class MockMemoryStore:
 class ProxyHarness:
     """Helper context manager managing both mock upstream and proxy instance."""
 
-    def __init__(self, store: Any = None, enable_universal_capsule: Optional[bool] = None, enable_output_diet: Optional[bool] = False, enable_content_compress: Optional[bool] = None, mode: str = "live") -> None:
+    def __init__(self, store: Any = None, enable_universal_capsule: Optional[bool] = None, enable_output_diet: Optional[bool] = False, diet_adaptive: Optional[bool] = None, tiny_budget_enabled: Optional[bool] = None, enable_content_compress: Optional[bool] = None, mode: str = "live") -> None:
         self.mock = MockUpstreamServer()
         self.telemetry = ProxyTelemetry()
         self.store = store
         self.enable_universal_capsule = enable_universal_capsule
         self.enable_output_diet = enable_output_diet
+        self.diet_adaptive = diet_adaptive
+        self.tiny_budget_enabled = tiny_budget_enabled
         self.enable_content_compress = enable_content_compress
         self.mode = mode
         self.proxy: GenesisProxyServer | None = None
@@ -180,6 +182,8 @@ class ProxyHarness:
             store=self.store,
             enable_universal_capsule=self.enable_universal_capsule,
             enable_output_diet=self.enable_output_diet,
+            diet_adaptive=self.diet_adaptive,
+            tiny_budget_enabled=self.tiny_budget_enabled,
             enable_content_compress=self.enable_content_compress,
             mode=self.mode,
         )
@@ -827,6 +831,120 @@ def test_output_diet_injects_static_tail_block() -> None:
                 assert snap["distillation"]["diet_requests"] == 1
 
     asyncio.run(_run())
+
+
+async def _post_text(harness, text, extra=None):
+    """POST one user turn, return the upstream-received messages payload."""
+    import aiohttp as _aio
+    payload = {
+        "model": "mock-model-v1",
+        "messages": [{"role": "user", "content": text}],
+        "stream": False,
+    }
+    if extra:
+        payload.update(extra)
+    async with _aio.ClientSession() as session:
+        async with session.post(
+            f"{harness.base_url}/v1/chat/completions", json=payload
+        ) as resp:
+            assert resp.status == 200
+    assert harness.mock.last_received_payload is not None
+    return harness.mock.last_received_payload
+
+
+def test_diet_auto_yields_to_explicit_detail() -> None:
+    """Adaptive mode skips the directive on explicit asks (user sovereignty)."""
+    async def _run():
+        async with ProxyHarness(enable_output_diet=True,
+                                diet_adaptive=True) as harness:
+            telemetry = harness.telemetry
+            await _post_text(harness, "explain in detail please")
+            received_text = json.dumps(
+                harness.mock.last_received_payload["messages"])
+            assert "GENESIS_OUTPUT_DIET" not in received_text
+            snap = telemetry.get_snapshot()
+            assert snap["distillation"]["diet_requests"] == 0
+            assert snap["distillation"]["diet_detail_skips"] == 1
+
+    asyncio.run(_run())
+
+
+def test_diet_auto_injects_on_normal_prompt() -> None:
+    """Adaptive mode still injects when no depth is asked."""
+    async def _run():
+        async with ProxyHarness(enable_output_diet=True,
+                                diet_adaptive=True) as harness:
+            telemetry = harness.telemetry
+            await _post_text(harness, "summarize the diff")
+            received = harness.mock.last_received_payload["messages"]
+            assert "GENESIS_OUTPUT_DIET" in received[-1]["content"]
+            snap = telemetry.get_snapshot()
+            assert snap["distillation"]["diet_requests"] == 1
+            assert snap["distillation"]["diet_detail_skips"] == 0
+
+    asyncio.run(_run())
+
+
+def test_tiny_turn_budget_cap_only() -> None:
+    """Acknowledgments get max_tokens=256; caller-set budgets are sacred."""
+    async def _run():
+        async with ProxyHarness() as harness:
+            telemetry = harness.telemetry
+            await _post_text(harness, "thanks")
+            upstream = harness.mock.last_received_payload
+            assert upstream.get("max_tokens") == 256
+            snap = telemetry.get_snapshot()
+            assert snap["distillation"]["budget_caps"] == 1
+
+    asyncio.run(_run())
+
+
+def test_tiny_turn_never_overrides_caller_budget() -> None:
+    """A caller-set max_tokens is never touched, even on tiny prompts."""
+    async def _run():
+        async with ProxyHarness() as harness:
+            telemetry = harness.telemetry
+            await _post_text(harness, "thanks", extra={"max_tokens": 5000})
+            upstream = harness.mock.last_received_payload
+            assert upstream.get("max_tokens") == 5000
+            snap = telemetry.get_snapshot()
+            assert snap["distillation"]["budget_caps"] == 0
+
+    asyncio.run(_run())
+
+
+def test_tiny_turn_ignores_real_asks() -> None:
+    """Non-ack prompts pass through with no injected budget."""
+    async def _run():
+        async with ProxyHarness() as harness:
+            telemetry = harness.telemetry
+            await _post_text(harness, "write a REST API for billing")
+            upstream = harness.mock.last_received_payload
+            assert "max_tokens" not in upstream
+            snap = telemetry.get_snapshot()
+            assert snap["distillation"]["budget_caps"] == 0
+
+    asyncio.run(_run())
+
+
+def test_echo_monitor_counts_full_paste() -> None:
+    """A completion echoing the prompt file is observed (never mutated)."""
+    from genesis_memory.proxy.proxy_server import GenesisProxyServer
+    from genesis_memory.proxy.proxy_server import ProxyTelemetry
+    proxy = GenesisProxyServer(
+        upstream_url="http://127.0.0.1:1", telemetry=ProxyTelemetry(),
+        store=None, mode="live",
+    )
+    prompt = "file a:\n" + "\n".join(f"line{i} code {i}" for i in range(20))
+    block = "\n".join(f"line{i} code {i}" for i in range(20))
+    completion = "here:\n```python\n" + block + "\n```\ndone"
+    assert proxy._observe_echo(
+        [{"role": "user", "content": prompt}], completion) is True
+    assert proxy.telemetry.echo_events == 1
+    assert proxy._observe_echo(
+        [{"role": "user", "content": prompt}],
+        "a fresh original answer") is False
+    assert proxy.telemetry.echo_events == 1
 
 
 def test_content_compress_off_by_default(tmp_path) -> None:

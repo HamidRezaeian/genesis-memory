@@ -437,7 +437,6 @@ def _seed_thread(store):
         recent_files=[], pending_focus="", client="ci",
     )
 
-
 def test_hook_diet_off_by_default(temp_db, monkeypatch):
     """Hook diet is flag-gated OFF unless GENESIS_OUTPUT_DIET=1."""
     store, db_path = temp_db
@@ -447,6 +446,32 @@ def test_hook_diet_off_by_default(temp_db, monkeypatch):
     formatted, telemetry = hook.query_subconscious_memories("status?", max_tokens=200)
     assert telemetry["diet_applied"] is False
     assert not any("Answer style" in line for line in formatted)
+
+
+def test_hook_diet_auto_yields_to_explicit_detail(temp_db, monkeypatch):
+    """Auto mode skips the style line when depth is asked (sovereignty)."""
+    store, db_path = temp_db
+    _seed_thread(store)
+    monkeypatch.setattr(hook, "DB_PATH", db_path)
+    monkeypatch.setenv("GENESIS_OUTPUT_DIET", "auto")
+    formatted, telemetry = hook.query_subconscious_memories(
+        "explain in detail please", max_tokens=200)
+    assert telemetry["diet_applied"] is False
+    assert telemetry["diet_skipped_detail"] is True
+    assert not any("Answer style" in line for line in formatted)
+
+
+def test_hook_diet_auto_injects_otherwise(temp_db, monkeypatch):
+    """Auto mode still injects on ordinary prompts."""
+    store, db_path = temp_db
+    _seed_thread(store)
+    monkeypatch.setattr(hook, "DB_PATH", db_path)
+    monkeypatch.setenv("GENESIS_OUTPUT_DIET", "auto")
+    formatted, telemetry = hook.query_subconscious_memories(
+        "status?", max_tokens=200)
+    assert telemetry["diet_applied"] is True
+    assert telemetry["diet_skipped_detail"] is False
+    assert any("Answer style" in line for line in formatted)
 
 
 def test_hook_diet_appended_last_within_budget(temp_db, monkeypatch):

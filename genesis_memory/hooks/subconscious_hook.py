@@ -21,6 +21,11 @@ try:
 except Exception:
     redact_secrets = None  # degraded: truncate-only (documented in capture)
 
+try:
+    from genesis_memory.core.output_governor import wants_detail as _wants_detail
+except Exception:
+    _wants_detail = None  # degraded: auto mode behaves like always-on
+
 def find_repo_root():
     """Dynamically discover repo root even when running from global ~/.genesis/ copy."""
     if "GENESIS_ROOT" in os.environ and os.path.exists(os.environ["GENESIS_ROOT"]):
@@ -65,6 +70,11 @@ if not os.path.exists(DB_PATH):
 # budget — memory content always outranks style.
 def _diet_enabled():
     return os.environ.get("GENESIS_OUTPUT_DIET", "0").lower() in ("1", "true", "yes")
+
+
+def _diet_auto():
+    """Adaptive mode: terse by default, yields to explicit asks for depth."""
+    return os.environ.get("GENESIS_OUTPUT_DIET", "0").lower() == "auto"
 
 
 HOOK_DIET_LINE = (
@@ -665,10 +675,14 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
         spool_rule_applied = True
 
     diet_applied = False
-    if _diet_enabled() and total_chars + len(HOOK_DIET_LINE) <= budget_chars:
-        formatted.append(HOOK_DIET_LINE)
-        total_chars += len(HOOK_DIET_LINE)
-        diet_applied = True
+    diet_skipped_detail = False
+    if (_diet_enabled() or _diet_auto()) and total_chars + len(HOOK_DIET_LINE) <= budget_chars:
+        if _diet_auto() and _wants_detail is not None and _wants_detail(query_text):
+            diet_skipped_detail = True
+        else:
+            formatted.append(HOOK_DIET_LINE)
+            total_chars += len(HOOK_DIET_LINE)
+            diet_applied = True
 
     injected_tok = max(1, total_chars // 4)
     db_tok = max(1, db_chars // 4)
@@ -677,6 +691,7 @@ def query_subconscious_memories(query_text, max_tokens=200, client=None, capture
     telemetry = {
         "engram_count": len(results),
         "diet_applied": diet_applied,
+        "diet_skipped_detail": diet_skipped_detail,
         "micro_applied": micro_applied,
         "recall_hint_applied": recall_hint_applied,
         "grounding_applied": grounding_applied,
