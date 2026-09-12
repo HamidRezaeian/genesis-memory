@@ -666,3 +666,52 @@ def test_hook_prune_keeps_proxy_rows(temp_db, monkeypatch):
     assert not any(s == "hook:opencode:1" for s in sids)
     assert "default" in sids
     assert sum(1 for s in sids if s.startswith("hook:opencode:")) == 1
+
+
+def test_reference_capsule_bounded(temp_db, monkeypatch):
+    """Reference run honesty pin: a live session's capsule stays ≤200 tokens.
+
+    Seeds a realistic store (thread + dialogue + engrams), then asserts the
+    injected capsule respects the hard budget. Measured reference value on
+    this corpus is ~190-200 tokens; the site quotes the budget honestly as
+    "under 200", never a magic constant. (Fresh sessions without dialogue
+    get a one-time +100 boost, capped at ~300 — see test below.)
+    """
+    store, db_path = temp_db
+    for i in range(12):
+        store.remember(
+            text=f"Reference memory {i}: Atlas API listens on port 8080 "
+                 f"with round() currency math and JWT expiry policy note {i}.",
+            kind="fact" if i % 2 == 0 else "decision",
+        )
+    store.set_thread(
+        topic="WAL retry path",
+        summary="adopt BEGIN IMMEDIATE plus jittered retry for the storm",
+        recent_files=["core/db.py"], pending_focus="verify now",
+        client="opencode",
+    )
+    store.set_dialogue(
+        session_id="sess-ref", client="opencode",
+        user_prompt="what is the busy timeout?",
+        assistant_summary="5000 ms, set in core/db.py",
+        salient_terms=["timeout"],
+    )
+    monkeypatch.setattr(hook, "DB_PATH", db_path)
+    _, telemetry = hook.query_subconscious_memories(
+        "Which port does the API listen on?", max_tokens=200)
+    assert telemetry["boosted"] is False
+    assert 100 < telemetry["injected_tokens"] <= 200
+
+
+def test_fresh_session_boost_is_bounded(temp_db, monkeypatch):
+    """No-dialogue sessions get +100 chars one-time boost, never unbounded."""
+    store, db_path = temp_db
+    for i in range(30):
+        store.remember(text=f"Padding memory number {i} " + "x" * 120,
+                       kind="fact")
+    store.set_thread(topic="t", summary="s", recent_files=[],
+                     pending_focus="", client="opencode")
+    monkeypatch.setattr(hook, "DB_PATH", db_path)
+    _, telemetry = hook.query_subconscious_memories("status?", max_tokens=200)
+    assert telemetry["boosted"] is True
+    assert telemetry["injected_tokens"] <= 300

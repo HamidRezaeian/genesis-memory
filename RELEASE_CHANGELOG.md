@@ -1,5 +1,12 @@
 # GENESIS Memory — Release Changelog
 
+## v0.11.1 (2026-09-11)
+
+- **Honest capsule numbers**: reference capsule pinned by test (100–200 range,
+  measured ~190 on the canonical workload); site + README orphan figures
+  (176 / 21,480, no provenance anywhere) replaced with measured values and
+  the enforced budget.
+
 ## v0.11.0 (2026-09-11)
 
 - **`genesis audit` (Enterprise channel route)**: read-only audit export
