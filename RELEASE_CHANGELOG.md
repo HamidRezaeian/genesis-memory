@@ -1,5 +1,11 @@
 # GENESIS Memory — Release Changelog
 
+## v0.9.0 (2026-09-11)
+
+- **`genesis sync` (Pro channel route)**: public CLI routes personal device sync
+  through the extension bridge; without the channel it exits 2 with a
+  Pro-required message. No Pro source in the public tree (guard-pinned).
+
 ## v0.8.0 (2026-09-11)
 
 - **Pro extraction (twin-launch, phase 2)**: dashboard, licensing/keygen/auth and

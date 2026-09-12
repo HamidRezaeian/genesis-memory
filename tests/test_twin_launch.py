@@ -69,3 +69,13 @@ def test_extensions_subcommand_lists_empty_channel(capsys):
     assert cli_main(["extensions"]) == 0
     out = capsys.readouterr().out
     assert "No commercial extensions installed" in out
+
+
+def test_sync_without_channel_is_blocked(monkeypatch, capsys):
+    """genesis sync with no pro package installed exits 2 (deterministic)."""
+    import genesis_memory.extensions as _ext
+    monkeypatch.setattr(_ext, "load_extensions", lambda: {})
+    from genesis_memory.cli.run import main as cli_main
+    assert cli_main(["sync", "status"]) == 2
+    err = capsys.readouterr().err
+    assert "Pro/Enterprise" in err

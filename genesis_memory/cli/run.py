@@ -290,6 +290,7 @@ USAGE_TEXT = (
     "  upgrade        1-Click self-upgrade to the latest official release\n"
     "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
     "  skills         List synthesized procedural skills\n"
+    "  sync           Personal device sync: memory follows you · Pro\n"
     "  extensions     List installed commercial (genesis-pro) extensions\n"
     "\n"
     "Examples:\n"
@@ -347,6 +348,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     if subcmd in ("upgrade", "update"):
         from genesis_memory.cli.update_checker import run_upgrade
         return run_upgrade()
+
+    if subcmd == "sync":
+        from genesis_memory.extensions import get_pro_handler, pro_required
+        handler = get_pro_handler("cli_sync")
+        if handler is None:
+            return pro_required("sync")
+        return handler(args[1:])
 
     if subcmd == "dashboard":
         from genesis_memory.extensions import get_pro_handler, pro_required
