@@ -7,85 +7,90 @@ observable (telemetry counters, never silent behavior changes).
 
 Three mechanisms, shared by the proxy gateway and the subconscious hook:
 
-1. wants_detail(text): explicit asks for depth ("in detail", "step by step",
-   "مفصل", ...) disable terse mode for that turn. Pure stdlib regex, EN + FA.
-2. is_tiny_turn(text): allowlist ONLY — short acknowledgments and greetings
-   ("thanks", "ok", "ممنون", ...) that can never need a long answer. Anything
-   unrecognized is a standard turn (fail-open by construction).
+1. wants_detail(text): explicit asks for depth disable terse mode for that turn.
+   Data-driven pattern matching with user sovereignty fallback.
+2. is_tiny_turn(text): structural & allowlist classification — short acknowledgments
+   and greetings that can never need a long answer. Anything unrecognized is a
+   standard turn (fail-open by construction).
 3. detect_file_echo(): spots model replies that paste back whole files instead
    of diffs (fenced blocks whose lines mostly already appear in the prompt).
 
-No imports beyond `re`: this module must stay dependency-free so both the
-proxy server and the hook can use it without import cycles.
+Zero hardcoded language dictionaries in code: patterns are loaded dynamically
+from an extensible data catalog (or user override) with structural fallbacks.
 """
+import json
+import os
 import re
+from pathlib import Path
+from typing import FrozenSet, List, Optional, Pattern
 
 # ---------------------------------------------------------------------------
-# 1. Explicit-detail detection (user sovereignty over brevity)
+# Dynamic Rule Catalog Loading (Data-driven, zero hardcoding in core code)
 # ---------------------------------------------------------------------------
-_DETAIL_EN = (
-    r"in\s+detail(?:s)?",
-    r"\bthorough(?:ly)?\b",
-    r"\bin[-\s]?depth\b",
-    r"\bcomprehensive(?:ly)?\b",
-    r"\belaborate\b",
-    r"\belaboration\b",
-    r"\bexhaustive(?:ly)?\b",
-    r"step\s*by\s*step",
-    r"walk\s+me\s+through",
-    r"\blong[-\s]?form\b",
-    r"\bverbose\b",
-    r"\bin\s+full\b",
-    r"every\s+detail",
-    r"all\s+the\s+details",
-    r"don'?t\s+hold\s+back",
-)
-_DETAIL_FA = (
-    "مفصل", "مبسوط", "جامع", "کامل",
-    "جزئیات", "جزییات", "طولانی",
-    "قدم به قدم", "قدم‌به‌قدم", "گام به گام", "گام‌به‌گام",
-    "ریز به ریز", "ریزبه‌ریز", "تک تک", "تک‌تک", "دانه دانه",
-)
-_DETAIL_RE = re.compile("|".join(_DETAIL_EN), re.IGNORECASE)
-# Persian matching uses word boundaries on normalized text so «جامعه» never
-# trips «جامع»: false positives fail toward verbose (user sovereignty).
-_DETAIL_FA_RE = re.compile(
-    "|".join(r"\b" + re.escape(w) + r"\b" for w in _DETAIL_FA))
-
-
-def wants_detail(text) -> bool:
-    """True when the user explicitly asks for depth (terse mode must yield)."""
-    if not isinstance(text, str) or not text.strip():
-        return False
-    if _DETAIL_RE.search(text):
-        return True
-    lowered = re.sub(r"\s+", " ", text.lower().translate(_FA_NORM))
-    return bool(_DETAIL_FA_RE.search(lowered))
-
-
-# ---------------------------------------------------------------------------
-# 2. Tiny-turn classification (allowlist only — unknown shapes stay standard)
-# ---------------------------------------------------------------------------
-_TINY_EN = (
-    "ok", "okay", "thanks", "thank you", "thx", "noted", "got it", "gotcha",
-    "great", "perfect", "awesome", "nice", "cool", "yes", "no", "yep",
-    "nope", "sure", "hi", "hello", "hey", "hey there",
-    "good morning", "good afternoon", "good evening", "bye", "goodbye",
-    "see you",
-)
-_TINY_FA = (
-    "باشه", "اوکی", "ممنون", "مرسی", "دمت گرم", "چشم", "حتما", "حتماً",
-    "بله", "نه", "خیر", "سلام", "درود", "خداحافظ", "فعلا", "فعلاً",
-    "قربانت", "عالی", "خوبه", "خوب", "اره", "آره",
-)
-# Persian orthography variants collapse to one form before matching.
-_FA_NORM = str.maketrans({"ي": "ی", "ك": "ک", "‌": " ", " ": " "})
-_TINY_SINGLE = frozenset(_TINY_EN) | frozenset(w.translate(_FA_NORM) for w in _TINY_FA)
+_NORM_MAP = str.maketrans({"ي": "ی", "ك": "ک", "‌": " ", " ": " "})
+_DEFAULT_DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "output_governor_rules.json"
 
 TINY_TURN_MAX_TOKENS = 256
 TINY_TURN_MAX_CHARS = 120
 
+_cached_detail_re: Optional[Pattern] = None
+_cached_tiny_set: Optional[FrozenSet[str]] = None
 
+
+def _load_rules():
+    global _cached_detail_re, _cached_tiny_set
+    if _cached_detail_re is not None and _cached_tiny_set is not None:
+        return _cached_detail_re, _cached_tiny_set
+
+    rules_path = os.environ.get("GENESIS_GOVERNOR_RULES_PATH")
+    if not rules_path:
+        user_path = os.path.expanduser("~/.genesis/output_governor_rules.json")
+        if os.path.exists(user_path):
+            rules_path = user_path
+        elif _DEFAULT_DATA_PATH.exists():
+            rules_path = str(_DEFAULT_DATA_PATH)
+
+    detail_patterns: List[str] = []
+    tiny_turns: List[str] = []
+
+    if rules_path and os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                detail_patterns = data.get("detail_patterns", [])
+                tiny_turns = data.get("tiny_turns", [])
+        except Exception:
+            pass
+
+    if detail_patterns:
+        _cached_detail_re = re.compile("|".join(detail_patterns), re.IGNORECASE)
+    else:
+        # Minimal structural fallback if data file is absent
+        _cached_detail_re = re.compile(
+            r"in\s+detail|step\s*by\s*step|thorough|comprehensive|elaborate",
+            re.IGNORECASE,
+        )
+
+    norm_tiny = {w.translate(_NORM_MAP).casefold() for w in tiny_turns}
+    _cached_tiny_set = frozenset(norm_tiny) if norm_tiny else frozenset(["ok", "thanks"])
+    return _cached_detail_re, _cached_tiny_set
+
+
+# ---------------------------------------------------------------------------
+# 1. Explicit-detail detection (user sovereignty over brevity)
+# ---------------------------------------------------------------------------
+def wants_detail(text) -> bool:
+    """True when the user explicitly asks for depth (terse mode must yield)."""
+    if not isinstance(text, str) or not text.strip():
+        return False
+    detail_re, _ = _load_rules()
+    lowered = re.sub(r"\s+", " ", text.lower().translate(_NORM_MAP))
+    return bool(detail_re.search(lowered) or detail_re.search(text))
+
+
+# ---------------------------------------------------------------------------
+# 2. Tiny-turn classification (allowlist & structural bounds — fail-open)
+# ---------------------------------------------------------------------------
 def is_tiny_turn(text) -> bool:
     """True only for short acknowledgments/greetings — never for real asks."""
     if not isinstance(text, str):
@@ -96,9 +101,11 @@ def is_tiny_turn(text) -> bool:
     if "```" in t:
         return False
     t = re.sub(r"[.!?…؟\s]+$", "", t).strip().casefold()
-    t = t.translate(_FA_NORM)
+    t = t.translate(_NORM_MAP)
     t = re.sub(r"\s+", " ", t)
-    return t in _TINY_SINGLE
+
+    _, tiny_set = _load_rules()
+    return t in tiny_set
 
 
 # ---------------------------------------------------------------------------

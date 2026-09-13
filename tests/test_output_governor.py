@@ -1,7 +1,7 @@
-"""Unit tests for the output-side token governor (pure, no I/O).
+"""Unit tests for the output-side token governor (data-driven, zero hardcoded logic).
 
-Covers: explicit-detail detection (EN+FA, user sovereignty), tiny-turn
-allowlist classification (fail-open: unknown shapes stay standard), and
+Covers: explicit-detail detection (multilingual user sovereignty), tiny-turn
+classification (fail-open: unknown shapes stay standard), and
 file-echo detection (diffs vs full pastes).
 """
 from genesis_memory.core.output_governor import (
@@ -12,7 +12,8 @@ from genesis_memory.core.output_governor import (
 )
 
 
-def test_wants_detail_english():
+def test_wants_detail_multilingual():
+    """Verify depth requests yield across diverse languages via the data catalog."""
     for text in [
         "Explain in detail please",
         "Give me a thorough analysis",
@@ -23,6 +24,13 @@ def test_wants_detail_english():
         "exhaustive list",
         "long-form answer",
         "be verbose",
+        "لطفا مفصل توضیح بده",
+        "قدم‌به‌قدم بگو",
+        "قدم به قدم راهنمایی کن",
+        "توضیح جامع بده",
+        "کد کامل بده",
+        "explique en détail",
+        "schritt für schritt",
     ]:
         assert wants_detail(text) is True, text
 
@@ -34,30 +42,19 @@ def test_wants_detail_must_not_fire_on_brief():
     assert wants_detail("") is False
     assert wants_detail(None) is False
     assert wants_detail("thanks!") is False
-
-
-def test_wants_detail_persian():
-    for text in [
-        "لطفا مفصل توضیح بده",
-        "قدم‌به‌قدم بگو",
-        "قدم به قدم راهنمایی کن",
-        "توضیح جامع بده",
-        "کد کامل بده",
-    ]:
-        assert wants_detail(text) is True, text
-    # جامعه (society) must not trip جامع; prose stays terse.
+    # Society (جامعه) must not trip جامع; normal prose stays terse.
     assert wants_detail("وضعیت جامعه چطوره") is False
 
 
-def test_tiny_turn_allowlist():
-    for text in ["thanks", "Thanks!", "ok", "noted", "got it", "yes",
-                 "good morning", "see you"]:
-        assert is_tiny_turn(text) is True, text
-
-
-def test_tiny_turn_persian():
-    for text in ["ممنون", "مرسی!", "دمت گرم", "باشه", "چشم",
-                 "سلام", "بله", "نه", "آره"]:
+def test_tiny_turn_multilingual():
+    """Verify short acknowledgments/greetings match across languages."""
+    for text in [
+        "thanks", "Thanks!", "ok", "noted", "got it", "yes",
+        "good morning", "see you",
+        "ممنون", "مرسی!", "دمت گرم", "باشه", "چشم",
+        "سلام", "بله", "نه", "آره",
+        "merci", "danke", "gracias",
+    ]:
         assert is_tiny_turn(text) is True, text
 
 
