@@ -37,20 +37,22 @@ def _make_solidified(store, text="Use double backslash for Windows paths"):
 # 1. Schema v9 Migration
 # =====================================================================
 
-def test_schema_version_is_9(store):
-    """Schema should be upgraded to v10 (v9 model_source + v10 watcher_state)."""
-    assert SCHEMA_VERSION == 10
+def test_schema_version_is_11(store):
+    """Schema should be v11 (v9 model_source + v10 watcher_state + v11 watcher_lease)."""
+    assert SCHEMA_VERSION == 11
     ver = store.db.execute("PRAGMA user_version").fetchone()[0]
-    assert ver == 10
+    assert ver == 11
 
     # model_source column should exist
     cols = [c[1] for c in store.db.execute("PRAGMA table_info(episodes)").fetchall()]
     assert "model_source" in cols
 
     # watcher_state table should exist (universal transcript watcher cursors)
+    # watcher_lease table should exist (cross-process single-flight)
     tables = [r[0] for r in store.db.execute(
         "SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
     assert "watcher_state" in tables
+    assert "watcher_lease" in tables
 
 
 def test_challenge_rule_counter_exists(store):

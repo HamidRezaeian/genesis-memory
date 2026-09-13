@@ -326,3 +326,53 @@ def test_catalog_and_byte_artifacts_lose_to_message():
         "+2",
     ])
     assert winner == "+2"
+
+
+def _hold_lease(store, holder, expires_at):
+    store.db.execute(
+        "INSERT OR REPLACE INTO watcher_lease(id, holder, expires_at) "
+        "VALUES(1, ?, ?)", (holder, expires_at))
+    store.db.commit()
+
+
+def test_lease_contention_skips_sweep(store, tmp_path):
+    """Another live holder's lease → skip sources, nothing ingested."""
+    from genesis_memory.daemon import watcher as w
+    db = str(tmp_path / "conv.db")
+    _make_steps_db(db, ["1+1=?"], ["2"])
+    _hold_lease(store, "other-proc:999", time.time() + 600)
+    sources = [{"id": "steps-e2e", "kind": "steps_dir",
+                "path": str(tmp_path), "enabled": True}]
+    stats = scan_once(store, sources)
+    assert stats["lease_skipped"] is True
+    assert stats["scanned"] == 0
+    assert stats["ingested"] == 0
+    assert store.db.execute(
+        "SELECT COUNT(*) FROM dialogue_buffer WHERE session_id LIKE 'watch:%'"
+    ).fetchone()[0] == 0
+    assert w._lease_holder() != "other-proc:999"
+
+
+def test_expired_lease_allows_sweep(store, tmp_path):
+    """Dead holder's lease expires → next round proceeds (crash-safe)."""
+    db = str(tmp_path / "conv.db")
+    _make_steps_db(db, ["1+1=?"], ["2"])
+    _hold_lease(store, "dead-proc:1", time.time() - 1)
+    sources = [{"id": "steps-e2e", "kind": "steps_dir",
+                "path": str(tmp_path), "enabled": True}]
+    stats = scan_once(store, sources)
+    assert stats["lease_skipped"] is False
+    assert stats["ingested"] == 1
+
+
+def test_own_lease_refreshes_and_sweeps(store, tmp_path):
+    """Same holder re-entering refreshes expiry and still sweeps."""
+    from genesis_memory.daemon import watcher as w
+    db = str(tmp_path / "conv.db")
+    _make_steps_db(db, ["1+1=?"], ["2"])
+    _hold_lease(store, w._lease_holder(), time.time() + 600)
+    sources = [{"id": "steps-e2e", "kind": "steps_dir",
+                "path": str(tmp_path), "enabled": True}]
+    stats = scan_once(store, sources)
+    assert stats["lease_skipped"] is False
+    assert stats["ingested"] == 1

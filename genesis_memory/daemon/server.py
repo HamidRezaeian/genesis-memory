@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS counters(
 # v0.5: versioned schema. Baseline above IS version 1. Future upgrades append
 # {new_version: [sql, ...]} here; migrate() applies pending ones in order.
 # RULE: migrations only ever ADD (tables/columns/indexes); never drop/alter user data.
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 MIGRATIONS = {
     1: [],  # baseline (episodes + fts + triggers), recorded for provenance
     2: [
@@ -157,6 +157,9 @@ MIGRATIONS = {
     10: [
         "CREATE TABLE IF NOT EXISTS watcher_state(source TEXT PRIMARY KEY, cursor TEXT, updated_at REAL)",
         "INSERT OR IGNORE INTO counters(name, count) VALUES ('watcher_scans', 0), ('watcher_ingested', 0)",
+    ],
+    11: [
+        "CREATE TABLE IF NOT EXISTS watcher_lease(id INTEGER PRIMARY KEY CHECK (id = 1), holder TEXT, expires_at REAL)",
     ],
 }
 

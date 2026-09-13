@@ -21,6 +21,8 @@ Design rules (from the +2 post-mortem):
 - Bounded output: one ``dialogue_buffer`` row per observed turn, each row
   already truncated by ``set_dialogue`` (250/250/120 chars). Watcher rows
   are prefixed ``watch:`` and pruned after ``WATCH_TTL_S``.
+- Single-flight across processes: daemons sharing one DB elect one sweeper
+  per round via an expiring ``watcher_lease`` row (crash-safe); losers skip.
 - Content never logged: logs carry file names, counts and lengths only.
 
 Configuration (all optional, all data — no code changes):
@@ -48,6 +50,9 @@ WATCH_PREFIX = "watch:"
 WATCH_TTL_S = float(os.environ.get("GENESIS_WATCHER_TTL_S", "3600"))
 SCAN_INTERVAL_S = float(os.environ.get("GENESIS_WATCHER_INTERVAL_S", "10"))
 SCAN_LIMIT = int(os.environ.get("GENESIS_WATCHER_LIMIT", "50"))
+# Cross-process single-flight (one sweeper per DB per round). Opt-out with 0.
+SINGLE_FLIGHT_ON = os.environ.get("GENESIS_WATCHER_SINGLE_FLIGHT", "1") == "1"
+LEASE_TTL_S = float(os.environ.get("GENESIS_WATCHER_LEASE_TTL_S", "30"))
 # Conversations untouched for longer than this are skipped: the watcher is a
 # continuity feed, not a history importer. Reopening a chat refreshes mtime.
 SOURCE_MAX_AGE_S = float(os.environ.get("GENESIS_WATCHER_MAX_AGE_S", "86400"))
@@ -655,26 +660,88 @@ KIND_HANDLERS = {
 }
 
 
-def scan_once(store, sources=None):
-    """Single passive sweep over all enabled sources. Returns stats dict."""
-    sources = sources if sources is not None else default_sources()
-    stats = {"scanned": 0, "ingested": 0, "sources": {}}
-    for position, source in enumerate(sources):
-        if not source.get("enabled", True):
-            continue
-        kind = source.get("kind")
-        if not source.get("id"):
-            source["id"] = f"{kind or 'source'}-{position}"
+# Process identity for the scan lease (pid + import time: pid-reuse safe).
+_HOLDER = "%d:%d" % (os.getpid(), int(time.time()))
+
+
+def _lease_holder():
+    return _HOLDER
+
+
+def _acquire_scan_lease(store, ttl_s=LEASE_TTL_S):
+    """Cross-process single-flight: at most one sweeper per DB at a time.
+
+    Uses a short-lived side connection with a short busy timeout, so a
+    contended lease fails FAST (skip this round) instead of blocking the
+    shared Store handle. The claim is one atomic UPSERT; the follow-up
+    SELECT only reads back the outcome — nobody can steal a fresh lease
+    before its expiry. Crash-safe: a dead holder's lease expires and the
+    next round proceeds. Same holder refreshes its own lease.
+    """
+    db_path = getattr(store, "path", None)
+    if not db_path:
+        return True
+    now = time.time()
+    try:
+        con = sqlite3.connect(db_path, timeout=0.3, isolation_level=None)
+    except Exception:
+        return True
+    try:
         try:
-            handler = KIND_HANDLERS.get(kind)
-            if handler is None:
-                log.warning("watcher unknown kind id=%s kind=%s",
-                            source.get("id"), kind)
+            con.execute("PRAGMA busy_timeout=300")
+            con.execute(
+                "CREATE TABLE IF NOT EXISTS watcher_lease("
+                "id INTEGER PRIMARY KEY CHECK (id = 1), "
+                "holder TEXT, expires_at REAL)")
+            con.execute(
+                "INSERT INTO watcher_lease(id, holder, expires_at) "
+                "VALUES(1, ?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET holder=excluded.holder, "
+                "expires_at=excluded.expires_at WHERE "
+                "watcher_lease.holder = excluded.holder "
+                "OR watcher_lease.expires_at IS NULL "
+                "OR watcher_lease.expires_at <= ?",
+                (_HOLDER, now + ttl_s, now))
+            row = con.execute(
+                "SELECT holder FROM watcher_lease WHERE id = 1").fetchone()
+        finally:
+            try:
+                con.close()
+            except Exception:
+                pass
+        return bool(row and row[0] == _HOLDER)
+    except Exception:
+        return False
+
+
+def scan_once(store, sources=None):
+    """Single passive sweep over all enabled sources. Returns stats dict.
+
+    Single-flight across processes sharing one DB: only the lease holder
+    sweeps sources; losers skip straight to TTL prune + counters, which
+    are idempotent.
+    """
+    sources = sources if sources is not None else default_sources()
+    stats = {"scanned": 0, "ingested": 0, "sources": {}, "lease_skipped": False}
+    if SINGLE_FLIGHT_ON and not _acquire_scan_lease(store):
+        stats["lease_skipped"] = True
+    else:
+        for position, source in enumerate(sources):
+            if not source.get("enabled", True):
                 continue
-            handler(store, source, stats)
-        except Exception as exc:
-            log.warning("watcher source failed id=%s err=%s",
-                        source.get("id"), type(exc).__name__)
+            kind = source.get("kind")
+            if not source.get("id"):
+                source["id"] = f"{kind or 'source'}-{position}"
+            try:
+                handler = KIND_HANDLERS.get(kind)
+                if handler is None:
+                    log.warning("watcher unknown kind id=%s kind=%s",
+                                source.get("id"), kind)
+                    continue
+                handler(store, source, stats)
+            except Exception as exc:
+                log.warning("watcher source failed id=%s err=%s",
+                            source.get("id"), type(exc).__name__)
     try:
         cutoff = time.time() - WATCH_TTL_S
         store.db.execute(
