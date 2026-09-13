@@ -1,0 +1,81 @@
+{
+  "timestamp": 1789277116.9901347,
+  "model": "gemini-flash-latest",
+  "scenarios": [
+    {
+      "id": "diff",
+      "title": "Code Bug Fix",
+      "task": "Increase timeout_ms default from 1000 to 5000 in DatabaseConnectionPool",
+      "prompt": "Here is the database file. Fix the timeout setting: increase timeout_ms from 1000 to 5000 to prevent WAL storm lock:\n\n```python\nimport os, sqlite3, time, logging\n\nclass DatabaseConnectionPool:\n    def __init__(self, db_path: str, timeout_ms: int = 1000):\n        self.db_path = db_path\n        self.timeout_ms = timeout_ms\n        self._connections = []\n    def _init_db(self):\n        conn = sqlite3.connect(self.db_path, timeout=self.timeout_ms / 1000.0)\n        conn.execute('PRAGMA journal_mode=WAL;')\n        conn.execute('PRAGMA busy_timeout=1000;')\n        conn.close()\n    def get_connection(self):\n        conn = sqlite3.connect(self.db_path, timeout=self.timeout_ms / 1000.0)\n        conn.execute('PRAGMA busy_timeout=1000;')\n        return conn\n```",
+      "model": "gemini-flash-latest",
+      "raw": {
+        "content": "Here is the updated code with `timeout_ms` increased to 5000 (and the `PRAGMA busy_timeout` updated to dynamically use `self.timeout_ms` instead of being hardcoded to 1000):\n\n```python\nimport os, sqlite3, time, logging\n\nclass DatabaseConnectionPool:\n    def __init__(self, db_path: str, timeout_ms: int = 5000):\n        self.db_path = db_path\n        self.timeout_ms = timeout_ms\n        self._connections = []\n\n    def _init_db(self):\n        conn = sqlite3.connect(self.db_path, timeout=self.timeout_ms / 1000.0)\n        conn.execute('PRAGMA journal_mode=WAL;')\n        conn.execute(f'PRAGMA busy_timeout={self.timeout_ms};')\n        conn.close()\n\n    def get_connection(self):\n        conn = sqlite3.connect(self.db_path, timeout=self.timeout_ms / 1000.0)\n        conn.execute(f'PRAGMA busy_timeout={self.timeout_ms};')\n        return conn\n```\n\n### Changes made:\n1. Changed the default `timeout_ms` parameter in `__init__` from `1000` to `5000`.\n2. Updated `PRAGMA busy_timeout` to use `self.timeout_ms` (5000 ms) so it stays in sync and does not override the connection timeout back down to 1000 ms.",
+        "completion_tokens": 365,
+        "prompt_tokens": 251,
+        "thought_tokens": 523,
+        "total_tokens": 1139,
+        "latency_s": 4.991
+      },
+      "diet": {
+        "content": "```diff\n--- a/database.py\n+++ b/database.py\n@@ -4,3 +4,3 @@\n class DatabaseConnectionPool:\n-    def __init__(self, db_path: str, timeout_ms: int = 1000):\n+    def __init__(self, db_path: str, timeout_ms: int = 5000):\n         self.db_path = db_path\n@@ -10,3 +10,3 @@\n         conn.execute('PRAGMA journal_mode=WAL;')\n-        conn.execute('PRAGMA busy_timeout=1000;')\n+        conn.execute(f'PRAGMA busy_timeout={self.timeout_ms};')\n         conn.close()\n@@ -14,3 +14,3 @@\n         conn = sqlite3.connect(self.db_path, timeout=self.timeout_ms / 1000.0)\n-        conn.execute('PRAGMA busy_timeout=1000;')\n+        conn.execute(f'PRAGMA busy_timeout={self.timeout_ms};')\n         return conn\n```",
+        "completion_tokens": 266,
+        "prompt_tokens": 316,
+        "thought_tokens": 2058,
+        "total_tokens": 2640,
+        "latency_s": 13.116
+      },
+      "savings_pct": 27.1,
+      "speedup": 0.4
+    },
+    {
+      "id": "ack",
+      "title": "Turn Acknowledgment",
+      "task": "User says thanks and asks to proceed",
+      "prompt": "Thanks, the WAL configuration works properly now. Ready to continue.",
+      "model": "gemini-flash-latest",
+      "raw": {
+        "content": "Great to hear the WAL setup is working smoothly!\n\nDepending on what stack you're on and what you're building, here are the usual next steps we can dive into:\n\n* **PostgreSQL:**\n  * Setting up continuous archiving / backup automation (e.g., `archive_command`, `pg_basebackup`, or tools like `pgBackRest` / `WAL-G`).\n  * Configuring streaming replication / standby nodes.\n  * Tuning checkpoint parameters (`checkpoint_timeout`, `max_wal_size`) to balance disk I/O and recovery time.\n\n* **SQLite:**\n  * Handling busy timeouts and concurrency (`PRAGMA busy_timeout`).\n  * Choosing a checkpointing strategy (`PRAGMA wal_checkpoint(TRUNCATE)` vs. passive/automatic).\n  * Tuning cache size and synchronous modes (`PRAGMA synchronous = NORMAL`).\n\nWhere would you like to pick up?",
+        "completion_tokens": 194,
+        "prompt_tokens": 13,
+        "thought_tokens": 307,
+        "total_tokens": 514,
+        "latency_s": 4.255
+      },
+      "diet": {
+        "content": "Provide the next task or requirements.",
+        "completion_tokens": 7,
+        "prompt_tokens": 78,
+        "thought_tokens": 68,
+        "total_tokens": 153,
+        "latency_s": 2.899
+      },
+      "savings_pct": 96.4,
+      "speedup": 1.5
+    },
+    {
+      "id": "status",
+      "title": "Status Inspection",
+      "task": "User asks for daemon status, memory count, and RSS",
+      "prompt": "Is the genesis daemon currently running and what is its status (PID, RSS, active memories)?",
+      "model": "gemini-flash-latest",
+      "raw": {
+        "content": "I do not have access to your local machine, server, or running environment, so I cannot check the live status of your system directly.\n\nHowever, you can check this yourself using the following commands depending on your setup:\n\n### 1. Check PID and RSS (Memory Usage)\nIf running on Linux or macOS, run:\n\n```bash\nps -eo pid,rss,comm,args | grep [g]enesis\n```\n* **PID**: Found in the first column.\n* **RSS**: Found in the second column (measured in kilobytes; divide by 1024 for MB).\n\nAlternatively, if it is managed by **systemd**:\n```bash\nsystemctl status genesis\n```\n\n### 2. Check \"Active Memories\" / Daemon Internal State\n\"Active memories\" is typically an application-level metric (e.g., in an AI agent framework, cognitive architecture, or cache system). To check this, you typically need to query the daemon directly via its CLI or API:\n\n* **Via CLI** (if supported):\n  ```bash\n  genesis status\n  # or\n  genesis-cli status\n  ```\n* **Via Local HTTP/REST Endpoint** (common default ports, adjust to your configuration):\n  ```bash\n  curl -s http://localhost:8000/status\n  # or\n  curl -s http://localhost:8080/api/v1/health\n  ```\n* **Via Application Logs**:\n  ```bash\n  journalctl -u genesis -n 50 --no-pager\n  # or check your configured log file:\n  tail -n 50 /var/log/genesis.log\n  ```\n\nIf you share which framework or software this \"genesis daemon\" belongs to, I can provide the exact commands or endpoints for it.",
+        "completion_tokens": 391,
+        "prompt_tokens": 19,
+        "thought_tokens": 352,
+        "total_tokens": 762,
+        "latency_s": 8.174
+      },
+      "diet": {
+        "content": "Cannot determine status. No access to the host environment or running processes.\n\nTo check manually, run:\n```bash\npgrep -fl genesis\nps -o pid,rss,comm -p $(pgrep genesis)\n```",
+        "completion_tokens": 48,
+        "prompt_tokens": 84,
+        "thought_tokens": 116,
+        "total_tokens": 248,
+        "latency_s": 6.649
+      },
+      "savings_pct": 87.7,
+      "speedup": 1.2
+    }
+  ]
+}
