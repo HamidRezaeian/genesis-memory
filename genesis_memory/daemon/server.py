@@ -24,6 +24,7 @@ _pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if _pkg_root not in sys.path:
     sys.path.insert(0, _pkg_root)
 
+from genesis_memory import __version__  # noqa: E402
 from genesis_memory.core import db as _dbx  # noqa: E402  (stdlib-only, import-lean)
 from genesis_memory.core import privacy_shield as _shield  # noqa: E402
 
@@ -1103,7 +1104,7 @@ def _handle_once(store, msg):
         if method == "initialize":
             return ok({"protocolVersion": "2024-11-05",
                        "capabilities": {"tools": {}},
-                       "serverInfo": {"name": "genesis-memory", "version": "0.5.0"}})
+                       "serverInfo": {"name": "genesis-memory", "version": __version__}})
         if method == "ping":
             return ok({})
         if method == "tools/list":

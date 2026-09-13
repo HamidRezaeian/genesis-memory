@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="site/public/favicon.svg" width="84" alt="GENESIS Memory" />
+  <img src="https://raw.githubusercontent.com/HamidRezaeian/genesis-memory/main/site/public/favicon.svg" width="84" alt="GENESIS Memory" />
 </p>
 
 <h1 align="center">GENESIS Memory</h1>

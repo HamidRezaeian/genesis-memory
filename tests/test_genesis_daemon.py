@@ -15,6 +15,7 @@ import tempfile
 import time
 
 import pytest
+from genesis_memory import __version__
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DAEMON = os.path.join(REPO, "genesis_memory", "daemon", "server.py")
@@ -55,7 +56,7 @@ def tool(live, name, args):
 def test_mcp_handshake_and_tools(live):
     r = rpc_call(live, "initialize")
     assert r["result"]["serverInfo"]["name"] == "genesis-memory"
-    assert r["result"]["serverInfo"]["version"] == "0.5.0"
+    assert r["result"]["serverInfo"]["version"] == __version__
     names = sorted(t["name"] for t in rpc_call(live, "tools/list")["result"]["tools"])
     assert names == [
         "attest_closure",

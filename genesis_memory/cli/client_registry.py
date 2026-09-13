@@ -255,7 +255,8 @@ def _r_vscode(ctx: RenderContext) -> Dict[str, Any]:
 
 
 def _r_continue(ctx: RenderContext) -> str:
-    return cf.to_yaml({"name": "GENESIS Memory", "version": "0.5.0", "schema": "v1",
+    from genesis_memory import __version__
+    return cf.to_yaml({"name": "GENESIS Memory", "version": __version__, "schema": "v1",
                        "mcpServers": [{"name": SERVER_KEY, **ctx.mcp_server()}]})
 
 
