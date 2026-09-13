@@ -21,6 +21,13 @@ dependencies = [
     "aiohttp>=3.8.0",
 ]
 
+[project.urls]
+Homepage = "https://hamidrezaeian.github.io/genesis-memory-site/"
+Documentation = "https://hamidrezaeian.github.io/genesis-memory-site/"
+Repository = "https://github.com/HamidRezaeian/genesis-memory"
+"Issue Tracker" = "https://github.com/HamidRezaeian/genesis-memory/issues"
+Changelog = "https://github.com/HamidRezaeian/genesis-memory/blob/main/RELEASE_CHANGELOG.md"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",

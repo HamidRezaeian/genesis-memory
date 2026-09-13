@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><img src="https://img.shields.io/badge/website-interactive_demo-00F0FF?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
   <img src="https://img.shields.io/badge/tests-421%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
   <img src="https://img.shields.io/badge/version-0.12.0-00F0FF?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
@@ -20,6 +21,10 @@
 <p align="center">
   One local SQLite memory shared by <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>VS Code</strong>, <strong>Zed</strong>, <strong>Windsurf</strong>, <strong>JetBrains</strong>, <strong>Neovim</strong>, <strong>Emacs</strong>, <strong>OpenCode</strong>, <strong>Antigravity</strong>, every terminal agent and every SDK —<br/>
   while collapsing 4,000-line tool outputs into 84-token pointers and cutting outbound tokens by 70.4% via transparent output diet.
+</p>
+
+<p align="center">
+  <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><strong>🌐 Official Website &amp; Interactive Playground &rarr;</strong></a>
 </p>
 
 ---
@@ -449,8 +454,10 @@ genesis license
 
 ## Links
 
-- [RELEASE_CHANGELOG.md](RELEASE_CHANGELOG.md) — complete release notes and architectural updates
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/MCP_SPEC.md](docs/MCP_SPEC.md) · [llms.txt](llms.txt) · [openapi.json](openapi.json)
-- Live Web Landing Page: https://hamidrezaeian.github.io/genesis-memory-site/ (Source: `genesis-memory-site` repo)
+- **Official Website & Interactive Simulator:** [https://hamidrezaeian.github.io/genesis-memory-site/](https://hamidrezaeian.github.io/genesis-memory-site/)
+- **PyPI Package:** [https://pypi.org/project/genesis-memory/](https://pypi.org/project/genesis-memory/)
+- **GitHub Repository:** [https://github.com/HamidRezaeian/genesis-memory](https://github.com/HamidRezaeian/genesis-memory)
+- **Release Changelog:** [RELEASE_CHANGELOG.md](RELEASE_CHANGELOG.md)
+- **Documentation:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/MCP_SPEC.md](docs/MCP_SPEC.md) · [llms.txt](llms.txt) · [openapi.json](openapi.json)
 
 <p align="center"><sub>GENESIS Memory — because your AI agent deserves a brain that doesn't reset every session.</sub></p>
