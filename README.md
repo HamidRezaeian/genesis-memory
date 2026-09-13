@@ -40,37 +40,61 @@ GENESIS is a **local-first cognitive memory OS** that operates across three clea
 
 ---
 
-## Quick start
+---
 
+## 🚀 3-Step Quick Start (Takes 30 Seconds)
+
+You do not need to configure databases, spin up servers, or change your API keys.
+
+### Step 1: Install the package
 ```bash
-# 1. Install
-pip install genesis-memory          # or: git clone … && pip install -e .
-
-# 2. Automated Multi-Client Setup (MCP + Hooks)
-genesis setup --preview             # read-only audit: what is installed, what would be wired
-genesis setup --yes                 # wire all detected clients (atomic backups; --revert undoes)
-
-# 3. Verify System Health
-genesis doctor                      # system diagnostics, client matrix & update check
-
-# 4. (Optional) Launch Reverse Proxy Gateway
-genesis proxy start                 # background gateway on http://127.0.0.1:8000
-genesis proxy status                # verify gateway status (🟢 Online)
-genesis proxy stop                  # stop background gateway
-
-# 5. Mission Control Dashboard & Spooling
-genesis dashboard --open            # Mission Control cockpit at http://127.0.0.1:8090
-genesis run -- pytest tests/        # headless, spooled, exit-code preserving
+pip install genesis-memory
 ```
 
-Anything not auto-detected:
-
+### Step 2: Auto-connect your AI tools
 ```bash
-genesis clients                                     # universal matrix with detection status
-genesis export-config --client zed --format native  # exact snippet in the client's own dialect
-genesis export-config --format toml                 # canonical mcpServers as TOML / yaml / json / env / lua / elisp
-genesis export-config --all --out ./snippets        # one file per client
+genesis setup --yes
 ```
+> **What this does:** Scans your computer for installed AI tools (Cursor, Claude Desktop, Claude Code, VS Code, OpenCode, Zed, JetBrains, etc.) and automatically connects them to a shared local memory. Your existing models, settings, and subscriptions are **100% untouched**.
+
+### Step 3: Verify connection
+```bash
+genesis doctor
+```
+> You will see green checkmarks `✅ [OK]` confirming which AI clients are actively wired. **You're done!**
+
+---
+
+## 💡 How to use it in your daily workflow
+
+Once installed, just open your favorite AI coding tool (Cursor, Claude, VS Code, etc.) and code as usual:
+
+* **Save important decisions:**
+  > *"Remember that we use SQLite in WAL mode and all timeouts must be 5000ms."*
+  *(The agent calls `remember` and stores it permanently across all your tools.)*
+
+* **Recall past context:**
+  > *"What did we decide about the connection pool in our last session?"*
+  *(The agent calls `recall` and pulls the exact decision from your shared memory.)*
+
+* **Seamless cross-tool switching:**
+  Fix a bug in **Cursor**, then open **OpenCode** or **Claude Code** — the agent automatically knows what you were working on without copy-pasting history.
+
+---
+
+## 🎛️ Optional Features (Only when you need them)
+
+Everything below is completely optional. You only run these when you specifically want them:
+
+| What you want to do | Command | What it does |
+|---|---|---|
+| **Open Visual Cockpit** | `genesis dashboard --open` | Opens interactive 3D memory visualizer & engram explorer in your browser (`:8090`). |
+| **Start Token Diet Proxy** | `genesis proxy start` | Starts local gateway on `http://127.0.0.1:8000` to cut token waste on SDKs/Aider. |
+| **Check Proxy Status** | `genesis proxy status` | Checks if the proxy is running and prints active PID. |
+| **Stop Proxy** | `genesis proxy stop` | Shuts down the background proxy. |
+| **Run Spooled Tests** | `genesis run -- pytest tests/` | Runs tests headlessly, collapsing 4,000 lines of output into an 84-token summary. |
+| **100% Undo / Revert** | `genesis setup --revert` | Restores all your IDE config files to their exact pre-installation state from atomic backups. |
+| **Upgrade to Latest** | `genesis upgrade` | 1-click self-upgrade to the latest release. |
 
 ---
 
