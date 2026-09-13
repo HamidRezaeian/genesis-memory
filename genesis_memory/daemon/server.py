@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS counters(
 # v0.5: versioned schema. Baseline above IS version 1. Future upgrades append
 # {new_version: [sql, ...]} here; migrate() applies pending ones in order.
 # RULE: migrations only ever ADD (tables/columns/indexes); never drop/alter user data.
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 MIGRATIONS = {
     1: [],  # baseline (episodes + fts + triggers), recorded for provenance
     2: [
@@ -153,6 +153,10 @@ MIGRATIONS = {
     9: [
         "ALTER TABLE episodes ADD COLUMN model_source TEXT",
         "INSERT OR IGNORE INTO counters(name, count) VALUES ('challenge_rule', 0)",
+    ],
+    10: [
+        "CREATE TABLE IF NOT EXISTS watcher_state(source TEXT PRIMARY KEY, cursor TEXT, updated_at REAL)",
+        "INSERT OR IGNORE INTO counters(name, count) VALUES ('watcher_scans', 0), ('watcher_ingested', 0)",
     ],
 }
 
@@ -430,8 +434,8 @@ class Store:
                          "vetoes_applied", "vetoes_dismissed", "edges_extracted", "edges_invalidated",
                          "faults_triggered", "faults_resolved", "fault_caps_hit", "attestations_passed",
                          "spools_created", "spools_dereferenced", "spooled_bytes", "dereferenced_bytes",
-                         "spools_full_reads", "reinforce", "synthesize_skill", "skill_recall", "sleep_cycles",
-                         "challenge_rule"):
+                          "spools_full_reads", "reinforce", "synthesize_skill", "skill_recall", "sleep_cycles",
+                          "challenge_rule", "watcher_scans", "watcher_ingested"):
                 self.db.execute("INSERT OR IGNORE INTO counters(name, count) VALUES (?, 0)", (name,))
             # Synchronize baseline ground truth from existing database records
             ep_count = self.db.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
@@ -1319,6 +1323,15 @@ def main():
     store = Store(args.db)
     log = setup_logging(args.db).info
     log(f"genesis-memory daemon up db={args.db} rss={rss_mb()}MB")
+    try:
+        # Passive universal capture: one bounded sweep at startup, then a
+        # background thread. Read-only on client files; never blocks serve.
+        from genesis_memory.daemon import watcher as _watcher
+        _watcher.scan_once(store)
+        if os.environ.get("GENESIS_WATCHER_BG", "1") == "1":
+            _watcher.start_watcher(store)
+    except Exception as exc:
+        log(f"watcher init skipped: {type(exc).__name__}")
     for line in sys.stdin:
         line = line.strip()
         if not line:
