@@ -162,6 +162,21 @@ def main() -> None:
     db_path = Path(args.db).expanduser().resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Load saved proxy config fallback if not explicitly passed
+    from genesis_memory.proxy.supervisor import load_proxy_config
+    cfg = load_proxy_config() or {}
+    resolved_upstream = (
+        args.upstream
+        if args.upstream != "https://api.openai.com/v1" or "GENESIS_UPSTREAM_URL" in os.environ
+        else (cfg.get("upstream_url") or args.upstream)
+    )
+    resolved_key = args.upstream_key or cfg.get("api_key")
+    resolved_model = (
+        args.target_model
+        if args.target_model != "gemini-3.5-flash" or "GENESIS_TARGET_MODEL" in os.environ
+        else (cfg.get("default_model") or args.target_model)
+    )
+
     # Initialize in-process Store on shared SQLite DB
     logger.info("Initializing in-process episodic Store on %s...", db_path)
     store = Store(str(db_path))
@@ -169,16 +184,16 @@ def main() -> None:
 
     # Initialize Proxy Server
     proxy = GenesisProxyServer(
-        upstream_url=args.upstream,
+        upstream_url=resolved_upstream,
         store=store,
         enable_anaphora_rewrite=True,
         enable_compaction=True,
+        max_history_turns=args.max_history_turns,
         enable_output_diet=args.output_diet,
         enable_content_compress=args.content_compress,
-        max_history_turns=args.max_history_turns,
         mode=args.mode,
-        upstream_key=args.upstream_key,
-        target_model=args.target_model,
+        upstream_key=resolved_key,
+        target_model=resolved_model,
         reasoning_effort=args.reasoning_effort,
     )
 

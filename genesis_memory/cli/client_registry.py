@@ -20,6 +20,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -326,15 +327,36 @@ def _aux_opencode(_spec: ClientSpec, ctx: RenderContext) -> None:
             (genesis_home / "subconscious_memory_hook.py").write_bytes(source_hook.read_bytes())
         except Exception:
             pass
-    plugins_dir = _xdg_config() / "opencode" / "plugins"
-    plugins_dir.mkdir(parents=True, exist_ok=True)
-    deprecated_ts = plugins_dir / "genesis_memory.ts"
-    if deprecated_ts.exists():
+    target_dirs = [_home() / ".config" / "opencode" / "plugins", _xdg_config() / "opencode" / "plugins"]
+    for plugins_dir in target_dirs:
         try:
-            deprecated_ts.unlink()
+            plugins_dir.mkdir(parents=True, exist_ok=True)
+            deprecated_ts = plugins_dir / "genesis_memory.ts"
+            if deprecated_ts.exists():
+                deprecated_ts.unlink()
+            (plugins_dir / "genesis-memory.js").write_text(opencode_plugin_source(), encoding="utf-8")
         except Exception:
             pass
-    (plugins_dir / "genesis-memory.js").write_text(opencode_plugin_source(), encoding="utf-8")
+
+
+def _opencode_path() -> Path:
+    p1 = _home() / ".config" / "opencode" / "opencode.jsonc"
+    if p1.exists():
+        return p1
+    p2 = _appdata() / "opencode" / "opencode.jsonc"
+    if p2.exists():
+        return p2
+    return p1 if (_home() / ".config" / "opencode").exists() or sys.platform != "win32" else p2
+
+
+def _opencode_detect(p: Path) -> bool:
+    return (
+        p.exists()
+        or (_home() / ".config" / "opencode").exists()
+        or (_appdata() / "opencode").exists()
+        or _on_path("opencode")
+    )
+
 
 
 # --------------------------------------------------------------------------- detection helpers
@@ -397,8 +419,8 @@ CLIENT_SPECS: List[ClientSpec] = [
         id="opencode", name="OpenCode", family=ClientFamily.CLI,
         capabilities=[ClientCapability.MCP, ClientCapability.PROXY, ClientCapability.HOOK],
         format=ConfigFormat.JSONC,
-        config_path=lambda: _xdg_config() / "opencode" / "opencode.jsonc",
-        detect=_parent_exists, render=_r_opencode,
+        config_path=_opencode_path,
+        detect=_opencode_detect, render=_r_opencode,
         is_configured=_json_has(["mcp", SERVER_KEY]),
         details="Tri-Modal: local MCP server, stateless gateway provider & plugin hooks (genesis-memory.js)",
         docs_url="https://opencode.ai/docs/mcp-servers", aux_wire=_aux_opencode,
@@ -740,3 +762,124 @@ class ClientRegistry:
         text = client.config_path.read_text(encoding="utf-8")
         client.config_path.write_text(cf.strip_marker_block(text, spec.comment), encoding="utf-8")
         return True, f"Removed GENESIS block from {client.config_path}"
+
+    @classmethod
+    def discover_proxy_clients(cls) -> List[DiscoveredClient]:
+        """Discovers all clients detected on the host that support the PROXY capability."""
+        all_clients = cls.discover_all()
+        return [
+            c for c in all_clients
+            if ClientCapability.PROXY in c.capabilities and (c.detected or c.id == "sdk_gateway")
+        ]
+
+    @classmethod
+    def wire_proxy_client(
+        cls,
+        client: DiscoveredClient,
+        model_name: Optional[str] = None,
+        proxy_url: str = PROXY_URL,
+    ) -> Tuple[bool, str]:
+        """Safely wires a detected client to use the local GENESIS Proxy gateway."""
+        spec = cls.spec(client.id)
+        if spec is None:
+            return False, f"Unknown client: {client.id}"
+        if ClientCapability.PROXY not in spec.capabilities:
+            return False, f"{spec.name} does not support proxy mode"
+
+        target = client.config_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        existing = target.read_text(encoding="utf-8") if target.exists() else ""
+
+        if client.id == "opencode":
+            existing_models: Dict[str, Any] = {}
+            if existing:
+                try:
+                    parsed_existing = parse_jsonc(existing)
+                    if isinstance(parsed_existing, dict):
+                        existing_models = parsed_existing.get("provider", {}).get("genesis-proxy", {}).get("models", {})
+                except Exception:
+                    existing_models = {}
+
+            default_models = {
+                "genesis-stateless": {"name": "GENESIS Auto (Stateless)"},
+                "openai/gpt-4o": {"name": "GPT-4o"},
+                "openai/gpt-4o-mini": {"name": "GPT-4o Mini"},
+                "anthropic/claude-3.5-sonnet": {"name": "Claude 3.5 Sonnet"},
+                "anthropic/claude-3.7-sonnet": {"name": "Claude 3.7 Sonnet"},
+                "deepseek/deepseek-chat": {"name": "DeepSeek V3"},
+                "deepseek/deepseek-r1": {"name": "DeepSeek R1"},
+                "google/gemini-2.0-flash-001": {"name": "Gemini 2.0 Flash"},
+                "meta-llama/llama-3.3-70b-instruct": {"name": "Llama 3.3 70B"},
+            }
+            combined_models = {**default_models, **existing_models}
+            if model_name:
+                slug = re.sub(r"[^a-zA-Z0-9_\-./]", "-", model_name.strip()).lower()
+                combined_models[slug] = {"name": model_name.strip()}
+
+            patch = {
+                "provider": {
+                    "genesis-proxy": {
+                        "npm": "@ai-sdk/openai-compatible",
+                        "name": "GENESIS Proxy",
+                        "options": {
+                            "baseURL": proxy_url,
+                            "apiKey": "not-needed",
+                        },
+                        "models": combined_models,
+                    }
+                }
+            }
+            new_content = merge_jsonc_file_content(existing, patch)
+            target.write_text(new_content, encoding="utf-8")
+            return True, f"Configured OpenCode provider (genesis-proxy -> {proxy_url})"
+
+        elif client.id == "aider":
+            aider_cfg: Dict[str, Any] = {"openai-api-base": proxy_url}
+            if model_name:
+                clean_m = model_name.strip()
+                if not clean_m.startswith("openai/"):
+                    clean_m = f"openai/{clean_m}"
+                aider_cfg["model"] = clean_m
+            rendered = cf.to_yaml(aider_cfg)
+            new_content = cf.merge_marker_block(existing, rendered, "#")
+            target.write_text(new_content, encoding="utf-8")
+            return True, f"Configured Aider (~/.aider.conf.yml -> {proxy_url})"
+
+        elif client.id == "zed":
+            zed_patch = {
+                "language_models": {
+                    "openai": {
+                        "api_url": proxy_url,
+                    }
+                }
+            }
+            new_content = merge_jsonc_file_content(existing, zed_patch)
+            target.write_text(new_content, encoding="utf-8")
+            return True, f"Configured Zed (language_models.openai.api_url -> {proxy_url})"
+
+        elif client.id == "emacs":
+            ctx = RenderContext.build()
+            target.write_text(_r_emacs_elisp(ctx), encoding="utf-8")
+            return True, f"Configured Emacs (~/.emacs.d/genesis-memory.el -> {proxy_url})"
+
+        elif client.id == "sdk_gateway":
+            env_lines = [
+                "# GENESIS Memory Proxy Environment",
+                f"OPENAI_BASE_URL={proxy_url}",
+                f"OPENAI_API_BASE={proxy_url}",
+                f"ANTHROPIC_BASE_URL={PROXY_ANTHROPIC_URL}",
+            ]
+            if model_name:
+                env_lines.append(f"GENESIS_TARGET_MODEL={model_name.strip()}")
+            target.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
+            return True, f"Created {target} for SDKs/Frameworks"
+
+        elif spec.format in (ConfigFormat.JSON, ConfigFormat.JSONC):
+            patch = {"env": {"OPENAI_BASE_URL": proxy_url, "OPENAI_API_BASE": proxy_url}}
+            new_content = merge_jsonc_file_content(existing, patch)
+            target.write_text(new_content, encoding="utf-8")
+            return True, f"Configured {spec.name} for GENESIS Proxy"
+
+        else:
+            return True, f"Configured {spec.name} for GENESIS Proxy"
+

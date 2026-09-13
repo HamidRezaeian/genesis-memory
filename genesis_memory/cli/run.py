@@ -285,7 +285,7 @@ USAGE_TEXT = (
     "  auth           Activate commercial Pro or Enterprise license key · Pro\n"
     "  doctor         Diagnose system health, storage, RSS, and connectivity\n"
     "  run            Execute allowlisted commands with headless lossless spooling\n"
-    "  proxy          Manage on-demand stateless gateway (start|stop|status)\n"
+    "  proxy          Manage stateless AI gateway (setup | start | stop | status)\n"
     "  dashboard      Launch the Mission Control telemetry dashboard · Pro\n"
     "  upgrade        1-Click self-upgrade to the latest official release\n"
     "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
@@ -297,6 +297,7 @@ USAGE_TEXT = (
     "Examples:\n"
     "  genesis setup --preview\n"
     "  genesis setup --yes --client cursor,zed,neovim\n"
+    "  genesis proxy setup --upstream-url https://openrouter.ai/api/v1 --api-key sk-or-v1-...\n"
     "  genesis export-config --client codex --format toml\n"
     "  genesis export-config --format env   # OPENAI_BASE_URL for any SDK\n"
     "  genesis run -- pytest tests/\n"
@@ -437,7 +438,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     if subcmd == "proxy":
         from genesis_memory.proxy.supervisor import ensure_proxy_running, stop_proxy, is_proxy_healthy
         action = args[1].lower() if len(args) > 1 else "status"
-        if action == "start":
+        if action in ("setup", "config", "wizard", "init"):
+            from genesis_memory.cli.proxy_setup import run_proxy_setup
+            return run_proxy_setup(args[2:])
+        elif action == "start":
             ok = ensure_proxy_running()
             return 0 if ok else 1
         elif action == "stop":
@@ -450,7 +454,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"[genesis] Proxy Gateway: {status_str} (http://127.0.0.1:8000/v1)")
             return 0
         else:
-            print(f"Unknown proxy action '{action}'. Use: start | stop | status", file=sys.stderr)
+            print(f"Unknown proxy action '{action}'. Use: setup | start | stop | status", file=sys.stderr)
             return 1
 
     # Strip leading "run" subcommand if invoked as `genesis run ...`

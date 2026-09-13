@@ -89,9 +89,10 @@ Everything below is completely optional. You only run these when you specificall
 | What you want to do | Command | What it does |
 |---|---|---|
 | **Open Visual Cockpit** | `genesis dashboard --open` | Opens interactive 3D memory visualizer & engram explorer in your browser (`:8090`). |
-| **Start Token Diet Proxy** | `genesis proxy start` | Starts local gateway on `http://127.0.0.1:8000` to cut token waste on SDKs/Aider. |
+| **Setup & Connect Proxy** | `genesis proxy setup` | 1-Minute wizard: enter provider URL & key, auto-wire clients, and start gateway. |
 | **Check Proxy Status** | `genesis proxy status` | Checks if the proxy is running and prints active PID. |
 | **Stop Proxy** | `genesis proxy stop` | Shuts down the background proxy. |
+| **Start Proxy** | `genesis proxy start` | Starts local gateway on `http://127.0.0.1:8000` (requires credentials). |
 | **Run Spooled Tests** | `genesis run -- pytest tests/` | Runs tests headlessly, collapsing 4,000 lines of output into an 84-token summary. |
 | **100% Undo / Revert** | `genesis setup --revert` | Restores all your IDE config files to their exact pre-installation state from atomic backups. |
 | **Upgrade to Latest** | `genesis upgrade` | 1-click self-upgrade to the latest release. |
@@ -100,40 +101,101 @@ Everything below is completely optional. You only run these when you specificall
 
 ## The Stateless Proxy Gateway (`127.0.0.1:8000`)
 
-The GENESIS Proxy is an **intelligent, pass-through reverse proxy** that sits between your AI client/script and upstream LLM providers. It strips prompt bloat, compresses stale tool outputs, injects memory capsules, and enforces output brevity without modifying model behavior.
+The GENESIS Proxy is an **intelligent, pass-through reverse proxy** that runs locally on `http://127.0.0.1:8000/v1`. It sits between your AI client and your upstream LLM provider (OpenRouter, OpenAI, Groq, Anthropic, etc.). Before sending prompts to your model, it injects relevant episodic memories, eliminates repetitive tool output bloat, and applies output token diets — cutting costs while keeping your agent continuously aware of past decisions.
 
-### 1. Starting & Managing the Proxy
+> [!IMPORTANT]
+> **Strict Gatekeeping Invariant:** The proxy **refuses to run** until you configure your upstream provider credentials. It will never start in a broken or unconfigured state.
 
-#### Background Daemon (Standard)
+---
+
+### ⚡ 1-Minute Setup: Connecting Your Provider (e.g. OpenRouter)
+
+Suppose you have an API key from **OpenRouter** (or OpenAI / Groq) and want to use it across your AI coding tools:
+
+#### 1. Run the Setup Wizard
 ```bash
-genesis proxy start     # Spawns detached background process on http://127.0.0.1:8000
-genesis proxy status    # Probes /health and prints process ID & connection URL
-genesis proxy stop      # Gracefully shuts down the background process
+genesis proxy setup
 ```
-*Daemon logs are written to `~/.genesis/proxy.log` and the active PID is tracked at `~/.genesis/proxy.pid`.*
+*(Or non-interactively: `genesis proxy setup --upstream-url https://openrouter.ai/api/v1 --api-key sk-or-v1-... --yes`)*
 
-#### Foreground / Custom Launcher (Debugging)
+#### 2. Enter Your Provider Credentials
+The wizard asks for two things:
+1. **Upstream Provider Base URL:** The API endpoint where you obtained your key.
+   * For OpenRouter: `https://openrouter.ai/api/v1`
+   * For OpenAI: `https://api.openai.com/v1`
+   * For Groq: `https://api.groq.com/openai/v1`
+   *(⚠️ Note: Enter your provider's API URL here, **NOT** `127.0.0.1:8000`.)*
+2. **Provider API Key:** Your secret key (e.g. `sk-or-v1-...`).
+
+#### 3. Automatic Client Activation (With Your Consent)
+GENESIS scans your machine for compatible installed clients and asks:
+```text
+🔍 Detected compatible AI clients on your system:
+  • OpenCode (C:\Users\Hamid\.config\opencode\opencode.jsonc)
+  • Aider (~/.aider.conf.yml)
+  • Python SDK / Frameworks (~/.genesis/genesis.env)
+
+? Automatically activate GENESIS Proxy on these clients? [Y/n]: y
+```
+Once approved, GENESIS configures each client and shows a confirmed checkmark list:
+```text
+⚙️  Configuring clients for GENESIS Proxy (http://127.0.0.1:8000/v1)...
+──────────────────────────────────────────────────────────────────────────────
+  ✅ OpenCode                         -> C:\Users\Hamid\.config\opencode\opencode.jsonc
+  ✅ Aider                            -> ~/.aider.conf.yml
+  ✅ Python SDKs / Frameworks         -> ~/.genesis/genesis.env
+──────────────────────────────────────────────────────────────────────────────
+```
+And starts the background gateway automatically (`🟢 Online`).
+
+---
+
+### 🎨 Model Freedom: Choose Any Model on the Fly!
+
+You do **not** have to lock in or configure a model name up front during setup. You are completely free to pick **any model at any moment** directly inside your client:
+
+* **In OpenCode:**
+  Open your model selector (or press `Ctrl+P` / type `/model`). All models are neatly organized under the **`GENESIS Proxy`** category:
+  * `GENESIS Auto (Stateless)`
+  * `GPT-4o`
+  * `Claude 3.5 Sonnet` / `Claude 3.7 Sonnet`
+  * `DeepSeek V3` / `DeepSeek R1`
+  * `Gemini 2.0 Flash`
+  * *(or any custom model slug supported by your provider)*
+* **In Aider:**
+  Run `aider --model <any-model>` or let Aider use the proxy base URL directly.
+* **In Python / SDKs:**
+  Pass whatever model you want: `client.chat.completions.create(model="any-model-name", ...)`
+
+GENESIS Proxy dynamically passes through your requested model verbatim to your upstream provider while injecting subconscious memory and governance into every request.
+
+---
+
+### Managing the Background Proxy
+
 ```bash
-# Direct CLI launcher with live logging
-genesis-proxy --port 8000 --mode live --diet
-
-# Or targeting a custom upstream API endpoint
-genesis-proxy --port 8000 --upstream https://api.openai.com/v1 --mode live
+genesis proxy status    # Check status and health (🟢 Online or ⚪ Standby)
+genesis proxy stop      # Stop the background proxy
+genesis proxy start     # Start the background proxy (requires credentials)
+genesis proxy setup     # Re-configure provider URL, API key, or clients
 ```
+*Daemon logs are written to `~/.genesis/proxy.log` and active PID is tracked at `~/.genesis/proxy.pid`.*
 
-### 2. How Routing, APIs, and Keys Work
+---
+
+### How Routing, APIs, and Keys Work
 
 The proxy is completely **transparent and fail-open**:
 
 * **Upstream Routing:**
-  * Requests to `http://127.0.0.1:8000/v1/chat/completions` (OpenAI format) are forwarded to `GENESIS_UPSTREAM_URL` (default: `https://api.openai.com/v1`).
+  * Requests to `http://127.0.0.1:8000/v1/chat/completions` (OpenAI format) are forwarded to your configured Upstream Base URL (e.g. `https://openrouter.ai/api/v1/chat/completions`).
   * Requests to `http://127.0.0.1:8000/v1/messages` (Anthropic format) are forwarded to `GENESIS_ANTHROPIC_UPSTREAM_URL` (default: `https://api.anthropic.com/v1`).
 * **Model Pass-Through:**
-  * Whatever model your client requests (e.g. `gpt-4o`, `claude-3-5-sonnet`, `gemini-2.5-flash`), the proxy forwards verbatim to upstream.
-  * If the client specifies `model: "genesis-stateless"`, the proxy automatically maps it to `GENESIS_TARGET_MODEL` (default: `gemini-3.5-flash`).
+  * Whatever model your client requests (e.g. `gpt-4o`, `claude-3-5-sonnet`, `deepseek-chat`, `gpt 6 astra`), the proxy forwards verbatim to your upstream provider.
 * **API Key Forwarding:**
-  * **Client-Supplied (Primary):** The proxy forwards the client's `Authorization: Bearer <API_KEY>` or `x-api-key` header untouched.
-  * **Environment Fallback:** If the client sends `"not-needed"` or dummy credentials, the proxy uses your local environment variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `GENESIS_UPSTREAM_KEY`.
+  * **Configured Key:** The proxy automatically injects your configured upstream API key if the client sends `"not-needed"` or dummy credentials.
+  * **Client Header Pass-Through:** If the client provides its own `Authorization: Bearer <KEY>` header, the proxy forwards it directly.
+
 
 ### 3. Client Integration Recipes
 
