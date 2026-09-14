@@ -1,5 +1,23 @@
 # GENESIS Memory — Release Changelog
 
+## v0.13.0 (2026-09-14)
+
+- **Universal native-skill sync** (`genesis skill-sync`, free):
+  file-level union of `SKILL.md` folders across 7 client locations
+  (Claude Code, Antigravity, opencode, Cursor, Copilot, Codex, `.agents`
+  hub) with content-hash dedup, scan-coverage closure (no double links)
+  and a canonical store + manifest. Dry-run by default, `--apply` is
+  additive-only, `--revert` removes exactly what apply created (user files
+  never touched). Zero token overhead: pure filesystem ops, clients
+  discover via their own native `skill` tool. Drift reminder in
+  `genesis doctor` (non-vital WARN) + `genesis setup` hint.
+- **Watcher removal** (user-requested, schema v12): the universal
+  transcript watcher (`daemon/watcher.py`, ~800 lines of protobuf/heuristics
+  scraping) is deleted until a better capture design is found. Migration
+  v12 drops `watcher_state`/`watcher_lease`, deletes `watcher_*` counters
+  and legacy `watch:%` rows. Proxy + subconscious-hook ambient capture
+  remain the supported paths.
+
 ## v0.12.0 (2026-09-11)
 
 - **Output-side token governor** (`core/output_governor.py`, proxy + hook):
