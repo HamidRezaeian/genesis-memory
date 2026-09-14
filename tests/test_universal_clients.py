@@ -150,10 +150,18 @@ def test_wire_json_client_deep_merges(tmp_path):
     assert ok and "other" in data["servers"] and SERVER_KEY in data["servers"] and data["inputs"] == []
 
 
-def test_native_client_writes_nothing(tmp_path):
-    cfg = tmp_path / "ag"
+def test_antigravity_client_wires_mcp_and_hook(tmp_path, monkeypatch):
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    cfg = tmp_path / ".gemini" / "config" / "mcp_config.json"
     ok, msg = ClientRegistry.wire_client(_client("antigravity", cfg), DAEMON, DB, HOOK)
-    assert ok and "native" in msg.lower() and not cfg.exists()
+    assert ok
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    assert SERVER_KEY in data["mcpServers"]
+    hooks_file = tmp_path / ".gemini" / "config" / "hooks.json"
+    assert hooks_file.exists()
+    hooks_data = json.loads(hooks_file.read_text(encoding="utf-8"))
+    assert "genesis-memory" in hooks_data
+    assert "PreInvocation" in hooks_data["genesis-memory"]
 
 
 def test_opencode_plugin_template_invariants():
@@ -227,7 +235,7 @@ def test_export_all_writes_one_snippet_per_client(tmp_path):
     ctx = RenderContext.build(DAEMON, DB, HOOK)
     files = export_config.export_all(tmp_path, ctx)
     names = {f.name for f in files}
-    assert {"cursor.json", "codex_cli.toml", "emacs.el", "aider.yaml", "gateway.env", "neovim.lua", "antigravity.md"} <= names
+    assert {"cursor.json", "codex_cli.toml", "emacs.el", "aider.yaml", "gateway.env", "neovim.lua", "antigravity.json"} <= names
     assert len(files) == len(CLIENT_SPECS) + 2
 
 

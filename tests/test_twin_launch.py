@@ -64,7 +64,9 @@ def test_no_hard_import_of_private_package():
     assert hits == [], f"private-package references leak in public tree: {hits}"
 
 
-def test_extensions_subcommand_lists_empty_channel(capsys):
+def test_extensions_subcommand_lists_empty_channel(monkeypatch, capsys):
+    import genesis_memory.extensions as _ext
+    monkeypatch.setattr(_ext, "load_extensions", lambda: {})
     from genesis_memory.cli.run import main as cli_main
     assert cli_main(["extensions"]) == 0
     out = capsys.readouterr().out

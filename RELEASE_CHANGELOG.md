@@ -1,5 +1,21 @@
 # GENESIS Memory — Release Changelog
 
+## v0.14.0 (2026-09-14)
+
+- **Antigravity IDE PreInvocation Hook Auto-Wiring** (`genesis init`, `cli/client_registry.py`):
+  Eliminated the artificial `ConfigFormat.NATIVE` placeholder stub for Antigravity.
+  `genesis init` now automatically detects Antigravity IDE and seamlessly wires both:
+  1. MCP Tooling (`~/.gemini/config/mcp_config.json`)
+  2. PreInvocation Lifecycle Hook (`~/.gemini/config/hooks.json`), calling
+     `subconscious_hook.py` to inject ephemeral working memory (<200 tokens)
+     directly into Turn 0 of model invocations without manual configuration.
+- **100% Unmocked Empirical Benchmark Suite** (`genesis bench`, `eval/`):
+  Introduced a rigorous, zero-cheating evaluation harness across 5 suites:
+  `swe`, `locomo`, `trap`, `haystack`, and `diet`. Supports deterministic
+  subprocess execution and live frontier model API evaluation (`gemini-3.5-flash-lite`),
+  directly verifying epistemic retrieval and invariant adherence against real
+  `memory.db` state without synthetic prompt hints or fallback crutches.
+
 ## v0.13.0 (2026-09-14)
 
 - **Universal native-skill sync** (`genesis skill-sync`, free):

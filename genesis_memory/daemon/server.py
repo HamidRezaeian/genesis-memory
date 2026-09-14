@@ -523,7 +523,15 @@ class Store:
                         conflicting_id, conf_text, bm_score = row
                         conf_words = set(re.findall(r"[\w]{3,}", conf_text.lower())) - STOPWORDS
                         overlap = [t for t in terms if t in conf_words]
-                        if float(bm_score) < -2.0 or len(overlap) >= 2:
+                        min_req = min(3, len(terms))
+                        is_conflict = (
+                            text.strip().lower() != conf_text.strip().lower()
+                            and not text.strip().lower().startswith("agentic turn action:")
+                            and not conf_text.strip().lower().startswith("agentic turn action:")
+                            and len(overlap) >= min_req
+                            and (len(overlap) / max(len(terms), 1)) >= 0.5
+                        )
+                        if is_conflict:
                             sim_score = max(round(-float(bm_score), 2), round(len(overlap) / len(terms), 2))
                             self.db.execute(
                                 "INSERT INTO conflicts(ts, new_id, conflicting_id, similarity, status, updated) "

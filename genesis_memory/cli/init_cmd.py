@@ -92,7 +92,7 @@ def generate_plan(
                 continue
             if normalized_targets and client.id.lower() not in normalized_targets and client.name.lower() not in normalized_targets:
                 continue
-            if not client.configured and client.id != "antigravity":
+            if not client.configured:
                 plan.append({
                     "action": "WIRE_CLIENT",
                     "target": str(client.config_path),

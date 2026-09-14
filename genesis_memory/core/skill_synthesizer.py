@@ -168,7 +168,15 @@ class SkillSynthesizer:
         return cur.rowcount > 0
 
     def discover_skills_from_episodes(self, min_cluster_size: int = 2) -> List[Dict[str, Any]]:
-        """Analyzes verified decisions and outcomes to auto-synthesize candidate skills during REM sleep."""
+        """Analyzes verified decisions and outcomes to auto-synthesize candidate skills during REM sleep.
+
+        Zero-hardcoding invariant:
+        - Structural episode clustering: Groups episodes by pairwise keyword co-occurrence (Jaccard similarity).
+        - Recipe deduplication: Identical or duplicate recipes are consolidated with multiple trigger patterns
+          rather than spawning duplicate skill records.
+        - Dynamic entropy filtering: Words with high frequency (>60% of corpus) are statistically treated as
+          corpus noise rather than discriminative triggers.
+        """
         rows = self.db.execute(
             "SELECT id, project, kind, text, utility FROM episodes "
             "WHERE (status = 'active' OR status = 'solidified') "
@@ -176,36 +184,101 @@ class SkillSynthesizer:
             "ORDER BY updated DESC LIMIT 100"
         ).fetchall()
 
-        # Group by distinctive action clusters
-        clusters: Dict[str, List[Tuple[int, str, str]]] = {}
-        for eid, proj, kind, text, util in rows:
-            words = extract_keywords(text)
-            for w in words:
-                if len(w) >= 5:
-                    clusters.setdefault(w, []).append((eid, kind, text))
+        if not rows:
+            return []
 
+        # 1. Statistical token profiling (zero hardcoded dictionaries)
+        episodes = []
+        doc_freq: Dict[str, int] = {}
+        for eid, proj, kind, text, util in rows:
+            terms = set(extract_keywords(text, min_len=4))
+            if terms:
+                episodes.append((eid, kind, text, terms))
+                for t in terms:
+                    doc_freq[t] = doc_freq.get(t, 0) + 1
+
+        n_docs = len(episodes)
+        max_df = max(int(n_docs * 0.6), min_cluster_size + 1) if n_docs > 5 else n_docs + 1
+        filtered_episodes = []
+        for eid, kind, text, terms in episodes:
+            distinctive = {t for t in terms if doc_freq.get(t, 0) <= max_df}
+            if distinctive:
+                filtered_episodes.append((eid, kind, text, distinctive))
+
+        # 2. Cluster episodes by pairwise semantic overlap
+        clusters: List[Dict[str, Any]] = []
+        for eid, kind, text, terms in filtered_episodes:
+            matched_cluster = None
+            for c in clusters:
+                overlap = terms & c["shared_terms"]
+                jaccard = len(overlap) / max(len(terms | c["shared_terms"]), 1)
+                if len(overlap) >= 2 or jaccard >= 0.25:
+                    c["episodes"].append((eid, kind, text))
+                    c["shared_terms"] = overlap
+                    c["all_terms"].update(terms)
+                    matched_cluster = c
+                    break
+            if not matched_cluster:
+                clusters.append({
+                    "episodes": [(eid, kind, text)],
+                    "shared_terms": set(terms),
+                    "all_terms": set(terms)
+                })
+
+        # 3. Synthesize discrete, deduplicated skills
         synthesized = []
-        for keyword, group in clusters.items():
-            if len(group) >= min_cluster_size:
-                # We have multiple related episodes around a key topic
-                decisions = [t for _, k, t in group if k == "decision"]
-                outcomes = [t for _, k, t in group if k == "outcome"]
-                if decisions:
-                    sid = f"skill_auto_{keyword}"
-                    # Check if already exists
-                    exists = self.db.execute("SELECT id FROM skills WHERE id = ?", (sid,)).fetchone()
-                    if not exists:
-                        recipe = decisions[0][:180]
-                        triggers = [keyword]
-                        skill = self.create_or_update_skill(
-                            name=f"Auto-Synthesized {keyword.capitalize()} Heuristic",
-                            action_recipe=recipe,
-                            trigger_patterns=triggers,
-                            skill_id=sid,
-                            confidence=0.75,
-                            status="active",
+        existing_recipes = {
+            r[0].strip().lower(): r[1]
+            for r in self.db.execute("SELECT action_recipe, id FROM skills").fetchall()
+            if r[0]
+        }
+
+        for c in clusters:
+            if len(c["episodes"]) >= min_cluster_size:
+                decisions = [t for _, k, t in c["episodes"] if k == "decision"]
+                if not decisions:
+                    continue
+
+                recipe = decisions[0][:180].strip()
+                recipe_key = recipe.lower()
+
+                triggers = sorted(
+                    c["shared_terms"] if c["shared_terms"] else c["all_terms"],
+                    key=lambda w: (len(w), doc_freq.get(w, 0)),
+                    reverse=True
+                )[:5]
+                if not triggers:
+                    continue
+
+                primary_keyword = triggers[0]
+                sid = f"skill_auto_{primary_keyword}"
+
+                if recipe_key in existing_recipes:
+                    existing_id = existing_recipes[recipe_key]
+                    curr = self.db.execute("SELECT trigger_patterns FROM skills WHERE id = ?", (existing_id,)).fetchone()
+                    if curr and curr[0]:
+                        try:
+                            old_trigs = set(json.loads(curr[0]))
+                        except Exception:
+                            old_trigs = set()
+                        merged = sorted(list(old_trigs | set(triggers)))[:8]
+                        self.db.execute(
+                            "UPDATE skills SET trigger_patterns = ?, updated_at = ? WHERE id = ?",
+                            (json.dumps(merged, ensure_ascii=False), time.time(), existing_id)
                         )
-                        synthesized.append(skill)
+                        self.db.commit()
+                    continue
+
+                existing_recipes[recipe_key] = sid
+                skill = self.create_or_update_skill(
+                    name=f"Auto-Synthesized {primary_keyword.capitalize()} Heuristic",
+                    action_recipe=recipe,
+                    trigger_patterns=triggers,
+                    skill_id=sid,
+                    confidence=0.75,
+                    status="active",
+                )
+                synthesized.append(skill)
 
         return synthesized
 

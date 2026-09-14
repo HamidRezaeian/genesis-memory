@@ -314,6 +314,24 @@ def _aux_claude_code(_spec: ClientSpec, ctx: RenderContext) -> None:
     claude_json.write_text(merge_jsonc_file_content(existing, ctx.mcp_servers()), encoding="utf-8")
 
 
+def _aux_antigravity(_spec: ClientSpec, ctx: RenderContext) -> None:
+    gemini_dir = _home() / ".gemini" / "config"
+    gemini_dir.mkdir(parents=True, exist_ok=True)
+    hooks_file = gemini_dir / "hooks.json"
+    patch = {
+        "genesis-memory": {
+            "PreInvocation": [
+                {
+                    "type": "command",
+                    "command": f'"{ctx.python_bin}" "{ctx.hook}"'
+                }
+            ]
+        }
+    }
+    existing = hooks_file.read_text(encoding="utf-8") if hooks_file.exists() else ""
+    hooks_file.write_text(merge_jsonc_file_content(existing, patch), encoding="utf-8")
+
+
 def opencode_plugin_source() -> str:
     """OpenCode plugin (TIER-1 hardened; logs lengths only — content never logged)."""
     return (TEMPLATES_DIR / "opencode_plugin.js").read_text(encoding="utf-8")
@@ -401,7 +419,19 @@ def _claude_code_configured(text: str) -> bool:
 
 
 def _antigravity_detect(p: Path) -> bool:
-    return p.parent.exists() or (Path.cwd() / ".agents").exists()
+    return p.parent.exists() or (Path.cwd() / ".agents").exists() or (_home() / ".gemini").exists()
+
+
+def _antigravity_configured(p: Path) -> bool:
+    try:
+        mcp_ok = _json_has(["mcpServers", SERVER_KEY])(p)
+        hooks_path = p.parent / "hooks.json"
+        if not hooks_path.exists():
+            return False
+        hooks_data = parse_jsonc(hooks_path.read_text(encoding="utf-8"))
+        return mcp_ok and SERVER_KEY in hooks_data
+    except Exception:
+        return False
 
 
 def _frameworks_detect(_p: Path) -> bool:
@@ -455,10 +485,12 @@ CLIENT_SPECS: List[ClientSpec] = [
     ),
     ClientSpec(
         id="antigravity", name="Antigravity IDE", family=ClientFamily.IDE,
-        capabilities=[ClientCapability.MCP, ClientCapability.HOOK], format=ConfigFormat.NATIVE,
-        config_path=lambda: _home() / ".gemini" / "antigravity-ide" / "mcp",
-        detect=_antigravity_detect, render=_r_native, is_configured=_always,
-        details="Native built-in integration (.agents/mcp_config.json + .agents/hooks.json)",
+        capabilities=[ClientCapability.MCP, ClientCapability.HOOK], format=ConfigFormat.JSON,
+        config_path=lambda: _home() / ".gemini" / "config" / "mcp_config.json",
+        detect=_antigravity_detect, render=_r_mcp_servers,
+        is_configured=_antigravity_configured,
+        details="Tri-Modal: mcp_config.json + Antigravity PreInvocation lifecycle hook (hooks.json)",
+        docs_url="https://antigravity.google/docs", aux_wire=_aux_antigravity,
     ),
     ClientSpec(
         id="windsurf", name="Windsurf (Codeium)", family=ClientFamily.IDE,
