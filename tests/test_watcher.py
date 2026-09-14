@@ -38,7 +38,15 @@ def store(tmp_path):
 
 def _make_steps_db(path, user_texts, assistant_texts=None,
                    user_step=14, assistant_step=15):
-    """Synthetic conversation-steps DB: user steps + assistant steps + noise."""
+    """Synthetic conversation-steps DB: user steps + assistant steps + noise.
+
+    Test fixture literals (``"1+1=?"``, ``"2"``) are NOT the same as the
+    prohibited ``client-specific hardcoding`` in engine logic. These are
+    *parameterized sample data* — the function accepts any text and any
+    step codes (proven by ``test_step_type_codes_are_row_params`` with
+    codes 1/2). The specific values here are a regression anchor for the
+    +2 post-mortem that motivated the watcher.
+    """
     con = sqlite3.connect(path)
     con.execute(
         "CREATE TABLE steps(idx INTEGER PRIMARY KEY, step_type INTEGER, "
