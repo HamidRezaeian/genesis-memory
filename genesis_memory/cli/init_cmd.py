@@ -239,6 +239,23 @@ def generate_mcp_snippet(dest_path: Path) -> None:
     dest_path.write_text(json.dumps(snippet, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def _print_skill_drift_hint(prefix="  ") -> None:
+    """Read-only native-skill drift hint. Prints nothing when in sync.
+
+    Never writes, never raises: setup must not fail or spam because of an
+    informational reminder.
+    """
+    try:
+        from genesis_memory.cli.skill_sync import sync_status
+        st = sync_status()
+    except Exception:
+        return
+    if not st or not st["union"] or (not st["pending"] and not st["conflicts"]):
+        return
+    print(f"{prefix}Native skills: {st['union']} found, {st['pending']} pending links "
+          f"— run 'genesis skill-sync --apply' to share across clients")
+
+
 def run_init(
     auto_confirm: bool = False,
     revert: bool = False,
@@ -279,6 +296,7 @@ def run_init(
     if not plan:
         if not quiet:
             print("  ✅ All GENESIS components and clients are already initialized.")
+            _print_skill_drift_hint()
             print("  Run 'genesis doctor' to verify overall system health.")
         return 0
 
@@ -392,6 +410,7 @@ def run_init(
             print("  - To execute tools without context spam: genesis run -- <command>")
             print("  - To run full system diagnostics:        genesis doctor")
             print("  - To undo these changes at any time:    genesis setup --revert")
+            _print_skill_drift_hint(prefix="  - ")
             print("=" * 78)
 
         return 0

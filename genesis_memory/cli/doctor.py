@@ -5,7 +5,8 @@ Performs comprehensive pre-flight, runtime, and environmental integrity checks:
 2. Local ~/.genesis Storage & SQLite WAL Memory DB.
 3. Rule 31 Host RSS Budget & Physical Grounding.
 4. Rule 32 Universal Spooling Engine & CLI Allowlist.
-5. On-Demand Stateless Proxy & Telemetry Dashboard Ports.
+  5. On-Demand Stateless Proxy & Telemetry Dashboard Ports.
+  6. Native SKILL.md drift across AI clients (read-only reminder).
 """
 
 import os
@@ -122,6 +123,25 @@ def check_client_integrations() -> Tuple[bool, str, str]:
     return True, "No external clients detected", "Snippet available at ~/.genesis/mcp_snippet.json"
 
 
+def check_skill_sync_drift() -> Tuple[bool, str, str]:
+    """Native-skill union drift (read-only). Non-vital: WARN at most, never FAIL."""
+    from genesis_memory.cli.skill_sync import sync_status
+    try:
+        st = sync_status()
+    except Exception as exc:
+        return True, "Check skipped", f"skill inventory failed: {type(exc).__name__}"
+    if not st or st["union"] == 0:
+        return True, "No native skills detected", "Install a SKILL.md skill, then run: genesis skill-sync"
+    if st["pending"] == 0 and st["conflicts"] == 0:
+        return True, f"In sync ({st['union']} skills across {st['locations']} locations)", "Run 'genesis skill-sync' for details"
+    bits = []
+    if st["pending"]:
+        bits.append(f"{st['pending']} pending links")
+    if st["conflicts"]:
+        bits.append(f"{st['conflicts']} conflicts")
+    return False, f"{st['union']} skills, {', '.join(bits)}", "Run 'genesis skill-sync --apply' to share across clients"
+
+
 def run_doctor(verbose: bool = False) -> int:
     """Executes all diagnostics and prints a structured, high-legibility report."""
     print("=" * 68)
@@ -139,6 +159,7 @@ def run_doctor(verbose: bool = False) -> int:
         ("Telemetry Observation Deck", check_dashboard_telemetry, False),
         ("Rule 32 Spooling Engine", check_cli_spooler, True),
         ("AI Client Integrations", check_client_integrations, False),
+        ("Native Skill Sync", check_skill_sync_drift, False),
     ]
 
     all_vital_passed = True

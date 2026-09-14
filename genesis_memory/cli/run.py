@@ -290,6 +290,7 @@ USAGE_TEXT = (
     "  upgrade        1-Click self-upgrade to the latest official release\n"
     "  sleep          Biomimetic consolidation cycle (--now | --daemon)\n"
     "  skills         List synthesized procedural skills\n"
+  "  skill-sync     Sync native SKILL.md folders across clients (dry-run default, --apply)\n"
     "  sync           Personal device sync: memory follows you · Pro\n"
     "  backup         Encrypted snapshots + point-in-time restore · Pro\n"
     "  extensions     List installed commercial (genesis-pro) extensions\n"
@@ -409,6 +410,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 0
         finally:
             conn.close()
+
+    if subcmd in ("skill-sync", "skill_sync", "skills-sync", "sync-skills"):
+        from genesis_memory.cli.skill_sync import main as skill_sync_main
+        return skill_sync_main(args[1:])
 
     if subcmd in ("license", "auth"):
         from genesis_memory.extensions import get_pro_handler, pro_required
