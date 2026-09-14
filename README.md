@@ -23,9 +23,7 @@
   while collapsing 4,000-line tool outputs into 84-token pointers and cutting outbound tokens by 70.4% via transparent output diet.
 </p>
 
-<p align="center">
-  <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><strong>🌐 Official Website &amp; Interactive Playground &rarr;</strong></a>
-</p>
+
 
 ---
 
