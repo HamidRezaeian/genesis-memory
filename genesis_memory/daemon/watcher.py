@@ -126,7 +126,8 @@ def _is_tool_noise(text):
         return True
     if " " not in text and not re.search(r"[\u0600-\u06FF]", text):
         # Bare tokens: hostnames, versions, drive labels — never a message.
-        if "." in text or text.endswith(":"):
+        # But Persian text ending with ":" is a heading, not noise.
+        if "." in text or (text.endswith(":") and not re.search(r"[\u0600-\u06FF]", text)):
             return True
     return any(rx.search(text) for rx in _TOOL_NOISE_RES)
 
@@ -287,14 +288,13 @@ def parse_chat_parts(db_path, after_ms=0, limit=SCAN_LIMIT):
 def _pick_assistant_text(candidates):
     """Pick the assistant's reply from protobuf-extracted candidates.
 
-    Rule 1: candidates starting with `*` (0x2A = protobuf field 5,
-    length-delimited string = the response text field). Strip the marker,
-    drop agent IDs/hashes, concatenate fragments in order.
-    Rule 2: short responses are split from their `*` marker by the length
-    byte — fall back to the first short clean candidate AFTER a long
-    (>20 char) metadata candidate (session ID / hash / agent ID).
-    Rule 3: fallback to the first clean candidate.
+    Two modes:
+    1. ``*``-prefixed candidates (protobuf field 5, length-delimited).
+       Strip the marker, drop agent IDs, return if short and clean.
+    2. Shortest clean candidate after a long metadata string (sessionID,
+       hash, bot-ID). Fallback to first clean short candidate.
     """
+    # Mode 1: *-prefixed (protobuf response field)
     parts = []
     for cand in candidates:
         if not cand.startswith("*") or len(cand) < 2:
@@ -302,18 +302,22 @@ def _pick_assistant_text(candidates):
         text = cand[1:]
         if _AGENT_ID_RE.search(text):
             continue
-        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
+        text_stripped = text.replace("\n", "")
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text_stripped):
             continue
-        if _is_tool_noise(text):
+        if _is_tool_noise(text_stripped):
             continue
         if len(text) > 140:
             continue
         parts.append(text)
     if parts:
-        if len(parts[0]) <= 3:
-            return parts[0]  # complete short answer (e.g. "۴", "5")
+        # If first part is short numeric, it's the answer
+        if len(parts[0]) <= 10 and re.fullmatch(r"[\d\u06F0-\u06F9]+", parts[0]):
+            return parts[0]
         return " ".join(parts)[:280]
+    # Mode 2: shortest clean candidate after metadata
     seen_long = False
+    best_short = ""
     for cand in candidates:
         if _is_tool_noise(cand):
             continue
@@ -325,13 +329,17 @@ def _pick_assistant_text(candidates):
             seen_long = True
             continue
         if seen_long and len(cand) <= 10:
-            return cand
+            if not best_short or len(cand) < len(best_short):
+                best_short = cand
+    if best_short:
+        return best_short
+    # Fallback: first clean short candidate
     for cand in candidates:
         if _is_tool_noise(cand):
             continue
         if _SINGLE_JUNK_RE.match(cand):
             continue
-        if len(cand) > 140:
+        if len(cand) > 60:
             continue
         return cand
     return ""
