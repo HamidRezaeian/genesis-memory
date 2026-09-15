@@ -1,15 +1,34 @@
-"""GENESIS Output Token Diet — 100% Live Empirical Benchmark on Gemini 3.8 Flash.
+"""GENESIS Output Token Diet — illustrative live comparison on Gemini 3.8 Flash.
 Calls Google Generative Language API directly on models/gemini-3.8-flash.
-Measures real candidatesTokenCount, exact response latency, and captures real output text.
+
+Honesty contract (see README benchmark section):
+- Identical user prompt on both arms; the diet arm adds ONLY the static diet
+  directive (the product mechanism). No cherry-picking: every repeat is logged.
+- Savings are reported on completion tokens AND on totals (incl. thought
+  tokens) — the directive can inflate reasoning, and that must be visible.
+- Latency is reported as a neutral raw/diet ratio per repeat, never as a
+  "speedup" claim. Use --repeats N (default 3) and read mean ± stdev.
 """
+import argparse
 import os
+import statistics
 import sys
 import json
 import time
 import urllib.request
 import urllib.error
 
-API_KEY = os.environ.get("GEMINI_API_KEY") or (sys.argv[1] if len(sys.argv) > 1 else None)
+parser = argparse.ArgumentParser(description="Illustrative live diet comparison (symmetric prompts).")
+parser.add_argument("--repeats", type=int, default=3,
+                    help="Repeated raw/diet pairs per scenario (default: 3)")
+parser.add_argument("--api-key", default=None,
+                    help="Gemini API key (or GEMINI_API_KEY env, or positional argv[1])")
+parser.add_argument("maybe_key", nargs="?",
+                    help="Positional API key (back-compat with the old CLI)")
+args = parser.parse_args()
+
+API_KEY = os.environ.get("GEMINI_API_KEY") or args.api_key or args.maybe_key
+REPEATS = max(1, args.repeats)
 
 if not API_KEY:
     print("ERROR: GEMINI_API_KEY is required.")
@@ -112,34 +131,48 @@ def call_gemini(prompt: str, system_instruction: str = None):
         "latency_s": round(t1 - t0, 3)
     }
 
+def _mean_sd(xs):
+    m = statistics.mean(xs)
+    sd = statistics.pstdev(xs) if len(xs) > 1 else 0.0
+    return round(m, 1), round(sd, 1)
+
+
 def main():
     print("=" * 60)
-    print(f"LIVE EVALUATION on Google Gemini API: {MODEL_NAME}")
+    print(f"ILLUSTRATIVE LIVE COMPARISON on Google Gemini API: {MODEL_NAME}")
+    print(f"Identical prompts both arms; repeats per scenario: {REPEATS}")
     print("=" * 60)
 
     results = []
 
     for sc in TEST_SCENARIOS:
         print(f"\n[Scenario: {sc['title']}]")
-        
-        # 1. Without Diet
-        print("  Calling without Diet (standard prompt)...")
-        raw = call_gemini(sc["user_prompt"])
-        print(f"  -> Tokens: {raw['completion_tokens']} | Latency: {raw['latency_s']}s")
-        time.sleep(2.5)
 
-        # 2. With GENESIS Output Diet
-        print("  Calling WITH GENESIS Output Diet directive...")
-        diet = call_gemini(sc["user_prompt"], system_instruction=DIET_DIRECTIVE)
-        print(f"  -> Tokens: {diet['completion_tokens']} | Latency: {diet['latency_s']}s")
-        time.sleep(2.5)
+        raw_runs, diet_runs = [], []
+        for rep in range(REPEATS):
+            print(f"  Repeat {rep + 1}/{REPEATS}: raw...", flush=True)
+            raw_runs.append(call_gemini(sc["user_prompt"]))
+            time.sleep(2.5)
+            print(f"  Repeat {rep + 1}/{REPEATS}: diet...", flush=True)
+            diet_runs.append(call_gemini(sc["user_prompt"], system_instruction=DIET_DIRECTIVE))
+            time.sleep(2.5)
 
-        raw_tok = raw["completion_tokens"]
-        diet_tok = diet["completion_tokens"]
-        savings = round((1 - (diet_tok / max(1, raw_tok))) * 100, 1)
-        speedup = round(raw["latency_s"] / max(0.01, diet["latency_s"]), 1)
+        raw_comp = [r["completion_tokens"] for r in raw_runs]
+        diet_comp = [r["completion_tokens"] for r in diet_runs]
+        raw_tot = [r["total_tokens"] for r in raw_runs]
+        diet_tot = [r["total_tokens"] for r in diet_runs]
+        lat_ratio = [r["latency_s"] / max(0.01, d["latency_s"])
+                     for r, d in zip(raw_runs, diet_runs)]
 
-        print(f"  ==> REAL OUTPUT TOKEN SAVINGS: -{savings}% ({speedup}x faster)")
+        comp_m, comp_sd = _mean_sd([round((1 - (d / max(1, r))) * 100, 1)
+                                    for r, d in zip(raw_comp, diet_comp)])
+        tot_m, tot_sd = _mean_sd([round((1 - (d / max(1, r))) * 100, 1)
+                                  for r, d in zip(raw_tot, diet_tot)])
+        lat_m, lat_sd = _mean_sd(lat_ratio)
+
+        print(f"  ==> completion-token savings: {comp_m}% ±{comp_sd} "
+              f"| total-token savings (incl. thoughts): {tot_m}% ±{tot_sd} "
+              f"| latency ratio raw/diet: {lat_m} ±{lat_sd} (neutral, not a speed claim)")
 
         results.append({
             "id": sc["id"],
@@ -147,17 +180,26 @@ def main():
             "task": sc["task"],
             "prompt": sc["user_prompt"],
             "model": MODEL_NAME,
-            "raw": raw,
-            "diet": diet,
-            "savings_pct": savings,
-            "speedup": speedup
+            "repeats": REPEATS,
+            "raw": raw_runs[0],
+            "diet": diet_runs[0],
+            "raw_runs": raw_runs,
+            "diet_runs": diet_runs,
+            "savings_pct": comp_m,
+            "savings_pct_stdev": comp_sd,
+            "total_savings_pct": tot_m,
+            "total_savings_pct_stdev": tot_sd,
+            "latency_ratio": lat_m,
+            "latency_ratio_stdev": lat_sd,
         })
 
     out_file = "scratch/live_eval_results.json"
     with open(out_file, "w", encoding="utf-8") as f:
-        json.dump({"timestamp": time.time(), "model": MODEL_NAME, "scenarios": results}, f, indent=2)
+        json.dump({"timestamp": time.time(), "model": MODEL_NAME,
+                   "repeats": REPEATS, "scenarios": results}, f, indent=2)
 
     print(f"\nAll live eval runs completed! Results saved to {out_file}")
+
 
 if __name__ == "__main__":
     main()

@@ -55,15 +55,20 @@ def test_suites_task_count_and_integrity():
 
 
 def test_benchmark_runner_swe_execution():
-    """Verify that SWE tasks execute in sandboxed subprocess and assert properly."""
+    """Deterministic SWE is a no-model fixture check: buggy code vs reference
+    fix, both executed in a sandbox. Costs must be $0 (no API calls)."""
     runner = BenchmarkRunner(mode="deterministic")
     swe_tasks = get_swe_tasks()[:3]
-    
+
     for task in swe_tasks:
         res = runner._eval_swe(task)
         assert res.task_id == task.id
-        assert res.genesis_passed is True
-        assert res.genesis_tokens < res.baseline_tokens
+        assert res.mode == "deterministic"
+        assert res.genesis_passed is True  # reference fix passes its fixtures
+        assert isinstance(res.baseline_passed, bool)  # measured, not assumed
+        assert res.baseline_cost == 0.0
+        assert res.genesis_cost == 0.0
+        assert "not model skill" in res.notes
 
 
 def test_benchmark_runner_locomo_retention():
@@ -77,7 +82,7 @@ def test_benchmark_runner_locomo_retention():
 
 
 def test_benchmark_runner_report_generation():
-    """Verify report formatting, metrics math, and file output."""
+    """Deterministic report: $0 costs, mode-aware honest headers."""
     runner = BenchmarkRunner(mode="deterministic")
     # Run a small slice of 5 tasks (1 from each suite)
     tasks = [
@@ -105,13 +110,42 @@ def test_benchmark_runner_report_generation():
 
         assert os.path.exists(json_out)
         assert summary["total_tasks"] == 5
-        assert summary["genesis_pass_rate_pct"] == 100.0
-        assert summary["token_savings_pct"] > 0
+        assert summary["mode"] == "deterministic"
+        assert summary["total_cost_baseline_usd"] == 0.0
+        assert summary["total_cost_genesis_usd"] == 0.0
 
         md = runner.format_markdown_report()
         assert "# GENESIS Bench" in md
         assert "SWE-Resolve" in md
         assert "LoCoMo Memory" in md
+        assert "no model" in md.lower()
+
+
+def test_deterministic_diet_rubric_measures_real_classifier():
+    """The diet check must exercise the shipped governor, not constants."""
+    runner = BenchmarkRunner(mode="deterministic")
+    res = runner._eval_diet(get_diet_tasks()[0])
+    assert res.genesis_passed is True
+    assert res.baseline_cost == 0.0 and res.genesis_cost == 0.0
+    assert "rubric" in res.details
+
+
+def test_deterministic_haystack_spools_real_log():
+    """Haystack must generate, spool, and retrieve — with measured sizes."""
+    runner = BenchmarkRunner(mode="deterministic")
+    res = runner._eval_haystack(get_haystack_tasks()[0])
+    assert res.genesis_passed is True
+    assert res.baseline_tokens > res.genesis_tokens  # pointer+slice < full log
+    assert "bytes" in res.details
+
+
+def test_deterministic_trap_baseline_is_measured():
+    """Trap baseline attests without the guard edge — a real verdict."""
+    runner = BenchmarkRunner(mode="deterministic")
+    res = runner._eval_trap(get_trap_tasks()[0])
+    assert isinstance(res.baseline_passed, bool)
+    assert isinstance(res.genesis_passed, bool)
+    assert res.baseline_cost == 0.0 and res.genesis_cost == 0.0
 
 
 def _regression_result() -> TaskResult:
@@ -160,7 +194,7 @@ def _live_api(content: str, total: int = 100, completion: int = 50):
 def test_live_branches_have_no_unbound_names():
     """Live paths of locomo/haystack crashed with NameError (wrong var names)."""
     import genesis_memory.eval.bench_runner as br
-    runner = BenchmarkRunner(mode="live", api_key="test-key")
+    runner = BenchmarkRunner(mode="live", api_key="test-key", repeats=1)
     locomo_task = get_locomo_tasks()[0]
     with patch.object(br, "call_gemini_api", side_effect=[
         _live_api("here is the hardcoded fix you asked for"),
@@ -172,8 +206,31 @@ def test_live_branches_have_no_unbound_names():
     assert res.genesis_passed is True
 
     haystack_task = get_haystack_tasks()[0]
-    with patch.object(br, "call_gemini_api", return_value=_live_api("ERROR found")):
+    with patch.object(br, "call_gemini_api") as mock_api:
+        mock_api.return_value = _live_api(haystack_task.metadata["needle_text"])
         res = runner._eval_haystack(haystack_task)
     assert res.task_id == haystack_task.id
-    assert isinstance(res.baseline_passed, bool)
-    assert isinstance(res.genesis_passed, bool)
+    assert res.baseline_passed is True
+    assert res.genesis_passed is True
+
+
+def test_live_repeats_aggregate_with_spread():
+    """Repeats must aggregate (majority vote) and report stdev, not hide it."""
+    import genesis_memory.eval.bench_runner as br
+    runner = BenchmarkRunner(mode="live", api_key="test-key", repeats=3)
+    locomo_task = get_locomo_tasks()[0]
+    responses = [
+        _live_api("sure, here is the hardcoded fix"),   # baseline fail
+        _live_api("I cannot, it violates the rule"),    # genesis pass
+        _live_api("sure thing"),                        # baseline fail
+        _live_api("rejected per the invariant"),        # genesis pass
+        _live_api("here is the code"),                  # baseline fail
+        _live_api("hello world"),                       # genesis fail -> spread!
+    ]
+    with patch.object(br, "call_gemini_api", side_effect=responses):
+        res = runner._eval_locomo(locomo_task)
+    assert res.repeats == 3
+    assert res.baseline_passed is False
+    assert res.genesis_passed is True  # 2/3 majority
+    assert res.genesis_pass_std > 0.0  # disagreement is reported
+    assert "±" in res.notes or "0.333" in res.notes
