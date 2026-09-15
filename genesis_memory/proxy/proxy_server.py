@@ -20,6 +20,7 @@ import time
 import uuid
 from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 import aiohttp
 from aiohttp import web
@@ -48,6 +49,54 @@ from genesis_memory.proxy.content_compressor import (
 from genesis_memory.proxy.pricing_engine import ModelPricingEngine
 
 logger = logging.getLogger("genesis.proxy")
+
+
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def is_loopback_host(host_header: str) -> bool:
+    """True when a Host header targets this machine's loopback interface.
+
+    The proxy binds loopback only; a foreign Host (e.g. ``evil.com`` after
+    DNS rebinding to 127.0.0.1) is rejected with 403 before any handler runs.
+    """
+    raw = (host_header or "").strip().lower()
+    if raw.startswith("["):
+        host = raw.split("]")[0].lstrip("[")
+    elif raw.count(":") == 1:
+        host = raw.split(":")[0]
+    else:
+        host = raw  # bare IPv6 literal (e.g. ::1) or empty
+    return host in LOOPBACK_HOSTS
+
+
+@web.middleware
+async def loopback_only_middleware(request: web.Request, handler) -> web.StreamResponse:
+    if not is_loopback_host(request.host):
+        return web.json_response(
+            {"error": "forbidden: GENESIS proxy serves loopback clients only"},
+            status=403,
+        )
+    return await handler(request)
+
+
+def cors_allow_loopback_origin(request: web.Request, resp: web.StreamResponse) -> web.StreamResponse:
+    """Reflects Origin only for loopback pages (e.g. the local dashboard).
+
+    A blanket ``Access-Control-Allow-Origin: *`` lets any malicious website
+    read proxy responses through the visitor's browser; reflecting only
+    loopback origins keeps the local dashboard working while evil.com gets
+    no read access.
+    """
+    origin = request.headers.get("Origin", "")
+    try:
+        host = (urlsplit(origin).hostname or "").lower()
+    except Exception:
+        host = ""
+    if host in LOOPBACK_HOSTS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Vary"] = "Origin"
+    return resp
 
 
 # Static output-diet directive (prefix-cache stable). Instructs terse prose
@@ -460,7 +509,7 @@ class GenesisProxyServer:
         # start a fresh chain instead of faking a "restarted" delta.
         self.instance_id = uuid.uuid4().hex[:12]
         self.boot_ts = time.time()
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[loopback_only_middleware])
         self.client_session: Optional[aiohttp.ClientSession] = None
         self._setup_routes()
 
@@ -590,8 +639,7 @@ class GenesisProxyServer:
         if text is None:
             return web.json_response({"error": "unknown or expired recovery id"}, status=404)
         resp = web.json_response({"id": rid, "chars": len(text), "text": text})
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return cors_allow_loopback_origin(request, resp)
 
     async def handle_health(self, request: web.Request) -> web.Response:
         return web.json_response({
@@ -627,8 +675,7 @@ class GenesisProxyServer:
             model_id=self.target_model or "gemini-3.5-flash",
         )
         resp = web.json_response(snap)
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return cors_allow_loopback_origin(request, resp)
 
     async def handle_pricing(self, request: web.Request) -> web.Response:
         q = request.query.get("q", "").lower().strip()
@@ -672,8 +719,7 @@ class GenesisProxyServer:
             "active_model": self.target_model or "gemini-3.5-flash",
             "models": models,
         })
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return cors_allow_loopback_origin(request, resp)
 
     async def handle_pricing_refresh(self, request: web.Request) -> web.Response:
         count = self.pricing_engine.refresh_catalog_sync()
@@ -682,8 +728,7 @@ class GenesisProxyServer:
             "count": count,
             "timestamp": self.pricing_engine._last_fetched,
         })
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return cors_allow_loopback_origin(request, resp)
 
     async def handle_telemetry_reset(self, request: web.Request) -> web.Response:
         self.telemetry.reset()

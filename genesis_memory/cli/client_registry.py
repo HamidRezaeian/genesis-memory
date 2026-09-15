@@ -237,9 +237,12 @@ def _r_opencode(ctx: RenderContext) -> Dict[str, Any]:
 
 
 def _r_claude_code(ctx: RenderContext) -> Dict[str, Any]:
+    # Claude Code has no "PrePrompt" event (it would install silently dead);
+    # the prompt-submission lifecycle event is "UserPromptSubmit", which takes
+    # no matcher (matchers on it are silently ignored per official docs).
     return {
         "env": {"GENESIS_DAEMON_DB": ctx.db},
-        "hooks": {"PrePrompt": [{"matcher": ".*", "hooks": [
+        "hooks": {"UserPromptSubmit": [{"hooks": [
             {"type": "command", "command": f'"{ctx.python_bin}" "{ctx.hook}" --claude'}]}]},
     }
 
@@ -471,7 +474,7 @@ CLIENT_SPECS: List[ClientSpec] = [
         format=ConfigFormat.JSON,
         config_path=lambda: _home() / ".claude" / "settings.json",
         detect=_parent_exists, render=_r_claude_code, is_configured=_claude_code_configured,
-        details="Tri-Modal: PrePrompt lifecycle hook (settings.json), stdio MCP (~/.claude.json) & headless runner flags",
+        details="Tri-Modal: UserPromptSubmit lifecycle hook (settings.json), stdio MCP (~/.claude.json) & headless runner flags",
         docs_url="https://docs.anthropic.com/en/docs/claude-code/mcp", aux_wire=_aux_claude_code,
         aliases=["claude"],
     ),

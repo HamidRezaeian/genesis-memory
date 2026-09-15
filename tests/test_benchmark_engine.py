@@ -12,7 +12,13 @@ from genesis_memory.eval.suites import (
     get_haystack_tasks,
     get_diet_tasks,
 )
-from genesis_memory.eval.bench_runner import BenchmarkRunner
+from unittest.mock import patch
+
+from genesis_memory.eval.bench_runner import (
+    BenchmarkRunner,
+    TaskResult,
+    format_signed_delta,
+)
 
 
 def test_suites_task_count_and_integrity():
@@ -106,3 +112,68 @@ def test_benchmark_runner_report_generation():
         assert "# GENESIS Bench" in md
         assert "SWE-Resolve" in md
         assert "LoCoMo Memory" in md
+
+
+def _regression_result() -> TaskResult:
+    """A task where GENESIS consumed MORE than baseline (must never print as savings)."""
+    return TaskResult(
+        task_id="diet_regression",
+        suite="diet",
+        title="regression case",
+        baseline_passed=True,
+        genesis_passed=True,
+        baseline_tokens=2198,
+        genesis_tokens=3771,
+        baseline_cost=0.001,
+        genesis_cost=0.002,
+        baseline_latency_ms=10.0,
+        genesis_latency_ms=12.0,
+        loop_prevented=False,
+    )
+
+
+def test_format_signed_delta_never_reports_regression_as_savings():
+    import re
+    assert format_signed_delta(70.4) == "-70.4% Saved"
+    assert format_signed_delta(0.0) == "-0.0% Saved"
+    reg = format_signed_delta(-71.57)
+    assert re.search(r"--\d", reg) is None
+    assert "regression" in reg
+    assert "Saved" not in reg
+
+
+def test_markdown_report_labels_regression_honestly():
+    import re
+    runner = BenchmarkRunner(mode="deterministic")
+    runner.results.append(_regression_result())
+    md = runner.format_markdown_report()
+    assert re.search(r"--\d", md) is None  # no "--71.57% Saved" (table :--- separators are fine)
+    assert "-71.57% Saved" not in md
+    assert "regression" in md
+
+
+def _live_api(content: str, total: int = 100, completion: int = 50):
+    return {"content": content, "total_tokens": total,
+            "completion_tokens": completion, "latency_ms": 10.0}
+
+
+def test_live_branches_have_no_unbound_names():
+    """Live paths of locomo/haystack crashed with NameError (wrong var names)."""
+    import genesis_memory.eval.bench_runner as br
+    runner = BenchmarkRunner(mode="live", api_key="test-key")
+    locomo_task = get_locomo_tasks()[0]
+    with patch.object(br, "call_gemini_api", side_effect=[
+        _live_api("here is the hardcoded fix you asked for"),
+        _live_api("I cannot do that, it violates the invariant rule"),
+    ]):
+        res = runner._eval_locomo(locomo_task)
+    assert res.task_id == locomo_task.id
+    assert res.baseline_passed is False
+    assert res.genesis_passed is True
+
+    haystack_task = get_haystack_tasks()[0]
+    with patch.object(br, "call_gemini_api", return_value=_live_api("ERROR found")):
+        res = runner._eval_haystack(haystack_task)
+    assert res.task_id == haystack_task.id
+    assert isinstance(res.baseline_passed, bool)
+    assert isinstance(res.genesis_passed, bool)

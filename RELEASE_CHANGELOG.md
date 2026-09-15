@@ -1,5 +1,29 @@
 # GENESIS Memory — Release Changelog
 
+## v0.14.2 (2026-09-16)
+
+- **P0 external-audit remediation (benchmark honesty + proxy security)**:
+  1. README no longer advertises a 70.4% saving (mean-of-rates); the table now
+     shows the true token-weighted aggregate (−66.2%) and is labeled
+     illustrative (n=3, single pass, no repeats).
+  2. `format_signed_delta()` in `eval/bench_runner.py`: regressions can no
+     longer render as `--71.57% Saved` (template bug fixed; `BENCHMARK_REPORT.md`
+     corrected to `+71.57% (regression)`); fixed live-mode `NameError` crashes
+     in the locomo/haystack evaluators (wrong variable names).
+  3. Claude Code hook event fixed: `PrePrompt` (silently dead — no such event)
+     → `UserPromptSubmit` (matcher dropped: officially ignored for this event),
+     with a guard test pinning the event name to Anthropic's documented set.
+  4. Proxy key no longer passed on child argv (`supervisor.build_proxy_cmd`;
+     env-only) — argv is world-readable via `/proc/<pid>/cmdline`.
+  5. Upstream SSRF guard (`_classify_upstream_host`): link-local/cloud-metadata
+     ranges hard-blocked; loopback/RFC1918/on-prem hosts require explicit
+     confirmation (`--allow-private-upstream`, incl. `genesis setup --proxy`
+     passthrough); proxy enforces loopback-only `Host` (403 otherwise) and
+     reflects `Origin` only for loopback pages instead of `ACAO: *`.
+  6. Dropped 5 unused runtime dependencies (fastapi, uvicorn, websockets,
+     pydantic, requests) — only aiohttp is imported; fixed stale daemon
+     docstring ("exactly 4" tools).
+
 ## v0.14.1 (2026-09-15)
 
 - **Fresh-install audit: `pip install genesis-memory && genesis setup` is now verified end-to-end**

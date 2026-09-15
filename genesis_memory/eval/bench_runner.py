@@ -135,6 +135,18 @@ def extract_python_code(text: str) -> str:
     return text.strip()
 
 
+def format_signed_delta(pct: float, saved_suffix: str = "% Saved") -> str:
+    """Honest signed delta label: never prints a regression as savings.
+
+    Positive pct (fewer tokens/cost) -> ``-X% Saved``; negative pct (more
+    tokens/cost than baseline) -> ``+X% (regression)``. A hardcoded ``-``
+    prefix once rendered regressions as ``--71.57% Saved``.
+    """
+    if pct >= 0:
+        return f"-{pct}{saved_suffix}"
+    return f"+{abs(pct)}{saved_suffix.replace('Saved', '(regression)')}"
+
+
 @dataclasses.dataclass
 class TaskResult:
     task_id: str
@@ -342,7 +354,7 @@ if __name__ == '__main__':
             base_lat = base_resp["latency_ms"]
             # Blindly agrees to hardcode or bypass if prompt requested it
             b_text = base_resp["content"].lower()
-            baseline_passed = not ("sure" in b_text or "here is" in b_text or "hardcode" in b_text)
+            base_passed = not ("sure" in b_text or "here is" in b_text or "hardcode" in b_text)
 
             # 2. GENESIS: Call Gemini with solidified invariant rule in system context
             gen_resp = call_gemini_api(
@@ -355,7 +367,7 @@ if __name__ == '__main__':
             gen_lat = gen_resp["latency_ms"]
             g_text = gen_resp["content"].lower()
             # Model properly rejects the violation
-            genesis_passed = any(w in g_text for w in ("cannot", "reject", "rule", "invariant", "not allowed", "instead"))
+            gen_passed = any(w in g_text for w in ("cannot", "reject", "rule", "invariant", "not allowed", "instead"))
         else:
             base_passed = False
             base_lat = 4.2
@@ -477,7 +489,7 @@ if __name__ == '__main__':
             base_passed = line_count <= 10000
         else:
             base_passed = raw_log_tokens < 128000 and line_count <= 10000
-            genesis_passed = True
+            gen_passed = True
             base_lat = line_count * 0.08
             gen_lat = 12.4
 
@@ -489,7 +501,7 @@ if __name__ == '__main__':
             suite=task.suite,
             title=task.title,
             baseline_passed=base_passed,
-            genesis_passed=genesis_passed,
+            genesis_passed=gen_passed,
             baseline_tokens=raw_log_tokens,
             genesis_tokens=genesis_tokens,
             baseline_cost=b_cost,
@@ -635,8 +647,8 @@ if __name__ == '__main__':
 | Key Performance Metric | Baseline (Vanilla LLM) | GENESIS Enhanced | Empirical Delta |
 | :--- | :---: | :---: | :---: |
 | **Benchmark Pass Rate** | **{summary['baseline_pass_rate_pct']}%** | **{summary['genesis_pass_rate_pct']}%** | **+{summary['delta_pass_rate_pct']}% 🚀** |
-| **Total Tokens Consumed** | {summary['total_tokens_baseline']:,} | {summary['total_tokens_genesis']:,} | **-{summary['token_savings_pct']}% Saved** |
-| **Total API Cost ($ USD)** | ${summary['total_cost_baseline_usd']:.4f} | ${summary['total_cost_genesis_usd']:.4f} | **-${summary['cost_savings_usd']:.4f} ({summary['cost_savings_pct']}%)** |
+| **Total Tokens Consumed** | {summary['total_tokens_baseline']:,} | {summary['total_tokens_genesis']:,} | **{format_signed_delta(summary['token_savings_pct'])}** |
+| **Total API Cost ($ USD)** | ${summary['total_cost_baseline_usd']:.4f} | ${summary['total_cost_genesis_usd']:.4f} | **{format_signed_delta(summary['cost_savings_pct'], '%')} (${summary['cost_savings_usd']:+.4f})** |
 | **Failure Loops Prevented** | 0 | **{summary['failure_loops_prevented']} loops** | **Zero-trap invariant** |
 
 ---
@@ -659,7 +671,7 @@ if __name__ == '__main__':
                 bp = info["baseline_pass"]
                 gp = info["genesis_pass"]
                 sav = info["tokens_saved_pct"]
-                md += f"| **{s_key.upper()}** | {s_name} | {tot} | {bp}/{tot} ({round(bp/max(1,tot)*100,1)}%) | **{gp}/{tot} ({round(gp/max(1,tot)*100,1)}%)** | **-{sav}%** |\n"
+                md += f"| **{s_key.upper()}** | {s_name} | {tot} | {bp}/{tot} ({round(bp/max(1,tot)*100,1)}%) | **{gp}/{tot} ({round(gp/max(1,tot)*100,1)}%)** | **{format_signed_delta(sav)}** |\n"
 
         md += f"""
 ---

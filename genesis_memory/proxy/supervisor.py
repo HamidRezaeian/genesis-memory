@@ -202,15 +202,20 @@ def release_lock() -> None:
         LOCKFILE_PATH.unlink(missing_ok=True)
 
 
-def spawn_background_proxy(
+def build_proxy_cmd(
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
     mode: str = "live",
     upstream_url: Optional[str] = None,
     upstream_key: Optional[str] = None,
     target_model: Optional[str] = None,
-) -> Tuple[bool, str]:
-    """Spawns the proxy server as a decoupled background process with configured upstream credentials."""
+) -> Tuple[list, dict]:
+    """Builds the child argv + env for the background proxy.
+
+    The API key travels ONLY via the child environment
+    (``GENESIS_UPSTREAM_KEY``) — never on argv, where any local process could
+    read it from ``/proc/<pid>/cmdline`` (Linux) or process listings.
+    """
     launcher_module = "genesis_memory.proxy.launcher"
 
     cfg = load_proxy_config() or {}
@@ -248,10 +253,25 @@ def spawn_background_proxy(
     ]
     if resolved_upstream:
         cmd.extend(["--upstream", resolved_upstream])
-    if resolved_key:
-        cmd.extend(["--upstream-key", resolved_key])
     if resolved_model:
         cmd.extend(["--target-model", resolved_model])
+    return cmd, env
+
+
+def spawn_background_proxy(
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+    mode: str = "live",
+    upstream_url: Optional[str] = None,
+    upstream_key: Optional[str] = None,
+    target_model: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """Spawns the proxy server as a decoupled background process with configured upstream credentials."""
+    cmd, env = build_proxy_cmd(
+        host=host, port=port, mode=mode,
+        upstream_url=upstream_url, upstream_key=upstream_key,
+        target_model=target_model,
+    )
 
     log_file = get_genesis_dir() / "proxy.log"
     flags = 0

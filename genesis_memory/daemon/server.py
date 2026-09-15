@@ -7,7 +7,10 @@ PRAGMA user_version + MIGRATIONS (never loses user data on upgrade).
 Ops CLI: --export/--import (JSONL backup, data sovereignty), --snapshot (dashboard feed).
 Logs: rotating file log next to DB (1MB x3) or $GENESIS_DAEMON_LOG ("off" disables).
 Protocol: newline-delimited JSON-RPC on stdio (MCP): initialize, tools/list, tools/call, ping.
-Tools (exactly 4): remember, recall, forget, status.
+Tools (19 + 1 gateway): remember, recall, forget, invalidate, resolve_conflict,
+get_dependencies, attest_closure, genesis_log, status, thread_update, thread_get,
+dialogue_update, dialogue_get, cross_client_resolve, reinforce, synthesize_skill,
+skill_recall, sleep_now, challenge_rule (+ the single-tool `genesis` gateway).
 Token estimates are len(chars)//4 heuristics, ALWAYS labeled estimate (never tokenizer counts).
 """
 

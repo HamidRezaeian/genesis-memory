@@ -331,6 +331,7 @@ def _maybe_run_proxy_setup(
     proxy_upstream_url: Optional[str],
     proxy_api_key: Optional[str],
     proxy_model: Optional[str],
+    proxy_allow_private: bool = False,
 ) -> int:
     """Continuation of the initial install: configure the Proxy gateway.
 
@@ -370,6 +371,8 @@ def _maybe_run_proxy_setup(
         proxy_argv += ["--api-key", proxy_api_key]
     if proxy_model:
         proxy_argv += ["--model", proxy_model]
+    if proxy_allow_private:
+        proxy_argv += ["--allow-private-upstream"]
     if auto_confirm:
         proxy_argv += ["--yes"]
     if not quiet:
@@ -390,6 +393,7 @@ def run_init(
     proxy_upstream_url: Optional[str] = None,
     proxy_api_key: Optional[str] = None,
     proxy_model: Optional[str] = None,
+    proxy_allow_private: bool = False,
 ) -> int:
     """Main CLI entrypoint for genesis init & genesis setup."""
     if revert:
@@ -564,6 +568,7 @@ def run_init(
             proxy_upstream_url=proxy_upstream_url,
             proxy_api_key=proxy_api_key,
             proxy_model=proxy_model,
+            proxy_allow_private=proxy_allow_private,
         )
         return proxy_rc
     except Exception as exc:
@@ -589,6 +594,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                         help="Upstream provider API Key for --proxy")
     parser.add_argument("--proxy-model", dest="proxy_model", default=None,
                         help="Default model name for --proxy (optional; clients can pick any model)")
+    parser.add_argument("--proxy-allow-private", dest="proxy_allow_private", action="store_true",
+                        help="Allow non-public upstream hosts for --proxy (on-prem, Ollama) without prompting")
     args = parser.parse_args(argv)
 
     target_clients = []
@@ -610,6 +617,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         proxy_upstream_url=args.proxy_upstream_url,
         proxy_api_key=args.proxy_api_key,
         proxy_model=args.proxy_model,
+        proxy_allow_private=args.proxy_allow_private,
     )
 
 

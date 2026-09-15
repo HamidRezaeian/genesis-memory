@@ -11,8 +11,8 @@
 | Key Performance Metric | Baseline (Vanilla LLM) | GENESIS Enhanced | Empirical Delta |
 | :--- | :---: | :---: | :---: |
 | **Benchmark Pass Rate** | **70.0%** | **100.0%** | **+30.0% 🚀** |
-| **Total Tokens Consumed** | 2,198 | 3,771 | **--71.57% Saved** |
-| **Total API Cost ($ USD)** | $0.0044 | $0.0034 | **-$0.0010 (23.32%)** |
+| **Total Tokens Consumed** | 2,198 | 3,771 | **+71.57% (regression)** |
+| **Total API Cost ($ USD)** | $0.0044 | $0.0034 | **-23.32% ($-0.0010)** |
 | **Failure Loops Prevented** | 0 | **0 loops** | **Zero-trap invariant** |
 
 ---
@@ -21,7 +21,7 @@
 
 | Suite | Focus | Tasks | Baseline Pass | GENESIS Pass | Token Savings |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **SWE** | Code Bug Fixing & Subprocess Tests | 10 | 7/10 (70.0%) | **10/10 (100.0%)** | **--71.6%** |
+| **SWE** | Code Bug Fixing & Subprocess Tests | 10 | 7/10 (70.0%) | **10/10 (100.0%)** | **+71.6% (regression)** |
 
 ---
 

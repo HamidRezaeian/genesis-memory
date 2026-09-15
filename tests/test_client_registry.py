@@ -153,7 +153,25 @@ class TestClientRegistry:
         patch_data = ClientRegistry.generate_patch("claude_code", daemon_path=daemon, db_path=db, hook_path=hook)
         assert "env" in patch_data
         assert "hooks" in patch_data
-        assert "PrePrompt" in patch_data["hooks"]
+        # Claude Code has no "PrePrompt" event — that name installs silently
+        # dead. The prompt-submission event is "UserPromptSubmit" (no matcher).
+        assert "PrePrompt" not in patch_data["hooks"]
+        assert "UserPromptSubmit" in patch_data["hooks"]
+        entry = patch_data["hooks"]["UserPromptSubmit"][0]
+        assert "matcher" not in entry
+        cmd = entry["hooks"][0]["command"]
+        assert "hook.py" in cmd and "--claude" in cmd
+
+
+    def test_claude_code_hook_event_is_official(self):
+        """Guard: only hook events documented by Anthropic may be emitted."""
+        official = {
+            "PreToolUse", "PostToolUse", "UserPromptSubmit", "Notification",
+            "Stop", "SubagentStop", "PreCompact", "SessionStart", "SessionEnd",
+        }
+        patch_data = ClientRegistry.generate_patch("claude_code")
+        for event in patch_data.get("hooks", {}):
+            assert event in official, f"unknown Claude Code hook event: {event}"
 
     def test_wire_client_mock_file(self, tmp_path):
         cfg_file = tmp_path / "opencode.jsonc"

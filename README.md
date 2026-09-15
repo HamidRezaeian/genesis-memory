@@ -10,8 +10,8 @@
 
 <p align="center">
   <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><img src="https://img.shields.io/badge/website-interactive_demo-00F0FF?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <img src="https://img.shields.io/badge/tests-440%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
-  <img src="https://img.shields.io/badge/version-0.14.1-00F0FF?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/tests-465%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
+  <img src="https://img.shields.io/badge/version-0.14.2-00F0FF?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
   <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
@@ -20,7 +20,7 @@
 
 <p align="center">
   One local SQLite memory shared by <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>VS Code</strong>, <strong>Zed</strong>, <strong>Windsurf</strong>, <strong>JetBrains</strong>, <strong>Neovim</strong>, <strong>Emacs</strong>, <strong>OpenCode</strong>, <strong>Antigravity</strong>, every terminal agent and every SDK —<br/>
-  while collapsing 4,000-line tool outputs into 84-token pointers and cutting outbound tokens by 70.4% via transparent output diet.
+  while collapsing long tool outputs into short pointers, with an optional transparent output diet for terse, diff-shaped replies.
 </p>
 
 
@@ -36,7 +36,7 @@ GENESIS is a **local-first cognitive memory OS** that operates across three clea
 | Primitive | What it does | Network / Execution | Who uses it |
 |---|---|---|---|
 | **MCP** (stdio) | 19 cognitive tools (`remember`, `recall`, `reinforce`, `thread_update`, `dialogue_update`, …) or a single unified `genesis` gateway tool | **100% Local** · Offline · Zero network · Direct SQLite WAL | Cursor, Claude Desktop, Claude Code, VS Code, Zed, Windsurf, JetBrains, Neovim, Emacs, Codex, Gemini CLI, Cline, Roo |
-| **Hook** (pre-prompt) | Injects a ≤200-token *subconscious capsule* (active thread, last cross-client dialogue, top engrams) before model turn | **100% Local** · Offline · Sub-10ms execution · Zero API keys | Cursor 1.7 (`hooks.json`), Claude Code (`PrePrompt`), OpenCode plugin, Antigravity |
+| **Hook** (pre-prompt) | Injects a ≤200-token *subconscious capsule* (active thread, last cross-client dialogue, top engrams) before model turn | **100% Local** · Offline · Sub-10ms execution · Zero API keys | Cursor 1.7 (`hooks.json`), Claude Code (`UserPromptSubmit`), OpenCode plugin, Antigravity |
 | **Proxy** (gateway) | Stateless OpenAI & Anthropic reverse proxy (`127.0.0.1:8000`). Tool-pair compaction, output token diet, anaphora rewriting | **Local Gateway** · Transparent HTTP pass-through | Aider, OpenCode (`genesis-proxy`), LangChain, LlamaIndex, CrewAI, AutoGen, any SDK |
 
 > **Crucial Guarantee:** MCP and Hook are **100% local and offline**. Installing GENESIS does **not** hijack your IDE's native model subscriptions (e.g. Claude 3.5 Sonnet in Cursor or Claude Desktop). Your models continue talking directly to their official backends; GENESIS supplies memory alongside them.
@@ -289,18 +289,18 @@ Input diet is lossless compression; output diet is developer choice. Since outpu
 2. **Turn-Shape Structural Budget (`GENESIS_TINY_BUDGET=1`):** Short acknowledgment and confirmation turns cannot reasonably require essays. They are bounded at `256` completion tokens. Caller-set `max_tokens` are always respected.
 3. **Diffs, Not Pastes:** Instructs models to reply with concise unified diffs rather than re-pasting full 300-line files. A non-intrusive file-echo monitor observes and tracks paste violations.
 
-### 100% Live Empirical Benchmark (Google Gemini 3.8 Flash)
+### Illustrative Live Run (Google Gemini 3.8 Flash · n=3, single pass)
 
-Measured live against Google Generative Language API on frontier model `gemini-flash-latest` (Gemini 3.8 Flash) using official developer credentials and real coding prompts:
+Measured live against Google Generative Language API on frontier model `gemini-flash-latest` (Gemini 3.8 Flash) using official developer credentials and real coding prompts. These are illustrative single-run numbers, not a rigorous benchmark (no repeats, no variance); a multi-prompt repeated eval is in progress:
 
 | Scenario | User Prompt | Raw Model (Without Diet) | With GENESIS Output Diet | Token Savings | Real Latency |
 |:---|:---|:---|:---|:---:|:---:|
 | **1. Code Bug Fix** | Increase `timeout_ms` default from 1000 to 5000 in DB Pool | **365 tokens**<br>*(Rewrote entire 40-line class + narrative explanations)* | **266 tokens**<br>*(Byte-exact unified diff only · zero file re-paste)* | **−27.1%** | 4.99s / 13.1s |
 | **2. Turn Acknowledgment** | *"Thanks, the WAL configuration works properly now. Ready to continue."* | **194 tokens**<br>*(Polite conversational filler + unprompted PostgreSQL/SQLite guide)* | **7 tokens**<br>*(Pure acknowledgment: "Provide the next task or requirements.")* | **−96.4%** | 4.25s ➔ 2.89s (**1.5× faster**) |
 | **3. Status Inspection** | *"Is the genesis daemon currently running and what is its status...?"* | **391 tokens**<br>*(Multi-page Linux manual, curl scripts, systemd tutorials)* | **48 tokens**<br>*(Actionable shell command only: `pgrep` + `ps`)* | **−87.7%** | 8.17s ➔ 6.64s (**1.2× faster**) |
-| **Average Across Turns** | *Composite real-world developer workflow* | **950 total tokens** | **321 total tokens** | **−70.4%** | **Significant Speedup** |
+| **Average Across Turns** | *Composite real-world developer workflow* | **950 total tokens** | **321 total tokens** | **−66.2% aggregate** *(mean of per-scenario rates would be 70.4% — reported here as the true token-weighted total)* | **Mixed** *(scenario 1 ran slower with diet: 13.1s vs 5.0s — latency is not claimed)* |
 
-*Reproducible runner script and raw JSON results: [`scratch/live_eval_runner.py`](scratch/live_eval_runner.py) and [`scratch/live_eval_results.json`](scratch/live_eval_results.json).*
+*Illustrative only (n=3, one pass each, no repeats/variance). Reproducible runner script and raw JSON results: [`scratch/live_eval_runner.py`](scratch/live_eval_runner.py) and [`scratch/live_eval_results.json`](scratch/live_eval_results.json).*
 
 ---
 
@@ -311,7 +311,7 @@ Measured live against Google Generative Language API on frontier model `gemini-f
 | Client | Config | Primitives | Format | How It Connects |
 |---|---|---|---|---|
 | Cursor | `~/.cursor/mcp.json` + `hooks.json` | MCP · Hook | json | Local stdio MCP + pre-prompt hook. Direct LLM calls untouched. |
-| Claude Code | `~/.claude/settings.json` + `~/.claude.json` | Hook · MCP | json | PrePrompt lifecycle hook + stdio MCP. |
+| Claude Code | `~/.claude/settings.json` + `~/.claude.json` | Hook · MCP | json | UserPromptSubmit lifecycle hook + stdio MCP. |
 | Claude Desktop | `…/Claude/claude_desktop_config.json` | MCP | json | Native stdio MCP tools. Direct Anthropic connection. |
 | OpenCode | `~/.config/opencode/opencode.jsonc` + `plugins/` | MCP · Proxy · Hook | jsonc | Stdio MCP + plugin hook + optional `GENESIS Proxy` provider. |
 | Antigravity IDE | `.agents/` (native) | MCP · Hook | native | Built-in native integration. |

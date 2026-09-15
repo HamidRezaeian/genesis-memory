@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 
 from genesis_memory.cli.client_registry import ClientRegistry, DiscoveredClient, ClientCapability
-from genesis_memory.cli.proxy_setup import _validate_upstream_url, run_proxy_setup
+from genesis_memory.cli.proxy_setup import (
+    _classify_upstream_host,
+    _validate_upstream_url,
+    run_proxy_setup,
+)
 from genesis_memory.proxy import supervisor
 
 
@@ -41,6 +45,82 @@ def test_validate_upstream_url_accepts_valid_providers():
     ok, url = _validate_upstream_url("https://api.openai.com/v1")
     assert ok
     assert url == "https://api.openai.com/v1"
+
+
+def test_spawn_cmd_never_carries_api_key_on_argv(monkeypatch):
+    """The key must travel via child env only — argv is world-readable
+    (/proc/<pid>/cmdline, process listings)."""
+    monkeypatch.setattr(supervisor, "load_proxy_config", lambda: {})
+    for var in ("GENESIS_UPSTREAM_URL", "GENESIS_UPSTREAM_KEY",
+                "OPENAI_API_KEY", "GEMINI_API_KEY", "GENESIS_TARGET_MODEL"):
+        monkeypatch.delenv(var, raising=False)
+    secret = "sk-or-v1-supersecret-argv-must-not-contain"
+    cmd, env = supervisor.build_proxy_cmd(
+        upstream_url="https://openrouter.ai/api/v1",
+        upstream_key=secret,
+    )
+    assert secret not in " ".join(cmd)
+    assert "--upstream-key" not in cmd
+    assert env["GENESIS_UPSTREAM_KEY"] == secret
+    assert env["GENESIS_UPSTREAM_URL"] == "https://openrouter.ai/api/v1"
+
+
+def test_classify_upstream_host_blocks_never_valid_ranges():
+    # Cloud metadata + link-local + multicast + unspecified: always rejected.
+    # Literal IPs only — no DNS involved, hermetic offline.
+    for url in ("http://169.254.169.254/",
+                "http://169.254.169.254/latest/meta-data/",
+                "http://[fe80::1]/",
+                "http://0.0.0.0:8000/"):
+        verdict, detail = _classify_upstream_host(url)
+        assert verdict == "blocked", (url, detail)
+
+
+def test_classify_upstream_host_private_needs_confirmation():
+    # Loopback (local Ollama), RFC1918, ULA: usable, but never silent.
+    for url in ("http://127.0.0.2:11434/v1",
+                "http://localhost:11434/v1",
+                "http://192.168.1.10:11434/v1",
+                "http://10.0.0.5/v1",
+                "http://[::1]:11434/v1"):
+        verdict, detail = _classify_upstream_host(url)
+        assert verdict == "private", (url, detail)
+
+
+def test_classify_upstream_host_accepts_public_ip():
+    verdict, _ = _classify_upstream_host("http://93.184.216.34/")
+    assert verdict == "public"
+
+
+def test_private_upstream_rejected_noninteractive_without_flag(monkeypatch, tmp_path):
+    fake_dir = tmp_path / ".genesis"
+    fake_config = fake_dir / "proxy_config.json"
+    monkeypatch.setattr(supervisor, "GENESIS_DIR", fake_dir)
+    monkeypatch.setattr(supervisor, "PROXY_CONFIG_PATH", fake_config)
+    rc = run_proxy_setup([
+        "--upstream-url", "http://192.168.1.10:11434/v1",
+        "--api-key", "sk-test",
+        "--yes",
+        "--no-start",
+    ])
+    assert rc == 1
+    assert not fake_config.exists()
+
+
+def test_private_upstream_allowed_with_flag(monkeypatch, tmp_path):
+    fake_dir = tmp_path / ".genesis"
+    fake_config = fake_dir / "proxy_config.json"
+    monkeypatch.setattr(supervisor, "GENESIS_DIR", fake_dir)
+    monkeypatch.setattr(supervisor, "PROXY_CONFIG_PATH", fake_config)
+    rc = run_proxy_setup([
+        "--upstream-url", "http://192.168.1.10:11434/v1",
+        "--api-key", "sk-test",
+        "--yes",
+        "--no-start",
+        "--allow-private-upstream",
+    ])
+    assert rc == 0
+    assert fake_config.exists()
 
 
 def test_gatekeeping_refuses_when_unconfigured(monkeypatch, tmp_path):

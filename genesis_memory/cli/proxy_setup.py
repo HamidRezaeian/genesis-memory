@@ -8,11 +8,14 @@ GENESIS Proxy across all compatible installed clients with explicit user consent
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import os
+import socket
 import sys
 import time
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlsplit
 
 from genesis_memory.cli.client_registry import ClientRegistry, PROXY_URL, DiscoveredClient
 from genesis_memory.proxy.supervisor import (
@@ -43,6 +46,52 @@ def _validate_upstream_url(url: str) -> tuple[bool, str]:
             "(e.g., 'https://openrouter.ai/api/v1' or 'https://api.openai.com/v1')."
         )
     return True, cleaned
+
+
+def _classify_upstream_host(url: str) -> tuple[str, str]:
+    """Classifies the resolved upstream host: public, private, or blocked.
+
+    Returns (verdict, detail) where verdict is one of:
+    - ``"public"``: globally routable address — accepted silently.
+    - ``"private"``: loopback (local Ollama etc.), RFC1918 / ULA / ``.local`` /
+      on-prem name — accepted only with explicit user confirmation
+      (``--allow-private-upstream`` or an interactive yes), so a pasted
+      internal URL can never silently exfiltrate the provider key via SSRF.
+    - ``"blocked"``: link-local (incl. cloud metadata ``169.254.169.254``),
+      multicast, unspecified, or unresolvable — always rejected. No legitimate
+      LLM upstream lives in these ranges.
+    """
+    try:
+        host = urlsplit(url).hostname or ""
+    except Exception:
+        return "blocked", "could not parse hostname"
+    if not host:
+        return "blocked", "empty hostname"
+    try:
+        infos = socket.getaddrinfo(host, None, family=socket.AF_UNSPEC,
+                                   type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError, ValueError):
+        return "blocked", f"hostname does not resolve: {host}"
+    addrs = []
+    for info in infos:
+        try:
+            addrs.append(ipaddress.ip_address(info[4][0]))
+        except ValueError:
+            continue
+    if not addrs:
+        return "blocked", f"hostname does not resolve: {host}"
+    if any(a.is_link_local or a.is_multicast or a.is_unspecified for a in addrs):
+        return "blocked", (
+            f"{host} resolves to {', '.join(sorted({str(a) for a in addrs}))}: "
+            "link-local addresses (incl. cloud metadata endpoints) "
+            "are never valid LLM upstreams"
+        )
+    if any(a.is_private or a.is_reserved or a.is_global is False for a in addrs):
+        return "private", (
+            f"{host} resolves to a non-public address "
+            f"({', '.join(sorted({str(a) for a in addrs}))})"
+        )
+    return "public", f"{host} resolves to {', '.join(sorted({str(a) for a in addrs}))}"
 
 
 def run_proxy_setup(argv: Optional[List[str]] = None) -> int:
@@ -77,6 +126,13 @@ def run_proxy_setup(argv: Optional[List[str]] = None) -> int:
         dest="no_start",
         action="store_true",
         help="Configure without immediately starting the proxy daemon",
+    )
+    parser.add_argument(
+        "--allow-private-upstream",
+        dest="allow_private_upstream",
+        action="store_true",
+        help="Permit non-public upstream hosts (on-prem gateways, Ollama, .local) "
+             "without interactive confirmation",
     )
 
     args = parser.parse_args(argv or [])
@@ -123,6 +179,29 @@ def run_proxy_setup(argv: Optional[List[str]] = None) -> int:
             print(f"[genesis] Error: {res}", file=sys.stderr)
             return 1
         upstream_url = res
+
+    # 1b. SSRF guard: classify the resolved upstream host.
+    verdict, detail = _classify_upstream_host(upstream_url)
+    if verdict == "blocked":
+        print(f"[genesis] Error: refusing unsafe upstream URL: {detail}.", file=sys.stderr)
+        return 1
+    if verdict == "private" and not args.allow_private_upstream:
+        if sys.stdin.isatty():
+            print(f"  ⚠️  {detail}.")
+            print("  Non-public upstreams (on-prem gateways, local Ollama) are fine,")
+            print("  but confirm this is YOUR server — the provider key will be sent there.")
+            try:
+                ans = input("  Use this upstream anyway? [y/N]: ").strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                print("\nSetup cancelled.")
+                return 1
+            if ans not in ("y", "yes"):
+                print("Setup cancelled.")
+                return 1
+        else:
+            print(f"[genesis] Error: {detail}. Re-run with "
+                  "--allow-private-upstream to use a non-public host.", file=sys.stderr)
+            return 1
 
     # 2. Resolve API Key
     while not api_key:
