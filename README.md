@@ -14,8 +14,8 @@
 
 <p align="center">
   <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><img src="https://img.shields.io/badge/website-interactive_demo-00F0FF?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <img src="https://img.shields.io/badge/tests-467%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
-  <img src="https://img.shields.io/badge/version-0.14.3-00F0FF?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/tests-471%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
+  <img src="https://img.shields.io/badge/version-0.14.4-00F0FF?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
   <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />

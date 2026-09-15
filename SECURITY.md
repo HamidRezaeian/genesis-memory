@@ -2,7 +2,7 @@
 
 This document states the threat model plainly: what is protected, what is
 deliberately trusted, and what is still on the roadmap. Last updated for
-v0.14.3.
+v0.14.4.
 
 ## What lives on your disk (and with what permissions)
 

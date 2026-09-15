@@ -1,32 +1,43 @@
-# GENESIS Bench — Standard Empirical Evaluation Report
+# GENESIS Bench — Evaluation Report
 
-**Evaluation Timestamp**: `2026-09-14 15:47:12 UTC`  
-**Evaluation Mode**: `LIVE` (Live API execution with `gemini-3.5-flash-lite`)  
-**Evaluated Architecture**: Base LLM (`gemini-3.5-flash-lite`) vs `GENESIS Enhanced Agent`  
+**Evaluation Timestamp**: `2026-09-15 16:45:57 UTC`  
+**Evaluation Mode**: `DETERMINISTIC` (no model calls, $0 cost): validates fixtures, retrieval, attestation, spool, and classifier — not model skill  
+**Evaluated Architecture**: Buggy Code / Empty Store vs Reference Check  
 
 ---
 
 ## 1. Executive Summary
 
-| Key Performance Metric | Baseline (Vanilla LLM) | GENESIS Enhanced | Empirical Delta |
+| Key Performance Metric | Buggy Code / Empty Store | Reference Check | Empirical Delta |
 | :--- | :---: | :---: | :---: |
-| **Benchmark Pass Rate** | **70.0%** | **100.0%** | **+30.0% 🚀** |
-| **Total Tokens Consumed** | 2,198 | 3,771 | **+71.57% (regression)** |
-| **Total API Cost ($ USD)** | $0.0044 | $0.0034 | **-23.32% ($-0.0010)** |
-| **Failure Loops Prevented** | 0 | **0 loops** | **Zero-trap invariant** |
+| **Functional Check Pass Rate (fixtures, no model)** | **32.0%** | **100.0%** | **+68.0 pts** |
+| **Total Tokens (length estimates, no API)** | 7,324,015 | 5,539 | **-99.92% Saved** |
+| **Total API Cost ($ USD)** | $0.0000 | $0.0000 | **n/a ($0 — no API calls)** |
+| **Failure Loops Prevented** | 0 | **30 loops** | **Zero-trap invariant** |
+
+_Repeats per task: 1. Pass verdicts are majority vote over repeats; _
+_token spreads are reported per suite below._
+| **SWE** | SWE-Resolve (Subprocess Tests) | 20 | 12/20 (60.0%) | **20/20 (100.0%)** | **+30.3% (regression)** |
+| **LOCOMO** | LoCoMo Memory (Invariants) | 20 | 0/20 (0.0%) | **20/20 (100.0%)** | **+24.4% (regression)** |
+| **TRAP** | Trap & Anti-Loop (Attestation) | 20 | 0/20 (0.0%) | **20/20 (100.0%)** | **+27.6% (regression)** |
+| **HAYSTACK** | Haystack & Spool (Log Pointers) | 20 | 20/20 (100.0%) | **20/20 (100.0%)** | **-100.0% Saved** |
+| **DIET** | Token Diet (Output Compaction) | 20 | 0/20 (0.0%) | **20/20 (100.0%)** | **-0.0% Saved** |
 
 ---
 
-## 2. Suite-by-Suite Breakdown
+## 3. Methodology (what was actually measured)
 
-| Suite | Focus | Tasks | Baseline Pass | GENESIS Pass | Token Savings |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **SWE** | Code Bug Fixing & Subprocess Tests | 10 | 7/10 (70.0%) | **10/10 (100.0%)** | **+71.6% (regression)** |
-
----
-
-## 3. Methodological Rigor & Anti-Cheating Invariants
-
-1. **Live Model Execution**: Real API calls made to `gemini-3.5-flash-lite` via Google Generative Language API with real candidatesTokenCount, promptTokenCount, and latency.
-2. **Subprocess Sandboxing**: All code solutions produced by the model are compiled, executed, and audited via `subprocess.run` inside an isolated temporary directory.
-3. **Zero Data Contamination**: Ephemeral SQLite instances, fresh temporary directories, and zero cross-test state leakage.
+1. **Deterministic mode (no model, $0)**: buggy code vs reference fix executed
+   in sandboxed subprocesses (fixture validity); seeded vs empty Store recall;
+   guarded vs unguarded attestation; real log generation through SpoolEngine
+   with needle retrieval; output-governor classifier rubric on fixtures.
+   Token fields are length estimates, never API usage.
+2. **Live mode**: identical base prompt on both arms; the GENESIS arm adds only
+   retrieved project memory / invariant / diet directive (the product
+   mechanism). No canonical-solution fallback — a model miss is a miss.
+   Each task runs 1 time(s); pass verdicts are majority votes and
+   spreads are reported, not hidden.
+3. **Subprocess Sandboxing**: all candidate code is compiled, executed, and
+   audited via `subprocess.run` inside an isolated temporary directory.
+4. **Zero Data Contamination**: ephemeral SQLite instances, fresh temporary
+   directories, and zero cross-test state leakage.

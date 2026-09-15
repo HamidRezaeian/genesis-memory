@@ -1,5 +1,16 @@
 # GENESIS Memory — Release Changelog
 
+## v0.14.4 (2026-09-15)
+
+- **Honest benchmark harness (deterministic no-model + live symmetric repeats)**:
+  1. `eval/` deterministic mode validates fixtures, retrieval, attestation,
+     spool and classifier with zero API calls ($0 cost); live mode runs
+     symmetric repeats per task with majority-vote verdicts and per-suite
+     token spreads.
+  2. `BENCHMARK_REPORT.md` regenerated honestly — no inflated deltas, no
+     invented numbers; every figure traceable to a runner artifact.
+  3. Suite now 473 collected: 471 passed, 2 skipped, 0 failed.
+
 ## v0.14.3 (2026-09-16)
 
 - **P1 external-audit remediation (CI, docs honesty, transparency)**:
