@@ -13,8 +13,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sqlite3
-import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -73,6 +71,12 @@ def generate_plan(
             "action": "CREATE_DB",
             "target": str(MEMORY_DB_PATH),
             "description": "Initialize local episodic memory SQLite database with WAL mode (Rule 31)",
+        })
+    elif _db_needs_repair(MEMORY_DB_PATH):
+        plan.append({
+            "action": "REPAIR_DB",
+            "target": str(MEMORY_DB_PATH),
+            "description": "Repair legacy partial schema in place (additive only, no data loss)",
         })
 
     plan.append({
@@ -169,6 +173,10 @@ def revert_init() -> int:
                 Path(str(target) + "-wal").unlink(missing_ok=True)
                 Path(str(target) + "-shm").unlink(missing_ok=True)
                 print(f"  🗑️ Removed database: {target}")
+            elif action == "REPAIR_DB":
+                # Additive in-place repair keeps pre-existing user engrams;
+                # there is nothing to roll back.
+                print(f"  ⏩ Kept repaired database (additive, no rollback): {target}")
             elif action == "CREATE_DIR" and target.exists():
                 try:
                     target.rmdir()
@@ -186,25 +194,48 @@ def revert_init() -> int:
         return 1
 
 
+def _db_needs_repair(db_path: Path) -> bool:
+    """True when an existing DB cannot serve the daemon (legacy partial schema).
+
+    Fresh installs made by ``genesis setup`` <= v0.14.0 created an ``episodes``
+    table without the baseline ``accesses`` / ``updated`` columns. Such a DB
+    passes a naive ``COUNT(*)`` check but fails every ``remember``/``recall``.
+    This probe is pure-read (stdlib sqlite3, short timeout) and never mutates.
+    """
+    try:
+        if not db_path.exists():
+            return False
+        # _dbx handles Windows drive-letter URIs correctly (resolve().as_uri()).
+        conn = _dbx.connect(str(db_path), readonly=True, busy_timeout_ms=2000)
+        try:
+            tables = {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+            if "episodes" not in tables:
+                return True
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(episodes)").fetchall()}
+            return not {"ts", "project", "kind", "text", "utility",
+                        "accesses", "updated"}.issubset(cols)
+        finally:
+            conn.close()
+    except Exception:
+        return True
+
+
 def initialize_sqlite_db(db_path: Path) -> None:
-    """Initializes local SQLite memory database with optimal pragmas."""
-    conn = _dbx.connect(str(db_path))
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS episodes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ts REAL NOT NULL,
-            project TEXT NOT NULL,
-            kind TEXT NOT NULL,
-            text TEXT NOT NULL,
-            utility REAL DEFAULT 1.0,
-            tokens_estimate INTEGER DEFAULT 0
-        );
-    """)
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_episodes_project ON episodes(project);")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_episodes_kind ON episodes(kind);")
-    conn.commit()
-    conn.close()
+    """Initializes local SQLite memory database via the canonical migrator.
+
+    Uses :class:`genesis_memory.daemon.server.Store` (same code path as the
+    MCP daemon, proxy and sleep cycle) so the created schema is byte-identical
+    to what every runtime process expects — including FTS5, counters, thread,
+    dialogue, skills and edges tables. Also heals legacy partial databases
+    (``migrate()`` repairs old hand-rolled ``episodes`` tables in place).
+    """
+    from genesis_memory.daemon.server import Store
+    store = Store(str(db_path))
+    try:
+        store.db.close()
+    except Exception:
+        pass
 
 
 def generate_mcp_snippet(dest_path: Path) -> None:
@@ -256,6 +287,97 @@ def _print_skill_drift_hint(prefix="  ") -> None:
           f"— run 'genesis skill-sync --apply' to share across clients")
 
 
+def _handshake_ping(db_path: Path) -> Tuple[bool, str]:
+    """End-to-end write/read/delete ping through the canonical Store path.
+
+    The old handshake only ran ``SELECT COUNT(*)``, which passed even on the
+    legacy broken schema (missing ``accesses``/``updated``). This exercises
+    the exact code path the MCP daemon uses, with an ephemeral engram that
+    is deleted afterwards so the user DB stays clean.
+    """
+    try:
+        from genesis_memory.daemon.server import Store
+        store = Store(str(db_path))
+        try:
+            created = store.remember(
+                "genesis setup handshake ping (ephemeral, safe to forget)",
+                kind="fact", project="genesis_setup_handshake")
+            ping_id = created.get("id")
+            got = store.recall("handshake ping", project="genesis_setup_handshake")
+            hits = len(got.get("results", []))
+            if ping_id is not None:
+                store.forget(ping_id)
+            leftover = store.db.execute(
+                "SELECT COUNT(*) FROM episodes WHERE project = 'genesis_setup_handshake'"
+            ).fetchone()[0]
+            if hits < 1 or leftover != 0:
+                return False, f"recall returned {hits} hits, {leftover} rows left behind"
+            return True, "remember → recall → forget round-trip verified"
+        finally:
+            try:
+                store.db.close()
+            except Exception:
+                pass
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+
+def _maybe_run_proxy_setup(
+    *,
+    auto_confirm: bool,
+    quiet: bool,
+    run_proxy: bool,
+    no_proxy: bool,
+    proxy_upstream_url: Optional[str],
+    proxy_api_key: Optional[str],
+    proxy_model: Optional[str],
+) -> int:
+    """Continuation of the initial install: configure the Proxy gateway.
+
+    Matrix (never blocks automation):
+    - ``--no-proxy``: skip silently (hint only, unless quiet).
+    - ``--proxy`` (or proxy credentials supplied): run ``genesis proxy setup``.
+    - interactive TTY and neither flag: ask once, ``[y/N]`` default No.
+    - non-interactive and neither flag: skip, print the follow-up hint.
+    """
+    from genesis_memory.cli.proxy_setup import run_proxy_setup
+
+    credentials_given = bool(proxy_upstream_url or proxy_api_key or proxy_model)
+    want_proxy: Optional[bool] = None
+    if no_proxy:
+        want_proxy = False
+    elif run_proxy or credentials_given:
+        want_proxy = True
+    elif sys.stdin.isatty() and not auto_confirm:
+        try:
+            reply = input("  Configure the GENESIS Proxy gateway now (needs provider URL + API key)? [y/N]: ").strip().lower()
+            want_proxy = reply in ("y", "yes")
+        except (KeyboardInterrupt, EOFError):
+            print("\n  ⚪ Skipped proxy setup.")
+            want_proxy = False
+    else:
+        want_proxy = False
+
+    if not want_proxy:
+        if not quiet:
+            print("  - To enable the local AI gateway later:  genesis proxy setup")
+        return 0
+
+    proxy_argv: List[str] = []
+    if proxy_upstream_url:
+        proxy_argv += ["--upstream-url", proxy_upstream_url]
+    if proxy_api_key:
+        proxy_argv += ["--api-key", proxy_api_key]
+    if proxy_model:
+        proxy_argv += ["--model", proxy_model]
+    if auto_confirm:
+        proxy_argv += ["--yes"]
+    if not quiet:
+        print("-" * 78)
+        print("  🔗 Continuing initial install: GENESIS Proxy gateway setup...")
+    return run_proxy_setup(proxy_argv)
+
+
 def run_init(
     auto_confirm: bool = False,
     revert: bool = False,
@@ -263,6 +385,11 @@ def run_init(
     skip_clients: bool = False,
     target_clients: Optional[List[str]] = None,
     dry_run: bool = False,
+    run_proxy: bool = False,
+    no_proxy: bool = False,
+    proxy_upstream_url: Optional[str] = None,
+    proxy_api_key: Optional[str] = None,
+    proxy_model: Optional[str] = None,
 ) -> int:
     """Main CLI entrypoint for genesis init & genesis setup."""
     if revert:
@@ -340,9 +467,11 @@ def run_init(
                 target.mkdir(parents=True, exist_ok=True)
                 actions_taken.append({"action": "CREATE_DIR", "target": str(target)})
 
-            elif action == "CREATE_DB":
+            elif action in ("CREATE_DB", "REPAIR_DB"):
                 initialize_sqlite_db(target)
-                actions_taken.append({"action": "CREATE_DB", "target": str(target)})
+                actions_taken.append({"action": action, "target": str(target)})
+                if not quiet and action == "REPAIR_DB":
+                    print(f"  🛠️ Repaired legacy database schema in place: {target}")
 
             elif action == "CREATE_FILE" and target.name == "mcp_snippet.json":
                 generate_mcp_snippet(target)
@@ -387,17 +516,30 @@ def run_init(
         if not quiet:
             print(f"  💾 Backup manifest created: {backup_file.name} (use 'genesis setup --revert' to undo)")
 
-        # 5. Live Handshake
-        if not quiet:
-            print("  ⚡ Performing live end-to-end verification handshake...")
-            conn = _dbx.connect(str(MEMORY_DB_PATH), readonly=True)
-            count = conn.execute("SELECT COUNT(*) FROM episodes;").fetchone()[0]
-            conn.close()
-            print(f"     ├── SQLite Subconscious DB : OK ({count} engrams)")
-
+        # 5. Live Handshake (real Store round-trip, not just COUNT(*))
+        ping_ok, ping_detail = _handshake_ping(MEMORY_DB_PATH)
+        try:
             test_file = SPOOL_DIR / ".handshake"
             test_file.write_text("ok", encoding="utf-8")
             test_file.unlink()
+            spool_ok = True
+        except Exception:
+            spool_ok = False
+
+        if not ping_ok or not spool_ok:
+            print(f"  ❌ Verification handshake FAILED: {ping_detail}")
+            if not spool_ok:
+                print(f"  ❌ Spool directory is not writable: {SPOOL_DIR}")
+            print("  👉 Run 'genesis doctor -v' for details.")
+            print(f"  👉 To undo these changes: genesis setup --revert (manifest: {backup_file.name})")
+            return 1
+
+        if not quiet:
+            conn = _dbx.connect(str(MEMORY_DB_PATH), readonly=True)
+            count = conn.execute("SELECT COUNT(*) FROM episodes;").fetchone()[0]
+            conn.close()
+            print("  ⚡ Performing live end-to-end verification handshake...")
+            print(f"     ├── SQLite Subconscious DB : OK ({count} engrams · {ping_detail})")
             print(f"     ├── Headless Spooling Cache : OK ({SPOOL_DIR})")
             print(f"     └── MCP Integration Snippet: OK ({GENESIS_DIR / 'mcp_snippet.json'})")
 
@@ -413,7 +555,17 @@ def run_init(
             _print_skill_drift_hint(prefix="  - ")
             print("=" * 78)
 
-        return 0
+        # 6. Proxy continuation (part of the initial install flow)
+        proxy_rc = _maybe_run_proxy_setup(
+            auto_confirm=auto_confirm,
+            quiet=quiet,
+            run_proxy=run_proxy,
+            no_proxy=no_proxy,
+            proxy_upstream_url=proxy_upstream_url,
+            proxy_api_key=proxy_api_key,
+            proxy_model=proxy_model,
+        )
+        return proxy_rc
     except Exception as exc:
         print(f"  ❌ Initialization failed: {exc}")
         return 1
@@ -427,6 +579,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--revert", action="store_true", help="Revert changes made by the previous genesis setup run")
     parser.add_argument("--skip-clients", action="store_true", help="Do not auto-wire external client configuration files")
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress non-essential output")
+    parser.add_argument("--proxy", dest="proxy", action="store_true",
+                        help="Continue initial install with Proxy gateway setup (genesis proxy setup)")
+    parser.add_argument("--no-proxy", dest="no_proxy", action="store_true",
+                        help="Never prompt for Proxy gateway setup during this install")
+    parser.add_argument("--proxy-upstream-url", dest="proxy_upstream_url", default=None,
+                        help="Upstream provider Base URL for --proxy (e.g. https://openrouter.ai/api/v1)")
+    parser.add_argument("--proxy-api-key", dest="proxy_api_key", default=None,
+                        help="Upstream provider API Key for --proxy")
+    parser.add_argument("--proxy-model", dest="proxy_model", default=None,
+                        help="Default model name for --proxy (optional; clients can pick any model)")
     args = parser.parse_args(argv)
 
     target_clients = []
@@ -443,6 +605,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         skip_clients=args.skip_clients,
         target_clients=target_clients if target_clients else None,
         dry_run=args.dry_run,
+        run_proxy=args.proxy,
+        no_proxy=args.no_proxy,
+        proxy_upstream_url=args.proxy_upstream_url,
+        proxy_api_key=args.proxy_api_key,
+        proxy_model=args.proxy_model,
     )
 
 

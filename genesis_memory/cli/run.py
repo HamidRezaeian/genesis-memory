@@ -277,7 +277,7 @@ def execute_spooled(cmd_args: List[str]) -> int:
 USAGE_TEXT = (
     "Usage: genesis <command> [options]\n\n"
     "Commands:\n"
-    "  setup          1-Click universal auto-wiring (20+ AI clients: Cursor, Claude Code, VS Code, Zed, JetBrains, Neovim, ...)\n"
+    "  setup          1-Click universal auto-wiring (20+ AI clients + optional Proxy gateway via --proxy)\n"
     "  clients        Show the universal client matrix with detection status (--json)\n"
     "  export-config  Emit config snippets for any tool (--format json|yaml|toml|env|lua|native)\n"
     "  init           Initialize local environment and zero-friction onboarding\n"
@@ -299,6 +299,7 @@ USAGE_TEXT = (
     "Examples:\n"
     "  genesis setup --preview\n"
     "  genesis setup --yes --client cursor,zed,neovim\n"
+    "  genesis setup --yes --proxy --proxy-upstream-url https://openrouter.ai/api/v1 --proxy-api-key sk-or-v1-...\n"
     "  genesis proxy setup --upstream-url https://openrouter.ai/api/v1 --api-key sk-or-v1-...\n"
     "  genesis export-config --client codex --format toml\n"
     "  genesis export-config --format env   # OPENAI_BASE_URL for any SDK\n"

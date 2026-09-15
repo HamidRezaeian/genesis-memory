@@ -1,5 +1,28 @@
 # GENESIS Memory — Release Changelog
 
+## v0.14.1 (2026-09-15)
+
+- **Fresh-install audit: `pip install genesis-memory && genesis setup` is now verified end-to-end**
+  (`daemon/server.py`, `cli/init_cmd.py`, `cli/doctor.py`, `proxy/launcher.py`,
+  `proxy/supervisor.py`, `tests/test_setup_install_audit.py`):
+  1. **Broken fresh database fixed**: `genesis setup` created a partial `episodes` table
+     (missing baseline `accesses`/`updated` columns) so every `remember`/`recall` failed
+     with `no column named accesses` while setup and `doctor` still reported green.
+     DB creation now goes through the canonical `Store` migrator, and `migrate()`
+     heals legacy partial databases in place (additive only, no data loss) including
+     a one-time FTS5 `rebuild` over pre-existing rows.
+  2. **Honest verification**: the setup handshake is a real `remember → recall → forget`
+     round-trip (not just `COUNT(*)`), and `doctor` validates the schema plus a live
+     recall probe — green now means usable. Re-running `genesis setup --yes` on an
+     already-broken machine emits `REPAIR_DB` and fixes it.
+  3. **Proxy joins the initial install**: interactive `genesis setup` offers to continue
+     straight into `genesis proxy setup`; non-interactive
+     `genesis setup --yes --proxy --proxy-upstream-url … --proxy-api-key …`
+     (`--proxy-model`, `--no-proxy`) covers scripts and CI.
+  4. **Split-brain env fixed**: the proxy launcher honors `GENESIS_DAEMON_DB`
+     (`GENESIS_MEMORY_DB` kept as legacy alias); the supervisor no longer spawns
+     the background proxy with `cwd` inside `site-packages`.
+
 ## v0.14.0 (2026-09-14)
 
 - **Antigravity IDE PreInvocation Hook Auto-Wiring** (`genesis init`, `cli/client_registry.py`):

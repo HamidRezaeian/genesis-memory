@@ -10,8 +10,8 @@
 
 <p align="center">
   <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><img src="https://img.shields.io/badge/website-interactive_demo-00F0FF?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <img src="https://img.shields.io/badge/tests-421%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
-  <img src="https://img.shields.io/badge/version-0.12.0-00F0FF?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/tests-440%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
+  <img src="https://img.shields.io/badge/version-0.14.1-00F0FF?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
   <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
@@ -54,17 +54,24 @@ You do not need to configure databases, spin up servers, or change your API keys
 pip install genesis-memory
 ```
 
-### Step 2: Auto-connect your AI tools
+### Step 2: Auto-connect your AI tools (memory + optional proxy gateway)
 ```bash
 genesis setup --yes
 ```
-> **What this does:** Scans your computer for installed AI tools (Cursor, Claude Desktop, Claude Code, VS Code, OpenCode, Zed, JetBrains, etc.) and automatically connects them to a shared local memory. Your existing models, settings, and subscriptions are **100% untouched**.
+> **What this does:** Scans your computer for installed AI tools (Cursor, Claude Desktop, Claude Code, VS Code, OpenCode, Zed, JetBrains, etc.) and automatically connects them to a shared local memory. Your existing models, settings, and subscriptions are **100% untouched**. At the end of an interactive run it also offers to continue straight into Proxy gateway setup (`genesis proxy setup`) — one install flow, no second command to remember.
+
+Single-command variant with the proxy included (non-interactive, CI-friendly):
+```bash
+genesis setup --yes --proxy --proxy-upstream-url https://openrouter.ai/api/v1 --proxy-api-key sk-or-v1-...
+```
+
+> **Same interpreter rule:** run the installer and the CLI with the same Python — `python -m pip install genesis-memory`, then `genesis ...` (or `python -m genesis_memory.cli.run ...`). Mixing a Microsoft-Store Python `pip` with an Anaconda `genesis`, or vice versa, installs the package where the CLI cannot see it.
 
 ### Step 3: Verify connection
 ```bash
 genesis doctor
 ```
-> You will see green checkmarks `✅ [OK]` confirming which AI clients are actively wired. **You're done!**
+> You will see green checkmarks `✅ [OK]` confirming which AI clients are actively wired. `doctor` validates the real database schema with a live recall probe (not just a table count), so green actually means usable. **You're done!**
 
 ---
 
@@ -92,7 +99,7 @@ Everything below is completely optional. You only run these when you specificall
 | What you want to do | Command | What it does |
 |---|---|---|
 | **Open Visual Cockpit** | `genesis dashboard --open` | Opens interactive 3D memory visualizer & engram explorer in your browser (`:8090`). |
-| **Setup & Connect Proxy** | `genesis proxy setup` | 1-Minute wizard: enter provider URL & key, auto-wire clients, and start gateway. |
+| **Setup & Connect Proxy** | `genesis proxy setup` (or `genesis setup --yes --proxy ...` inline during initial install) | 1-Minute wizard: enter provider URL & key, auto-wire clients, and start gateway. |
 | **Check Proxy Status** | `genesis proxy status` | Checks if the proxy is running and prints active PID. |
 | **Stop Proxy** | `genesis proxy stop` | Shuts down the background proxy. |
 | **Start Proxy** | `genesis proxy start` | Starts local gateway on `http://127.0.0.1:8000` (requires credentials). |

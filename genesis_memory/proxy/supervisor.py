@@ -211,7 +211,6 @@ def spawn_background_proxy(
     target_model: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """Spawns the proxy server as a decoupled background process with configured upstream credentials."""
-    repo_root = Path(__file__).resolve().parent.parent.parent
     launcher_module = "genesis_memory.proxy.launcher"
 
     cfg = load_proxy_config() or {}
@@ -269,7 +268,7 @@ def spawn_background_proxy(
                 stderr=out,
                 stdin=subprocess.DEVNULL,
                 env=env,
-                cwd=str(repo_root),
+                cwd=None,  # inherit caller cwd: installed package needs no repo checkout
                 creationflags=flags,
                 close_fds=(sys.platform != "win32"),
             )

@@ -61,10 +61,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--db",
-        default=os.environ.get(
-            "GENESIS_MEMORY_DB", str(Path.home() / ".genesis" / "memory.db")
+        default=(
+            os.environ.get("GENESIS_DAEMON_DB")
+            or os.environ.get("GENESIS_MEMORY_DB")
+            or str(Path.home() / ".genesis" / "memory.db")
         ),
-        help="Path to shared SQLite memory database (default: ~/.genesis/memory.db)",
+        help="Path to shared SQLite memory database (default: ~/.genesis/memory.db; "
+             "env GENESIS_DAEMON_DB takes precedence, GENESIS_MEMORY_DB kept as legacy alias)",
     )
     parser.add_argument(
         "--max-history-turns",

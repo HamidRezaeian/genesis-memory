@@ -11,6 +11,7 @@ Tools (exactly 4): remember, recall, forget, status.
 Token estimates are len(chars)//4 heuristics, ALWAYS labeled estimate (never tokenizer counts).
 """
 
+import contextlib
 import ctypes
 import json
 import os
@@ -168,14 +169,80 @@ MIGRATIONS = {
 }
 
 
+def _heal_legacy_episodes_table(db):
+    """Repair pre-0.14 hand-rolled ``episodes`` tables missing baseline columns.
+
+    Fresh installs made by ``genesis setup`` <= v0.14.0 created ``episodes``
+    with only (id, ts, project, kind, text, utility, tokens_estimate) — the
+    baseline ``accesses`` / ``updated`` columns were never added, so every
+    ``remember``/``recall`` failed with ``no column named accesses`` while
+    ``genesis doctor`` still reported green. This additive-only repair heals
+    those databases in place (no data loss) the next time any GENESIS
+    process opens them.
+    """
+    try:
+        tables = {r[0] for r in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    except Exception:
+        return
+    if "episodes" not in tables:
+        return
+    try:
+        cols = {r[1] for r in db.execute("PRAGMA table_info(episodes)").fetchall()}
+    except Exception:
+        return
+    repairs = []
+    if "accesses" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN accesses INTEGER DEFAULT 0")
+    if "updated" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN updated REAL")
+    if "utility" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN utility REAL DEFAULT 1.0")
+    if "ts" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN ts REAL")
+    if "project" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN project TEXT DEFAULT 'default'")
+    if "kind" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN kind TEXT DEFAULT 'fact'")
+    if "text" not in cols:
+        repairs.append("ALTER TABLE episodes ADD COLUMN text TEXT DEFAULT ''")
+    for stmt in repairs:
+        try:
+            db.execute(stmt)
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
+    if repairs:
+        with contextlib.suppress(sqlite3.Error):
+            db.execute("UPDATE episodes SET accesses = COALESCE(accesses, 0),"
+                       " updated = COALESCE(updated, ts, 0)"
+                       " WHERE accesses IS NULL OR updated IS NULL")
+        db.commit()
+
+
 def migrate(db):
     """Bring an SQLite handle to SCHEMA_VERSION without data loss. Idempotent."""
+    try:
+        had_fts = db.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
+            " AND name='episodes_fts'").fetchone()[0] > 0
+    except Exception:
+        had_fts = True
+    _heal_legacy_episodes_table(db)
     cur = db.execute("PRAGMA user_version").fetchone()[0]
     if cur == 0 and db.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
             " AND name='episodes'").fetchone()[0]:
         cur = 1  # pre-versioning database already at baseline shape
     db.executescript(SCHEMA)
+    if not had_fts:
+        # The FTS5 external-content index was just created over pre-existing
+        # rows (legacy installer DBs). Those rows are unindexed, and the
+        # AFTER UPDATE sync trigger would raise "database disk image is
+        # malformed" on the first UPDATE of such a row. One-time rebuild
+        # re-indexes everything; afterwards the triggers keep it in sync.
+        with contextlib.suppress(sqlite3.Error):
+            db.execute("INSERT INTO episodes_fts(episodes_fts) VALUES('rebuild')")
     for ver in range(cur + 1, SCHEMA_VERSION + 1):
         for stmt in MIGRATIONS.get(ver, []):
             try:

@@ -53,6 +53,9 @@ def check_storage_dirs() -> Tuple[bool, str, str]:
         return False, f"{GENESIS_DIR} (Error)", f"Permission or disk failure: {exc}"
 
 
+REQUIRED_EPISODE_COLUMNS = {"ts", "project", "kind", "text", "utility", "accesses", "updated"}
+
+
 def check_sqlite_memory() -> Tuple[bool, str, str]:
     if not MEMORY_DB_PATH.exists():
         return True, "Ready for initialization", "Database will be created automatically on first run"
@@ -64,8 +67,40 @@ def check_sqlite_memory() -> Tuple[bool, str, str]:
         mode = cursor.fetchone()[0]
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [r[0] for r in cursor.fetchall()]
+        if "episodes" not in tables:
+            conn.close()
+            return False, "Schema incomplete (no episodes table)", (
+                f"Path: {MEMORY_DB_PATH} — run 'genesis setup --yes' to auto-repair, "
+                "or delete the DB to recreate it (loses stored memories)"
+            )
+        cursor.execute("PRAGMA table_info(episodes);")
+        cols = {r[1] for r in cursor.fetchall()}
+        missing = sorted(REQUIRED_EPISODE_COLUMNS - cols)
+        cursor.execute("PRAGMA user_version;")
+        schema_version = cursor.fetchone()[0]
         conn.close()
-        return True, f"Active ({len(tables)} tables, WAL={mode.upper()})", f"Path: {MEMORY_DB_PATH}"
+        if missing:
+            return False, f"Schema mismatch (missing: {', '.join(missing)})", (
+                f"Path: {MEMORY_DB_PATH} — legacy partial schema from an older installer. "
+                "Run 'genesis setup --yes' to repair in place (additive, no data loss)"
+            )
+        # Functional proof: the daemon's exact recall path must work, not just COUNT(*).
+        try:
+            from genesis_memory.daemon.server import Store
+            probe = Store(str(MEMORY_DB_PATH))
+            try:
+                probe.recall("__genesis_doctor_probe__", limit=1)
+            finally:
+                try:
+                    probe.db.close()
+                except Exception:
+                    pass
+        except Exception as exc:
+            return False, "Unusable (recall probe failed)", (
+                f"Path: {MEMORY_DB_PATH} — {type(exc).__name__}: {exc}. "
+                "Run 'genesis setup --yes' to repair in place"
+            )
+        return True, f"Active ({len(tables)} tables, WAL={mode.upper()}, schema v{schema_version})", f"Path: {MEMORY_DB_PATH}"
     except Exception as exc:
         return False, "Corrupt or locked", f"Failed SQLite inspection: {exc}"
 
