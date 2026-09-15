@@ -1,5 +1,21 @@
 # GENESIS Memory — Release Changelog
 
+## v0.14.3 (2026-09-16)
+
+- **P1 external-audit remediation (CI, docs honesty, transparency)**:
+  1. New CI workflow (`.github/workflows/ci.yml`): full pytest suite on
+     Python 3.10–3.13 × Ubuntu/Windows/macOS for every push/PR — tests
+     previously never ran in CI.
+  2. `docs/MCP_SPEC.md` regenerated from code (`scripts/gen_mcp_spec.py`;
+     19 tools + gateway, real parameter names) with a drift-guard test, so
+     the spec can never silently rot again.
+  3. README honesty: BSL-1.1 notice under the tagline (not OSI open-source),
+     `genesis dashboard` labeled Pro, and the false "comments survive" merge
+     claim corrected (`--revert` restores original bytes).
+  4. New `SECURITY.md`: threat model, key handling, SSRF/proxy boundaries,
+     privacy-shield limits, wipe instructions, and honest limitations
+     (memory provenance, heuristic token estimates, illustrative benchmarks).
+
 ## v0.14.2 (2026-09-16)
 
 - **P0 external-audit remediation (benchmark honesty + proxy security)**:

@@ -9,9 +9,13 @@
 </p>
 
 <p align="center">
+  <sub>Source-available under the <strong>Business Source License 1.1</strong> — free for individuals, teams under 10, and non-production use (not OSI open-source). See <a href="#licensing">Licensing</a>.</sub>
+</p>
+
+<p align="center">
   <a href="https://hamidrezaeian.github.io/genesis-memory-site/"><img src="https://img.shields.io/badge/website-interactive_demo-00F0FF?style=flat-square&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <img src="https://img.shields.io/badge/tests-465%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
-  <img src="https://img.shields.io/badge/version-0.14.2-00F0FF?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/tests-467%20passed-22C55E?style=flat-square&logo=pytest" alt="Tests" />
+  <img src="https://img.shields.io/badge/version-0.14.3-00F0FF?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/clients-20%20auto--wired-8B5CF6?style=flat-square" alt="Clients" />
   <img src="https://img.shields.io/badge/MCP%20tools-19%20%2B%20gateway-38BDF8?style=flat-square" alt="MCP Tools" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
@@ -98,7 +102,7 @@ Everything below is completely optional. You only run these when you specificall
 
 | What you want to do | Command | What it does |
 |---|---|---|
-| **Open Visual Cockpit** | `genesis dashboard --open` | Opens interactive 3D memory visualizer & engram explorer in your browser (`:8090`). |
+| **Open Visual Cockpit** · Pro | `genesis dashboard` | Opens interactive 3D memory visualizer & engram explorer in your browser (`:8090`). Requires the commercial `genesis-pro` channel — without it, the command explains how to get it. |
 | **Setup & Connect Proxy** | `genesis proxy setup` (or `genesis setup --yes --proxy ...` inline during initial install) | 1-Minute wizard: enter provider URL & key, auto-wire clients, and start gateway. |
 | **Check Proxy Status** | `genesis proxy status` | Checks if the proxy is running and prints active PID. |
 | **Stop Proxy** | `genesis proxy stop` | Shuts down the background proxy. |
@@ -306,7 +310,7 @@ Measured live against Google Generative Language API on frontier model `gemini-f
 
 ## Universal client support
 
-`genesis setup` is a **data-driven registry** (`genesis_memory/cli/client_registry.py`): each client declares where its config lives, how to detect it, which primitives it supports and how to render the patch in its own dialect. JSON/JSONC files are deep-merged (your existing servers and comments survive); YAML/TOML/Lisp/dotenv files get an idempotent `>>> genesis-memory >>>` marker block that re-runs replace and `--revert` removes.
+`genesis setup` is a **data-driven registry** (`genesis_memory/cli/client_registry.py`): each client declares where its config lives, how to detect it, which primitives it supports and how to render the patch in its own dialect. JSON/JSONC files are deep-merged (your existing servers survive; comments and formatting are normalized to plain JSON on write — `--revert` restores the original bytes). YAML/TOML/Lisp/dotenv files get an idempotent `>>> genesis-memory >>>` marker block that re-runs replace and `--revert` removes.
 
 | Client | Config | Primitives | Format | How It Connects |
 |---|---|---|---|---|
